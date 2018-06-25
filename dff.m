@@ -9,17 +9,26 @@ end
 if BC == 1
     if 1
         [~,dff] = linBleachCorrect(signal);
+     %   [~,dff] = linMinBleachCorrect(signal);warning ('dff hack');
         
     else
-        filerExperiment();
+        filterExperiment();
     end
-else
-    mstart = mean(signal(:,1:30),2);
-    dff = (signal-BC-repmat(mstart,1,LM))./repmat(mstart,1,LM); % Delta f over f
+else % No bleach correction.
+     mstart = mean(signal(:,1:30),2);
+%     dff = (signal-BC-repmat(mstart,1,LM))./repmat(mstart,1,LM); % Delta f
+dff = (signal-repmat(mstart,1,LM))./repmat(mstart,1,LM); % Delta f over v
+      %     warning('Is -BC juist');
+    
+    if 0 % When using the minima
+    LM = length(signal,2);
+    mstart = min(signal(:,1:floor(LM/3)),[],2);
+    dff = (signal-repmat(mstart,1,LM))./repmat(mstart,1,LM); % Delta f over f
+    end
 end
 
 end
-function filerExperiment()
+function filterExperiment()
 
 %       bpFilt = designfilt('bandpassfir', 'FilterOrder', 60, ...
 %   'CutoffFrequency1', 0.05, 'CutoffFrequency2', 15,...
@@ -69,7 +78,7 @@ baseF = mean(lowFreq,2);
 dff = BCsignal'./baseF; % Using auto expansion here
 
 % Debug
-debug = 1;
+debug = 0;
 n=1;
 if debug
     %figure;

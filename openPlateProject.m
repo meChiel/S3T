@@ -17,4 +17,5 @@ for i=1:size(out,1)
     project.exp{i}.Compound = out{i,2};
     project.exp{i}.dir = [path out{i,3}];
 end
+project.filePath=filePath;
 end

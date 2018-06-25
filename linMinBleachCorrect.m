@@ -1,17 +1,17 @@
-function [bcresponse, dff, BC, mstart]=linBleachCorrect(signal)
-avgSampleSize=3;
+function [bcresponse, dff, BC, mstart] = linMinBleachCorrect(signal)
+LM=size(signal,2);
+avgSampleSize=floor(LM/4);
 aSS = avgSampleSize;
 
-mstart= mean(signal(:,1:aSS),2);
-mend= mean(signal(:,end-aSS:end),2);
-
-LM=size(signal,2);
-BC=(mend(:)-mstart(:))*(1:LM)/LM; % Linear Bleach Correction.
+[mstart, mstartInd]= min(signal(:,1:aSS),[],2);
+[mend, mendInd]= min(signal(:,(end-aSS):end),[],2);
+mendInd = mendInd+LM-aSS; 
+BC = (mend(:)-mstart(:))./(mendInd-mstartInd)*(1:LM); % Linear Bleach Correction.
 bcresponse = signal-BC;
-dff=(signal-BC-repmat(mstart,1,LM))./repmat(mstart,1,LM); % Delta f over f
+dff = (signal-BC-repmat(mstart,1,LM))./repmat(mstart,1,LM); % Delta f over f
 
 % Debug
-debug = 0;
+debug = 1;
 n=1;
 if debug
   %figure;

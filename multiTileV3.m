@@ -7,6 +7,11 @@ txtname  = 'Y:\data\Michiel\Protocol1420171121_162003.txt';
 fname= 'Y:\data\Michiel\Protocol1220171121_161824.tif';
 txtname  = 'Y:\data\Michiel\Protocol1220171121_161824.txt';
 
+%%
+fname= 'L:\beerse\all\Public\Exchange\Michiel\post\Protocol13820180306_145832_20180306_150051\Protocol13820180306_145832_tt0000.tif';
+txtname  = 'L:\beerse\all\Public\Exchange\Michiel\post\Protocol13820180306_145832_20180306_150051\Protocol13820180306_145832.txt';
+
+
 %% open the text file
 fid = fopen(txtname);
 S = fscanf(fid,'%s');       
@@ -33,6 +38,8 @@ dy=max(ypos)-min(ypos)
 A=zeros(ceil(dy*3.75)+512,ceil(dx*3.75)+512);
 
 sc=1/0.266666666;
+sc=1/0.2;
+
 for k = 1:100
     
   %  FileName=['Current' num2str(22+k)];

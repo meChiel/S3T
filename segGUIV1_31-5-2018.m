@@ -37,7 +37,7 @@ global M15Data M15pathname M15fname M15dirname
 global M10Data M10pathname M10fname M10dirname                             % 10min. after drug addition
 global M20Data M20pathname M20fname M20dirname                             % 20min. after drug addition
 global M30Data M30pathname M30fname M30dirname                             % 20min. after drug addition
-global ASR mASR miASR stdSR mstdSR swASR stdswASR 
+global ASR mASR miASR stdSR mstdSR
 global defaultDir
 global sliderBtn synSliderBtn
 global bgc fullVersion;
@@ -102,17 +102,17 @@ startUp();
                 
                 NOStxt = uicontrol('Style', 'Edit', 'String', num2str(NOS),...
                     'Position', [20 by(-4) 50 20],...
-                    'Callback', @doSetNOS);
+                    'Callback', @setNOS);
                 uicontrol('Style', 'text', 'String', 'Number of Stim.',...
                     'Position', [70 by(-4) 100 20]);
                 stimFreqtxt = uicontrol('Style', 'Edit', 'String', num2str(stimFreq),...
                     'Position', [20 by(-3) 50 20],...
-                    'Callback', @doSetStimFreq);
+                    'Callback', @setStimFreq);
                 uicontrol('Style', 'text', 'String', 'Stim. freq.',...
                     'Position', [70 by(-3) 100 20]);
                 OnOffsettxt = uicontrol('Style', 'Edit', 'String', num2str(OnOffset),...
                     'Position', [20 by(-2) 50 20],...
-                    'Callback', @doSetOnOffset);
+                    'Callback', @setOnOffset);
                 uicontrol('Style', 'text', 'String', 'Stim. delay',...
                     'Position', [70 by(-2) 100 20]);
             end
@@ -125,12 +125,12 @@ startUp();
             
             
             fpsTxt = uicontrol('Style', 'Edit', 'String', num2str(fps),...
-                'Position', [20 by(-7) 50 20],'Callback', @doSetFPS);
+                'Position', [20 by(-7) 50 20],'Callback', @setFPS);
             
             
             setFPSBtn = uicontrol('Style', 'text', 'String', 'fps',...
                 'Position', [20+50 by(-7) 50 20],...
-                'Callback', @doSetFPS);
+                'Callback', @setFPS);
             
             
             
@@ -180,9 +180,6 @@ startUp();
             
             reuseMaskChkButton = uicontrol('Style','checkbox','Value',0,...
                 'Position',[70 by(-1)+2.5 100 15],'String','reuse Mask');
-            fastLoadChkButton = uicontrol('Style','checkbox','Value',0,...
-                'Position',[70 by(0)+2.5 100 15],'String','fast Load');
-        
         end
         
         thresTxt = uicontrol('Style', 'Edit', 'String', 'no threshold set',...
@@ -260,12 +257,6 @@ startUp();
             'Position', [20 by(9) 50 20],...
             'Callback', @rmvBkGrnd);
         
-        
-        subtractBckgrndBtn = uicontrol('Style', 'pushbutton', 'String', 'rmvBkGrnd!',...
-            'Position', [70 by(9) 50 20],...
-            'Callback', @subtractBckgrnd);
-        
-        
         topHatBtn = uicontrol('Style', 'pushbutton', 'String', 'Tophat',...
             'Position', [217 by(9) 50 20],...
             'Callback', @tophat);
@@ -324,7 +315,7 @@ startUp();
         
         analyseBt = uicontrol('Style', 'pushbutton', 'String', 'Analyze All',...
             'Position', [150 by(14) 50 20],...
-            'Callback', @analyseSingSynResponse);
+            'Callback', @analyseResponse);
         
         
         exportSynapseSignalsBtn = uicontrol('Style', 'pushbutton', 'String', 'exportSynapseSignals',...
@@ -417,10 +408,6 @@ startUp();
             'Position', [5 by(19) 50 20],...
             'Callback', @doDataViewer);
         
-        stimLoadBtn = uicontrol('Style', 'pushbutton', 'String', 'Load Stim',...
-            'Position', [55 by(19) 50 20],...
-            'Callback', @doStimCfgLoad);
-        
     end
 
     function doDataViewer(s,e,h)
@@ -429,45 +416,24 @@ startUp();
 
 
     function doOverviewGenerator(s,e,h)
- 
-        goDeep(@overviewGenerator);
+        overviewGenerator();
     end
     function doReadResults(s,e,h)
-     goDeep(@readResults,'\*analysis.txt');
+        readResults();
     end
-    function doSetOnOffset(s,e,h)
-        setOnOffset(str2double(OnOffsettxt.String));
+    function setOnOffset(s,e,h)
+        OnOffset= str2double(OnOffsettxt.String);
     end
-    function setOnOffset(OnOffset2)
-        OnOffset= OnOffset2;
-        OnOffsettxt.String = num2str(OnOffset);
+    function setStimFreq(s,e,h)
+        stimFreq= str2double(stimFreqtxt.String);
     end
-
-    function doSetStimFreq(s,e,h)
-        setStimFreq(str2double(stimFreqtxt.String));
+    function setNOS(s,e,h) % Number of Stimuli
+        NOS = str2double(NOStxt.String);
     end
-    function setStimFreq(stimFreq2)
-        stimFreq= stimFreq2;
-        stimFreqtxt.String = num2str(stimFreq);
-    end
-
-    function doSetNOS(s,e,h) % Number of Stimuli
-        setNOS( str2double(NOStxt.String));        
-    end
-    function setNOS(NOS2) % Number of Stimuli
-        NOS = NOS2;
-        NOStxt.String = num2str(NOS);
-    end
-    
-    function doSetFPS(s,e,h)
-     setFPS(str2double(fpsTxt.String));
-    end
-    function setFPS(fps2)
-        fps=fps2;
+    function setFPS(s,e,h)
+        fps= str2double(fpsTxt.String);
         dt=1/fps;
-        fpsTxt.String = num2str(fps);
     end
-
     function slide(s,e)
         imagesc(data(:,:,floor(sliderBtn.Value*size(data,3))+1));
     end
@@ -667,14 +633,14 @@ startUp();
             csvwrite([dirname './eigs/' fname '_eigV' num2str(evnI) '.csv'], V(:,evnI));
             csvwrite([dirname './eigs/' fname '_eigS' num2str(evnI) '.csv'],S(evnI,evnI));
         end
-        %% Read Eig
-%         for evnI=1:16
-%             p = imread([dirname './eigs/' fname '_eigU' num2str(evnI) '.png']);
-%             U2(:,evnI) = ((double(p(:))-2^15)/length(p(:)));
-%             V2(:,evnI) = csvread([dirname './eigs/' fname '_eigV' num2str(evnI) '.csv']);
-%             S2(evnI,evnI) = csvread([dirname './eigs/' fname '_eigS' num2str(evnI) '.csv']);
-%         end
-%         
+        
+        for evnI=1:16
+            p = imread([dirname './eigs/' fname '_eigU' num2str(evnI) '.png']);
+            U2(:,evnI) = ((double(p(:))-2^15)/length(p(:)));
+            V2(:,evnI) = csvread([dirname './eigs/' fname '_eigV' num2str(evnI) '.csv']);
+            S2(evnI,evnI) = csvread([dirname './eigs/' fname '_eigS' num2str(evnI) '.csv']);
+        end
+        
     %    pause();
         %  s  = regionprops(synapseBW(:,:),'PixelList','PixelIdxList');
         
@@ -701,6 +667,7 @@ startUp();
         pause(.5);
         imagesc(synapseBW);
     end
+
     function cleanBW(source,event,handles)
         warning('close sz 2 changed to 1')
         synapseBW = imerode(synapseBW,strel('disk',1));
@@ -709,9 +676,11 @@ startUp();
         pause(.5);
         imagesc(synapseBW);
     end
+
     function [Ub, Sb, Vb] = doeigy(source, event, handles)
         [Ub, Sb, Vb] = calcEigY(data);
     end
+
     function [Ub, Sb, Vb] = calcEigY(data)
         [U, S, V] = svd(reshape(data,[],size(data,3)),'econ');
         Ub=U;
@@ -910,14 +879,6 @@ startUp();
             ASR = mean(dff(synsignal'),1); % Average over all synapses
             stdSR = std(dff(synsignal'),1);
             mstdSR = max(stdSR);
-            
-            synapseSize=[];
-            for i=1:length(synRegio)
-                synapseSize(i)=length(synRegio(i).PixelList);
-            end
-          swASR = sum(repmat(synapseSize',1,size(synsignal,1)) .*  dff(synsignal'))/sum(synapseSize); % size weighted average over all synapses
-      
-            
         else
             ASR=zeros(1,wt);
             stdSR = zeros(1,wt);
@@ -925,7 +886,7 @@ startUp();
             invalidate();
         end
     end
-    function analyseSingSynResponse(s,e,v)
+    function analyseResponse(s,e,v)
         stimulationStartTime = 1.0;
         stimulationStartFrame = floor(stimulationStartTime /dt);
         dffsynsignal=dff(synsignal')';
@@ -945,10 +906,6 @@ startUp();
             miSigA(i)=miSig;
             AUC(i) = sum((signal>0).*signal);
             nAUC(i) = sum((signal<0).*signal);
-            synapseSize(i) = length(synRegio(i).PixelList);
-            noiseSTD(i) = std(signal(1:15)); % Calculate noise power (std).
-            aboveThreshold(i) = mSig>(2*noiseSTD(i));
-            
             
             upframes = miSig-stimulationStartFrame;
             upResponse = signal(stimulationStartFrame:miSig);
@@ -996,8 +953,8 @@ startUp();
         UpHalfTime=tau1*0; DownHalfTime=tau1*0;
         error=tau1*0;
         
-        t =     array2table([mSigA'     miSigA' synapseSize' noiseSTD' aboveThreshold' UpHalfTime'    DownHalfTime'    tau1'    amp'      error', xCentPos', yCentPos', synapseNbr', bbox(:,2), bbox(:,1), bbox(:,4), bbox(:,3), AUC', nAUC'],...
-            'VariableNAmes',{'maxSyn', 'miSyn', 'synapseSize', 'noiseSTD', 'aboveThreshold', 'UpHalfTime', 'downHalfTime', 'tau1', 'ampSS', 'error','xCentPos','yCentPos', 'synapseNbr', 'bboxUx','bboxUy','bboxDx','bboxDy','AUC','nAUC'});
+        t =     array2table([mSigA'     miSigA'   UpHalfTime'    DownHalfTime'    tau1'    amp'      error', xCentPos', yCentPos', synapseNbr', bbox(:,2), bbox(:,1), bbox(:,4), bbox(:,3), AUC', nAUC'],...
+            'VariableNAmes',{'maxSyn', 'miSyn', 'UpHalfTime', 'downHalfTime', 'tau1', 'ampSS', 'error','xCentPos','yCentPos', 'synapseNbr', 'bboxUx','bboxUy','bboxDx','bboxDy','AUC','nAUC'});
         
         if(~isdir ([dirname 'output\']))
             mkdir ([dirname 'output\']);
@@ -1014,7 +971,6 @@ startUp();
     function analyseAvgReponse(s,e)
         % Amplitude
         [mASR, miASR] = max(ASR); % Find max ampl of the Average Synaptic Response
-        [mswASR, miswASR] = max(swASR); % Find max ampl of the Average Synaptic Response
         
         stimulationStartTime = 1.0;
         stimulationStartFrame = floor(stimulationStartTime /dt);
@@ -1179,8 +1135,8 @@ startUp();
         error =0; % Indicates if something was wrong with the data or dataprocessing
         
         nAUC = sum((ASR<0).*ASR);
-        t =array2table([mASR mstdSR miASR  mswASR miswASR fps UpHalfTime DownHalfTime tau1 amp nSynapses AUC nAUC error ],...
-            'VariableNames',{'peakAmp', 'mstdSR', 'miASR', 'sizeWeightedMASR', 'swmiASR', 'fps', 'UpHalfTime', 'downHalfTime', 'tau1', 'ampSS', 'nSynapses','AUC','nAUC' ,'error'});
+        t =array2table([mASR mstdSR miASR fps UpHalfTime DownHalfTime tau1 amp nSynapses AUC nAUC error ],...
+            'VariableNames',{'peakAmp', 'mstdSR', 'miASR', 'fps', 'UpHalfTime', 'downHalfTime', 'tau1', 'ampSS', 'nSynapses','AUC','nAUC' ,'error'});
         %t =array2table([mASR miASR fps UpHalfTime DownHalfTime expEqUp expEqDown error ],'VariableNAmes',{'mASR', 'miASR', 'fps', 'UpHalfTime', 'downHalfTime', 'expEqy0', 'upA1', 'upx0', 'upT1', 'expEqdwny0', 'dwnA1', 'dwnx0', 'dwnT1','error'});
         %t =array2table([mASR miASR fps UpHalfTime DownHalfTime expEqUp expEqDown ],'VariableNAmes',{'mASR', 'miASR', 'fps', 'UpHalfTime', 'downHalfTime', 'expEqy0', 'upA1', 'upx0', 'upT1', 'upA2', 'upT2', 'expEqdwny0', 'dwnA1', 'dwnx0', 'dwnT1', 'dwnA2', 'dwnT2'});
         if ~isdir([dirname 'output\']);
@@ -1244,112 +1200,38 @@ startUp();
 
     function processDirs(s,e,h)
         %    [C10dirname] = uigetdir(defaultDir,'Select dir containing dirs to process:');
-        %    [C10dirname] = uigetdir(defaultDir,'Select dir containing dirs to process:');
-        
-%         batchDirs={
-%  'F:\share\toBeProcessed\GCAMP\NS_1120180504_155551_20180504_161603'
-%  'F:\share\toBeProcessed\GCAMP\NS_120180504_141003_20180504_143006'
-%  'F:\share\toBeProcessed\GCAMP\NS_1220180504_162547_20180504_164558'
-%  'F:\share\toBeProcessed\GCAMP\NS_1320180504_165538_20180504_171554'
-%  'F:\share\toBeProcessed\GCAMP\NS_1520180507_100016_20180507_101948'
-%  'F:\share\toBeProcessed\GCAMP\NS_6520180427_151013_20180427_152959'
-%  'F:\share\toBeProcessed\GCAMP\NS_6720180427_154455_20180427_160356'
-%  'F:\share\toBeProcessed\GCAMP\NS_6920180427_161455_20180427_163503'
-%  'F:\share\toBeProcessed\GCAMP\NS_820180504_151837_20180504_153852'
-%             };
-%       
-%         for i=1:length(batchDirs)
-%             processDir(batchDirs{i});
-%         end
+        batchDirs={
+%             'Z:\create\NS_2018_015623\Raw_Data\20180220_132_CS06'
+%             'Z:\create\NS_2018_015623\Raw_Data\20180220_132_CS07'
+%             'Z:\create\NS_2018_015623\Raw_Data\20180221_132_CS09'
+%             'Z:\create\NS_2018_015623\Raw_Data\20180221_132_CS10'
+%             'Z:\create\NS_2018_015623\Raw_Data\20180221_132_CS11'
+%             'Z:\create\NS_2018_015623\Raw_Data\20180219_132_CS04'
+%             'Z:\create\NS_2018_015623\Raw_Data\20180219_132_CS03'
+%             'Z:\create\NS_2018_015623\Raw_Data\20180220_132_CS08'
+%             'Z:\create\NS_2018_015623\Raw_Data\20180219_132_CS02'
+%             'Z:\create\NS_2018_015623\Raw_Data\20180219_132_CS05'
 
-        [C10dirname] = uigetdir(defaultDir,'Select dir containing dirs to process:');
-        batchDirs  = dir(C10dirname);
-        batchDirs(1)=[];
-        batchDirs(1)=[];
+ 'F:\share\toBeProcessed\GCAMP\NS_1120180504_155551_20180504_161603'
+ 'F:\share\toBeProcessed\GCAMP\NS_120180504_141003_20180504_143006'
+ 'F:\share\toBeProcessed\GCAMP\NS_1220180504_162547_20180504_164558'
+ 'F:\share\toBeProcessed\GCAMP\NS_1320180504_165538_20180504_171554'
+ 'F:\share\toBeProcessed\GCAMP\NS_1520180507_100016_20180507_101948'
+ 'F:\share\toBeProcessed\GCAMP\NS_6520180427_151013_20180427_152959'
+ 'F:\share\toBeProcessed\GCAMP\NS_6720180427_154455_20180427_160356'
+ 'F:\share\toBeProcessed\GCAMP\NS_6920180427_161455_20180427_163503'
+ 'F:\share\toBeProcessed\GCAMP\NS_820180504_151837_20180504_153852'
+            };
         
         for i=1:length(batchDirs)
-            if isdir([batchDirs(i).folder '\' batchDirs(i).name])
-                processDir([batchDirs(i).folder '\' batchDirs(i).name]);
-            end
+            processDir(batchDirs{i});
         end
-    end
 
-    function goDeep(func,filterOptions)
-          [dataDirname] = uigetdir(defaultDir,'Select dir:');
-        defaultDir =  [dataDirname '\..'];
-        
-        if nargin<2
-            filterOptions='\*.tif';
-        end
-        if isempty(dir([dataDirname filterOptions]))
-            d2= dir([dataDirname '\*.*']);
-            d2(~[d2.isdir])=[]; % remove files, keep subdirs
-            for  i=1:(length(d2)-2) % remove . and ..
-                if isempty(dir([dataDirname '\' d2(i+2).name filterOptions]))
-                    d3= dir([dataDirname '\' d2(i+2).name '\*.*']);
-                    d3(~[d3.isdir])=[]; % remove files, keep subdirs
-                    for  ii=1:(length(d3)-2) % remove . and ..
-                        if isempty(dir([dataDirname '\' d2(i+2).name '\' d3(ii+2).name filterOptions]))
-                            d4= dir([dataDirname '\' d2(i+2).name '\' d3(ii+2).name '\*.*']);
-                            d4(~[d4.isdir])=[]; % remove files, keep subdirs
-                            for  iii=1:(length(d4)-2) % remove . and ..
-                                if isempty(dir([dataDirname '\' d2(i+2).name '\' d3(ii+2).name '\' d4(iii+2).name filterOptions]))
-                                    d5= dir([dataDirname '\' d2(i+2).name '\' d3(ii+2).name '\' d4(iii+2).name '\*.*']);
-                                    d5(~[d5.isdir])=[]; % remove files, keep subdirs
-                                    for  iiii=1:(length(d5)-2) % remove . and ..
-                                        if isempty(dir([dataDirname '\' d2(i+2).name '\' d3(ii+2).name '\' d4(iii+2).name '\' d5(iiii+2).name filterOptions]))
-                                        else
-                                            func([dataDirname '\' d2(i+2).name '\' d3(ii+2).name '\' d4(iii+2).name '\' d5(iiii+2).name]);
-                                        end
-                                    end
-                                else
-                                    func([dataDirname '\' d2(i+2).name '\' d3(ii+2).name '\' d4(iii+2).name]);
-                                end
-                            end
-                        else
-                            func([dataDirname '\' d2(i+2).name '\' d3(ii+2).name]);
-                        end
-                    end
-                else
-                    func([dataDirname '\' d2(i+2).name]);
-                end
-            end
-        else
-            func(dataDirname);
-        end
     end
     function doProcessDir(s,e,h)
         [dataDirname] = uigetdir(defaultDir,'Select dir:');
         defaultDir =  [dataDirname '\..'];
-        if isempty(dir([dataDirname '\*.tif']))
-            dd= dir([dataDirname '\*.*']);
-            dd(~[dd.isdir])=[]; % remove files, keep subdirs
-            for  i=1:(length(dd)-2) % remove . and ..
-                if isempty(dir([dataDirname '\' dd(i+2).name '\*.tif']))
-                    ddd= dir([dataDirname '\' dd(i+2).name '\*.*']);
-                    ddd(~[ddd.isdir])=[]; % remove files, keep subdirs
-                    for  ii=1:(length(ddd)-2) % remove . and ..
-                        if isempty(dir([dataDirname '\' dd(i+2).name '\' ddd(ii+2).name '\*.tif']))
-                            dddd= dir([dataDirname '\' dd(i+2).name '\' ddd(ii+2).name '\*.*']);
-                            dddd(~[dddd.isdir])=[]; % remove files, keep subdirs
-                            for  iii=1:(length(dddd)-2) % remove . and ..
-                                if isempty(dir([dataDirname '\' dd(i+2).name '\' ddd(ii+2).name '\' dddd(iii+2).name '\*.tif']))
-                                else
-                                    processDir([dataDirname '\' dd(i+2).name '\' ddd(ii+2).name '\' dddd(iii+2).name]);
-                                end
-                            end
-                        else
-                            processDir([dataDirname '\' dd(i+2).name '\' ddd(ii+2).name]);
-                        end
-                    end
-                else
-                    processDir([dataDirname '\' dd(i+2).name]);
-                end
-            end
-        else
-            processDir(dataDirname);
-        end
-        
+        processDir(dataDirname)
     end
     function processDir(datadirname)
         % [C10dirname] = uigetdir(defaultDir,'Select control 10AP dir:');
@@ -1381,7 +1263,7 @@ startUp();
            fclose(fid);
            % Load the data
             fNmTxt.String=['loading..' expnm{iii}.name];
-           [data, pathname, fname, dirname] = loadTiff([expnm{iii}.folder '\' expnm{iii}.name],fastLoadChkButton.Value );
+           [data, pathname, fname, dirname] = loadTiff([expnm{iii}.folder '\' expnm{iii}.name],fastLoadChkButton.Value);
             defaultDir = dirname;
             dNmTxt.String = defaultDir;
             wx = size(data,2); wy = size(data,1);
@@ -1417,8 +1299,7 @@ startUp();
     end
     function processMovie(pathname)
         if (reuseMaskChkButton.Value==1)
-              synRegio =  loadMask([pathname(1:end) '_mask.png']);
-              setMask();
+            loadMask([pathname(1:end) '_mask.png']);
         else
             segmentCellBodies=0;
             if segmentCellBodies
@@ -1427,18 +1308,21 @@ startUp();
             else
                 segment2();
                 rmvBkGrnd();
+                
+                
             end
-            
-            threeSigThreshold();
-%             onesigma = mean(synProb(:))+1*std(synProb(:));
-%             setTvalue(onesigma);
-%             threshold();
-%             warning('threshold Sigma = 1')
-            cleanBW();
+
+twoSigThreshold();
+
+    onesigma = mean(synProb(:))+1*std(synProb(:));
+        setTvalue(onesigma);
+        threshold();
+        warning('threshold Sigma = 1')
+        
+cleanBW();
+
             detectIslands();
-            subtractBckgrnd();
             extractSignals();
-            
             
             %loadTiff22();
             exportMask();
@@ -1449,12 +1333,11 @@ startUp();
         synRegio = maskRegio;
         if (length(synRegio) ~=0)
             extractSignals();
-            subtractBckgrnd();
             signalPlot();
             exportSynapseSignals();
             
             % GetAmplitude
-            analyseSingSynResponse();
+            analyseResponse();
             avgSynapseResponse();
             doMultiResponseto1();             
             analyseAvgReponse();
@@ -1481,9 +1364,8 @@ startUp();
         savesubplot(4,4,8,[pathname '_analysis']);
       
         mASR=0; miASR=0; mstdSR=0; fps=fps; UpHalfTime=0; DownHalfTime=0; expEqUp=0; expEqDown=0; tau1 = 0; ampSS=0; nSynapses=0; error=1;AUC=0;nAUC=0;
-        mswASR=0; miswASR=0;
-        t =array2table([mASR mstdSR miASR  mswASR miswASR fps UpHalfTime DownHalfTime tau1 amp nSynapses AUC nAUC error ],...
-            'VariableNames',{'peakAmp', 'mstdSR', 'miASR', 'sizeWeightedMASR', 'swmiASR', 'fps', 'UpHalfTime', 'downHalfTime', 'tau1', 'ampSS', 'nSynapses','AUC','nAUC' ,'error'});
+        t =array2table([mASR mstdSR miASR fps UpHalfTime DownHalfTime tau1 ampSS nSynapses AUC nAUC error ],...
+            'VariableNAmes',{'peakAmp', 'stdSR', 'miASR', 'fps', 'UpHalfTime', 'downHalfTime', 'tau1', 'ampSS','nSynapses','AUC', 'nAUC','error'});
         
         %t =array2table([mASR miASR fps UpHalfTime DownHalfTime expEqUp expEqDown error],'VariableNAmes',{'mASR', 'miASR', 'fps', 'UpHalfTime', 'downHalfTime', 'expEqy0', 'upA1', 'upx0', 'upT1', 'expEqdwny0', 'dwnA1', 'dwnx0', 'dwnT1', 'invalid'});
         %t =array2table([mASR miASR fps UpHalfTime DownHalfTime expEqUp expEqDown ],'VariableNAmes',{'mASR', 'miASR', 'fps', 'UpHalfTime', 'downHalfTime', 'expEqy0', 'upA1', 'upx0', 'upT1', 'upA2', 'upT2', 'expEqdwny0', 'dwnA1', 'dwnx0', 'dwnT1', 'dwnA2', 'dwnT2'});
@@ -1653,8 +1535,7 @@ startUp();
             
            % 
            if isfile([C10expnm{iii}.folder '\' C10expnm{iii}.name '_mask.png'])
-              synRegio =  loadMask([C10expnm{iii}.folder '\' C10expnm{iii}.name '_mask.png']);
-                 setMask();
+            loadMask([C10expnm{iii}.folder '\' C10expnm{iii}.name '_mask.png']);
            else
                segment2();
                rmvBkGrnd();
@@ -1702,7 +1583,7 @@ startUp();
                         signalPlot();
                         exportSynapseSignals();
                         % GetAmplitude
-                        analyseSingSynResponse();
+                        analyseResponse();
                         avgSynapseResponse();
                         ASR=multiResponseto1(ASR);
                         
@@ -1736,7 +1617,7 @@ startUp();
                         signalPlot();
                         exportSynapseSignals();
                         % GetAmplitude
-                        analyseSingSynResponse();
+                        analyseResponse();
                         avgSynapseResponse();
                         hold on
                         plot(ASR,'k','LineWidth',2)
@@ -1768,7 +1649,7 @@ startUp();
                         signalPlot();
                         exportSynapseSignals();
                         % GetAmplitude
-                        analyseSingSynResponse();
+                        analyseResponse();
                         avgSynapseResponse();
                         signalPlot();
                         hold on
@@ -1805,7 +1686,7 @@ startUp();
                         signalPlot();
                         exportSynapseSignals();
                         % GetAmplitude
-                        analyseSingSynResponse();
+                        analyseResponse();
                         avgSynapseResponse();
                         ASR=multiResponseto1(ASR);
                         
@@ -1907,20 +1788,6 @@ startUp();
         
     end
 
-    function subtractBckgrnd(f,d,e)
-        [sz1, sz2, sz3]=size(data);
-        tempBG = getBkgrnd(data(:,:,:));
-        tempBG =reshape(tempBG ,[ 1 1 sz3]);
-        data=data-repmat(tempBG,[sz1 sz2 1]);        
-    end
-
-    function backGroundStrength=getBkgrnd(data)
-        image=mean(data(:,:,1:end),3);
-        [~, sii] = sort(image(:));
-        fivePrctInterval = floor(length(sii)/100*5);
-        data2=reshape(data,[],size(data,3));
-        backGroundStrength = mean(data2(sii(1:fivePrctInterval),:));      
-    end
     function ok = exportMask(s,e,h)
         s2=synRegio;
         synsignal=[];
@@ -2000,18 +1867,42 @@ startUp();
     function ok = doloadMask(s,e,h)
         [maskFilename, maskDir] = uigetfile('*.png',['Select mask:'],[defaultDir '\']);
         maskFilePath = [maskDir '\' maskFilename];
-        synRegio = loadMask(maskFilePath);
+        ok = loadMask(maskFilePath);
+    end
+    function ok = loadMask(maskFilePath)
+        ok=0;
+        if (nargin==0)
+            [maskFilename, maskDir] = uigetfile('*.png',['Select mask:'],[defaultDir '\']);
+            maskFilePath = [maskDir '\' maskFilename];
+        else
+            maskFilePath;
+        end
+        mask = imread(maskFilePath);
+        synRegio2=[];
+        sortedValues = sort(mask(:));
+        [lowestNZValueID] = find(0<sortedValues,1);
+        lowestNZValue = sortedValues(lowestNZValueID);
+        maxValue = max(mask(:));
+        ids = maxValue:-1:lowestNZValue;
+        imagesc(mask);
+        for i=1:length(ids)
+            %synRegio{i}.PixelIdxList = find(mask==ids(i));
+            synRegio2{i}= find(mask==ids(i));
+        end
+        for i=1:length(ids)
+             [synRegioPixelListX{i}, synRegioPixelListY{i}] = ind2sub([wy,wx],synRegio2{i});
+        end
+        
+        if isempty(synRegio2)
+            synRegio=[];
+        else
+            for i=1:length(ids)
+                synRegio{i}=cell2struct({synRegio2{i};  [synRegioPixelListX{i}, synRegioPixelListY{i}] },{'PixelIdxList','PixelList'},1);
+            end
+        end
+            
         setMask();
+        ok=1;
     end
-   
-
-    function doStimCfgLoad(s,f,g)
-        stimCfg = stimSettingsLoader(dirname);
-        setNOS(stimCfg.pulseCount);
-        setFPS(stimCfg.imageFreq);
-        setOnOffset(round(stimCfg.delayTime*stimCfg.imageFreq/1000));
-        setStimFreq(stimCfg.stimFreq);
-    end
- 
 end
 
