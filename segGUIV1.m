@@ -37,7 +37,7 @@ global M15Data M15pathname M15fname M15dirname
 global M10Data M10pathname M10fname M10dirname                             % 10min. after drug addition
 global M20Data M20pathname M20fname M20dirname                             % 20min. after drug addition
 global M30Data M30pathname M30fname M30dirname                             % 20min. after drug addition
-global ASR mASR miASR stdSR mstdSR swASR stdswASR 
+global ASR mASR miASR stdSR mstdSR swASR stdswASR AR mAR miAR AR1 rAR 
 global defaultDir
 global sliderBtn synSliderBtn
 global bgc fullVersion;
@@ -508,6 +508,14 @@ startUp();
         imagesc(synProb);
     end
 
+    function laplaceFilter(s,e,h)
+        sigma=.1;
+        alpha=4;
+        B =locallapfilt(synProb,sigma,alpha);
+        psnr_denoised = psnr(B, synProb);
+        synProb =B;
+    end
+
     function go(source,event,handles)
         if exist(dirname)
             if (dirname~=0)
@@ -908,10 +916,19 @@ startUp();
         hold off
         if ~isempty(synsignal)
             ASR = mean(dff(synsignal'),1); % Average over all synapses
-            stdSR = std(dff(synsignal'),1);
+            dd=mean(reshape(data,wx*wy,[]),1);
+            mdd=multiResponseto1(dd,0);
+            AR = dff(dd); % Average over all pixels, average Response
+            [TSpAPA , TSpAPAi] = max(mdd); %Temporal spike Averaged Pixel Amplitude
+           
+               
+            AR1 = mean(dff(reshape(data,wx*wy,[]),1)); % Average over all pixels, average Response
+           rAR = mean(reshape(data,wx*wy,[]),1); % Average over all pixels, average Response
+           
+            stdSR = std(dff(synsignal'),1); %stdSR for all points in time
             mstdSR = max(stdSR);
             
-            synapseSize=[];
+            synapseSize=zeros(1,length(synRegio));
             for i=1:length(synRegio)
                 synapseSize(i)=length(synRegio(i).PixelList);
             end
@@ -920,10 +937,14 @@ startUp();
             
         else
             ASR=zeros(1,wt);
+            AR=zeros(1,wt);
             stdSR = zeros(1,wt);
             mstdSR = 0;
             invalidate();
         end
+        r=[ASR',AR',swASR',rAR',AR1'];
+        t=array2table(r,'VariableNames',{'SynapseAverage','PixelAverage','SWSynapseAverage','rawAverageResponse','AverageResponse1'});
+        writetable(t,[dirname 'output\' fname(1:end-4) '_traces.csv']);
     end
     function analyseSingSynResponse(s,e,v)
         stimulationStartTime = 1.0;
@@ -997,7 +1018,7 @@ startUp();
         error=tau1*0;
         
         t =     array2table([mSigA'     miSigA' synapseSize' noiseSTD' aboveThreshold' UpHalfTime'    DownHalfTime'    tau1'    amp'      error', xCentPos', yCentPos', synapseNbr', bbox(:,2), bbox(:,1), bbox(:,4), bbox(:,3), AUC', nAUC'],...
-            'VariableNAmes',{'maxSyn', 'miSyn', 'synapseSize', 'noiseSTD', 'aboveThreshold', 'UpHalfTime', 'downHalfTime', 'tau1', 'ampSS', 'error','xCentPos','yCentPos', 'synapseNbr', 'bboxUx','bboxUy','bboxDx','bboxDy','AUC','nAUC'});
+            'VariableNames',{'maxSyn', 'miSyn', 'synapseSize', 'noiseSTD', 'aboveThreshold', 'UpHalfTime', 'downHalfTime', 'tau1', 'ampSS', 'error','xCentPos','yCentPos', 'synapseNbr', 'bboxUx','bboxUy','bboxDx','bboxDy','AUC','nAUC'});
         
         if(~isdir ([dirname 'output\']))
             mkdir ([dirname 'output\']);
@@ -1015,6 +1036,7 @@ startUp();
         % Amplitude
         [mASR, miASR] = max(ASR); % Find max ampl of the Average Synaptic Response
         [mswASR, miswASR] = max(swASR); % Find max ampl of the Average Synaptic Response
+        [mAR, miAR] = max(AR); % Find max ampl of the Average Response
         
         stimulationStartTime = 1.0;
         stimulationStartFrame = floor(stimulationStartTime /dt);
@@ -1023,22 +1045,39 @@ startUp();
         subplot(4,4,8)
         cla
         plot(dt*(((1:length(ASR))-1)), ASR);
+        hold on;
+        plot(dt*(((1:length(AR))-1)), AR);
         xlabel(['Time(s) (' num2str(fps) 'fps)'])
         ylabel('\Delta F/F0');
         title('Analysis')
         text(miASR/fps,mASR*1.05 ,['max: ' num2str(mASR)],'HorizontalAlignment','center');
         % Area under the curve
-        AUC = sum(ASR.*(ASR>0));
+        AUC = sum(ASR.*(ASR>0));        
+        nAUC = sum(ASR.*(ASR<0));
         text(miASR/fps,mASR*0.7 ,{'AUC:', num2str(AUC)},'HorizontalAlignment','center');
         
         
+        % Calculate Pixel averaged kinetics
+%         upframesPA = miAR-stimulationStartFrame;
+%         upResponsePA = AR(stimulationStartFrame:miAR);
+%         expdataPA.x = (0:(length(upResponsePA)-1))*dt;
+%         expdataPA.y = upResponsePA;
+
+        downResponse = AR(miAR:end); %Average Response
+        expdataPA.x = (0:(length(downResponse)-1))*dt;
+        expdataPA.y = downResponse;
+        
+        [tau1PA, ampPA, t0PA] = exp1fit(expdataPA.x,expdataPA.y); %Pixel Average
+        AUCPA = sum(AR.*(AR>0));
+        nAUCPA = sum(AR.*(AR<0));
+        
+        
+        % Calculate Synapse averaged kinetics
         upframes = miASR-stimulationStartFrame;
         upResponse = ASR(stimulationStartFrame:miASR);
-        
         expdata.x = (0:(length(upResponse)-1))*dt;
         expdata.y = upResponse;
         %[expEqUp, fitCurve1] = curveFitV1(expdata,[.22 100 0 2 -1 2]);
-        
         
         if length(expdata.x(:))<=4000000
             expEqUp =[0 0 0 0] ;
@@ -1178,9 +1217,9 @@ startUp();
         savesubplot(4,4,8,[pathname '_analysis']);
         error =0; % Indicates if something was wrong with the data or dataprocessing
         
-        nAUC = sum((ASR<0).*ASR);
-        t =array2table([mASR mstdSR miASR  mswASR miswASR fps UpHalfTime DownHalfTime tau1 amp nSynapses AUC nAUC error ],...
-            'VariableNames',{'peakAmp', 'mstdSR', 'miASR', 'sizeWeightedMASR', 'swmiASR', 'fps', 'UpHalfTime', 'downHalfTime', 'tau1', 'ampSS', 'nSynapses','AUC','nAUC' ,'error'});
+       
+        t =array2table([mASR mstdSR miASR  mswASR miswASR fps UpHalfTime DownHalfTime tau1 amp nSynapses AUC nAUC tau1PA ampPA t0PA error ],...
+            'VariableNames',{'peakAmp', 'mstdSR', 'miASR', 'sizeWeightedMASR', 'swmiASR', 'fps', 'UpHalfTime', 'downHalfTime', 'tau1', 'ampSS', 'nSynapses','AUC','nAUC' , 'tau1PA', 'ampPA', 't0PA' ,'error'});
         %t =array2table([mASR miASR fps UpHalfTime DownHalfTime expEqUp expEqDown error ],'VariableNAmes',{'mASR', 'miASR', 'fps', 'UpHalfTime', 'downHalfTime', 'expEqy0', 'upA1', 'upx0', 'upT1', 'expEqdwny0', 'dwnA1', 'dwnx0', 'dwnT1','error'});
         %t =array2table([mASR miASR fps UpHalfTime DownHalfTime expEqUp expEqDown ],'VariableNAmes',{'mASR', 'miASR', 'fps', 'UpHalfTime', 'downHalfTime', 'expEqy0', 'upA1', 'upx0', 'upT1', 'upA2', 'upT2', 'expEqdwny0', 'dwnA1', 'dwnx0', 'dwnT1', 'dwnA2', 'dwnT2'});
         if ~isdir([dirname 'output\']);
@@ -1188,6 +1227,8 @@ startUp();
         end
         writetable(t,[dirname 'output\' fname(1:end-4) '_analysis']);
         disp([dirname 'output\' fname(1:end-4) '_analysis.csv']);disp([ 'created']);
+        
+        
         subplot(4,4,15)
         
     end
@@ -1481,9 +1522,9 @@ startUp();
         savesubplot(4,4,8,[pathname '_analysis']);
       
         mASR=0; miASR=0; mstdSR=0; fps=fps; UpHalfTime=0; DownHalfTime=0; expEqUp=0; expEqDown=0; tau1 = 0; ampSS=0; nSynapses=0; error=1;AUC=0;nAUC=0;
-        mswASR=0; miswASR=0;
-        t =array2table([mASR mstdSR miASR  mswASR miswASR fps UpHalfTime DownHalfTime tau1 amp nSynapses AUC nAUC error ],...
-            'VariableNames',{'peakAmp', 'mstdSR', 'miASR', 'sizeWeightedMASR', 'swmiASR', 'fps', 'UpHalfTime', 'downHalfTime', 'tau1', 'ampSS', 'nSynapses','AUC','nAUC' ,'error'});
+        mswASR=0; miswASR=0;amp=0;tau1PA=0; ampPA=0; t0PA=0;
+        t =array2table([mASR mstdSR miASR  mswASR miswASR fps UpHalfTime DownHalfTime tau1 amp nSynapses AUC nAUC tau1PA ampPA t0PA error ],...
+            'VariableNames',{'peakAmp', 'mstdSR', 'miASR', 'sizeWeightedMASR', 'swmiASR', 'fps', 'UpHalfTime', 'downHalfTime', 'tau1', 'ampSS', 'nSynapses','AUC','nAUC' , 'tau1PA', 'ampPA', 't0PA' ,'error'});
         
         %t =array2table([mASR miASR fps UpHalfTime DownHalfTime expEqUp expEqDown error],'VariableNAmes',{'mASR', 'miASR', 'fps', 'UpHalfTime', 'downHalfTime', 'expEqy0', 'upA1', 'upx0', 'upT1', 'expEqdwny0', 'dwnA1', 'dwnx0', 'dwnT1', 'invalid'});
         %t =array2table([mASR miASR fps UpHalfTime DownHalfTime expEqUp expEqDown ],'VariableNAmes',{'mASR', 'miASR', 'fps', 'UpHalfTime', 'downHalfTime', 'expEqy0', 'upA1', 'upx0', 'upT1', 'upA2', 'upT2', 'expEqdwny0', 'dwnA1', 'dwnx0', 'dwnT1', 'dwnA2', 'dwnT2'});

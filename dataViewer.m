@@ -1,5 +1,5 @@
 function dataViewer()
-global plateFilename plateDir responses detailFilename defaultDir currentFile fittt histtt exporttt
+global plateFilename plateDir responses detailFilename defaultDir currentFile fittt histtt exporttt currentLevel
 bgc=[0.5 0.5 0.5];
 f3 = figure('Visible','on','name','S3T: Data Viewer',...
     'Color',bgc,...
@@ -18,6 +18,7 @@ seeTraceBtn = uicontrol('Style', 'pushbutton', 'String', 'See Trace',...
     'Position', [5+50+50 10 50 20],...
     'Backgroundcolor',bgc,...
     'Callback', @seeTrace);
+
 
 lineSizeBtn = uicontrol('Style', 'popup', 'String', {'0.5','1','2','3','4','5','6'},...
     'Position', [5+50 (900) 50 20],...
@@ -47,7 +48,68 @@ exporttt=0;
 
 global data;
 global stimLstX stimLstY
-
+ function levelDown(d,f,e)
+         switch currentLevel
+            case 'synapseLevel'
+                % Open Well data
+                
+                disp('This is the bottom Level')
+                currentLevel='synapseLevel';
+            case 'wellLevel'
+                % Open a specific well of the plate, show synapses
+                %Do the magic function:
+                getWell();
+%                 k=strfind(plateDir,'\'); %find parent directory
+%                 plateDir=plateDir(1:k(end-1));
+%                 fn = [plateFilename{1}(1:end-13) '_analysis.txt' ];
+%                 openFiles(fn,plateDir);
+                
+                currentLevel='synapseLevel';
+            case 'plateLevel'
+                % Open all individual wells
+                 tt = dir([plateDir '*_analysis.txt']);
+                openFiles({tt.name},plateDir);
+                currentLevel='wellLevel';
+            case 'experimentLevel'
+                % Open a specific plate of the experiment
+                openFiles({'AllWells.txt'},plateDir);
+                currentLevel='plateLevel';
+             case 'multi-experimentLevel'
+                 currentLevel='experimentLevel'
+        end
+    
+     
+ end
+    function levelUp(d,f,e)
+        switch currentLevel
+            case 'synapseLevel'
+                % Open Well data
+                k=strfind(plateDir,'SynapseDetails\'); %find parent directory
+                plateDir=plateDir(1:(k(1)-1));
+                fn = [plateFilename{1}(1:end-13) '_analysis.txt' ];
+                openFiles(fn,plateDir);
+                currentLevel='wellLevel';
+            case 'wellLevel'
+                % Open all wells of the plate
+                tt = dir([plateDir '*_analysis.txt']);
+                openFiles({tt.name},plateDir)
+                currentLevel='plateLevel';
+            case 'plateLevel'
+                % Open summary of the plate
+                openFiles({'AllWells.txt'},plateDir);
+                currentLevel='experimentLevel';
+            case 'experimentLevel'
+                % Open summary of the experiment
+                
+                currentLevel='multi-experimentLevel';
+            case 'multi-experimentLevel'
+                disp('This is the top level for now')
+                currentLevel='multi-experimentLevel';
+        end
+        
+     
+        
+    end
     function getWell(d,f,e)
         
         
@@ -192,6 +254,7 @@ global stimLstX stimLstY
         openFiles(plateFilename,plateDir);
     end
     function openFiles(plateFilename2,plateDir)
+        currentFile = 1;
         if ~iscell(plateFilename2)
             a=plateFilename2;
             plateFilename=[];
@@ -199,6 +262,18 @@ global stimLstX stimLstY
         else
             plateFilename = plateFilename2;
             
+        end
+        
+        if (length(plateFilename{1})>13)
+        if strcmp(plateFilename{1}(end-12:end),'_synapses.txt')
+            currentLevel='synapseLevel';
+        end
+        if strcmp(plateFilename{1}(end-12:end),'_analysis.txt')
+            currentLevel='wellLevel';
+        end
+        end
+        if strcmp   (plateFilename{1}(end-11:end),'AllWells.txt')
+            currentLevel='plateLevel';
         end
         data=[];
         for (i=1:size(plateFilename,2))
@@ -247,6 +322,16 @@ global stimLstX stimLstY
                 'Position', [5+50+50+50+50+50+50 10 50 20],...
                 'Backgroundcolor',bgc,...
                 'Callback', @export);
+            
+            
+            levelUpBtn = uicontrol('Style', 'pushbutton', 'String', 'Up',...
+                'Position', [5+50+50+50 10+20 50 20],...
+                'Backgroundcolor',bgc,...
+                'Callback', @levelUp);
+            levelDownBtn = uicontrol('Style', 'pushbutton', 'String', 'Up',...
+                'Position', [5+50+50+50 10-20 50 20],...
+                'Backgroundcolor',bgc,...
+                'Callback', @levelDown);
     end
 
     function export(d,f,e)
@@ -307,13 +392,13 @@ global stimLstX stimLstY
         
         ca=gca();
         
-        
+        ylabelText = stimLstY.String(stimLstY.Value);
         if exporttt
             t=[];
             for (i=1:size(plateFilename,2))
                t= [t;x{i}(:) y{i}(:) ones(length(y{i}(:)),1)*i];
             end
-                tt = array2table(t,'VariableNames',{'x' 'y' 'file'});
+                tt = array2table(t,'VariableNames',{xlabelText{1} ylabelText{1} 'color'});
                 [filename, pathname] = uiputfile('analysis_data.csv', 'Export to file ...');
                 writetable(tt,[pathname filename]);
                 exporttt=0;
@@ -328,7 +413,7 @@ global stimLstX stimLstY
             subplot(4,4,[2:3,6:7,10:11,14:15]);
         end
         xlabel(xlabelText,'FontName','Helvetica','FontSize',18);
-        ylabel(stimLstY.String(stimLstY.Value),'FontName','Helvetica','FontSize',18);
+        ylabel(ylabelText,'FontName','Helvetica','FontSize',18);
     end
 
     function fitt(f,e,g)
