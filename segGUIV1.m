@@ -16,7 +16,7 @@ global maskRegio;
 global stimulationStartTime;
 global stimFreq NOS OnOffset;
 global stimFreqtxt NOStxt OnOffsettxt;
-global reuseMask reuseMaskChkButton fastLoadChkButton segmentCellBodiesChkButton segmentCellBodies; 
+global reuseMask reuseMaskChkButton fastLoadChkButton segmentCellBodiesChkButton segmentCellBodies loadAnalysisChkButton; 
 global pauseCB;
 global nSynapses;
 
@@ -178,6 +178,9 @@ startUp();
              fastLoadChkButton = uicontrol('Style','checkbox','Value',0,...
                 'Position',[70 by(0)+2.5 100 15],'String','Fast Load');
             
+             loadAnalysisChkButton = uicontrol('Style','checkbox','Value',0,...
+                'Position',[70 by(-2)+2.5 100 15],'String','Load Analysis');
+          
             reuseMaskChkButton = uicontrol('Style','checkbox','Value',0,...
                 'Position',[70 by(-1)+2.5 100 15],'String','reuse Mask');
         end
@@ -1400,6 +1403,37 @@ startUp();
         end
         
     end
+
+
+
+    function [isProcessed, currentfolder]=writeProcessStart(expnm,iii,currentfolder)
+        % Visualise we do new experiment.
+        if (~strcmp(expnm{iii}.folder,currentfolder) )
+            mkdir([expnm{iii}.folder '\process\']);
+            currentfolder=expnm{iii}.folder;
+        end
+        if (~isfile([expnm{iii}.folder '\process\process_' expnm{iii}.name '.txt']))
+            fid =fopen([expnm{iii}.folder '\process\process_' expnm{iii}.name '.txt'],'w');
+            cl = clock;
+            fprintf(fid,['start: '  num2str(cl(1)) '-' num2str(cl(2)) '-' num2str(cl(3)) ' ' num2str(cl(4)) ':' num2str(cl(5)) ':' num2str(cl(6)) '\r\n']);
+            fclose(fid);
+            isProcessed=0;
+        else
+            isProcessed=1;
+        end
+    end
+
+
+
+    function writeAnalysisStart(expnm,iii,analysisName)
+        % Visualise we do new experiment.
+        fid =fopen([expnm{iii}.folder '\process\process_' expnm{iii}.name '.txt'],'a');
+        cl = clock;
+        fprintf(fid,['start Analysis: '  analysisName ': ' num2str(cl(1)) '-' num2str(cl(2)) '-' num2str(cl(3)) ' ' num2str(cl(4)) ':' num2str(cl(5)) ':' num2str(cl(6)) '\r\n']);
+        fclose(fid);
+    end
+
+
     function processDir(datadirname)
         % [C10dirname] = uigetdir(defaultDir,'Select control 10AP dir:');
         defaultDir =  [datadirname '\..'];
@@ -1415,51 +1449,98 @@ startUp();
             mkdir([expnm{1}.folder '\process\']);
         end
         currentfolder=expnm{1}.folder;
-           
+        
         for iii = 1:length(experiments)
-            
-            % Visualise we do new experiment.
-           if (~strcmp(expnm{iii}.folder,currentfolder) )
-            mkdir([expnm{iii}.folder '\process\']);
-            currentfolder=expnm{iii}.folder;
-           end
-           if (~isfile([expnm{iii}.folder '\process\process_' expnm{iii}.name '.txt']))
-           fid =fopen([expnm{iii}.folder '\process\process_' expnm{iii}.name '.txt'],'w');
-           cl = clock;
-           fprintf(fid,['start: '  num2str(cl(1)) '-' num2str(cl(2)) '-' num2str(cl(3)) ' ' num2str(cl(4)) ':' num2str(cl(5)) ':' num2str(cl(6)) '\r\n']);
-           fclose(fid);
-           % Load the data
-            fNmTxt.String=['loading..' expnm{iii}.name];
-           [data, pathname, fname, dirname] = loadTiff([expnm{iii}.folder '\' expnm{iii}.name],fastLoadChkButton.Value );
-            defaultDir = dirname;
-            dNmTxt.String = defaultDir;
-            wx = size(data,2); wy = size(data,1);
-            fNmTxt.String=fname;
-            pause(.01);
-            
-            processMovie(pathname);
-            %AP10Response(iii) = mASR;
-            fid =fopen([expnm{iii}.folder '\process\process_' expnm{iii}.name '.txt'],'a');
-            cl = clock;
-            fprintf(fid,['processed: '  num2str(cl(1)) '-' num2str(cl(2)) '-' num2str(cl(3)) ' ' num2str(cl(4)) ':' num2str(cl(5)) ':' num2str(cl(6)) '\r\n']);
-            fprintf(fid,['settings: ' ...
-                '\r\n\t stimFreq = ' num2str(stimFreq) ...
-                '\r\n\t Number of stimuli =' num2str(NOS) ...
-                '\r\n\t OnOffset = ' num2str(OnOffset) ...
-                '\r\n\t Eigen Value Nr = ' num2str(EVN) ...
-                '\r\n\t fps = ' num2str(fps) ...
-                '\r\n\t dt =  ' num2str(dt) ...
-                '\r\n\t Reuse Mask =  ' num2str(reuseMaskChkButton.Value) ...
-                '\r\n\t Threshold =  ' num2str(TValue) ....
-                '\r\n']);
-            fclose(fid);
-           end
+            [isProcessed, currentfolder]=writeProcessStart(expnm,iii,currentfolder);
+            if  ~isProcessed
+                
+                % Load the data
+                fNmTxt.String=['loading..' expnm{iii}.name];
+                [data, pathname, fname, dirname] = loadTiff([expnm{iii}.folder '\' expnm{iii}.name],fastLoadChkButton.Value );
+                defaultDir = dirname;
+                dNmTxt.String = defaultDir;
+                wx = size(data,2); wy = size(data,1);
+                fNmTxt.String=fname;
+                pause(.01);
+                
+                
+                
+                %% Check for analysis files:
+                if (loadAnalysisChkButton.Value==1)
+                    if ~isempty(dir( [pathname(1:end) '*_Analysis.xml']))
+                        % Check if there is a special Analysis needed for this
+                        % file.
+                        analysisList = dir( [pathname(1:end) '*_Analysis.xml']);
+                    else
+                        k=strfind(pathname,'\');
+                        kk=k(end);
+                        
+                        % If no special analysis, use default ones in dir.
+                        if ~isempty(dir( [pathname(1:kk) '*_Analysis.xml']))
+                            analysisList = dir( [pathname(1:kk) '*_Analysis.xml']);
+                        else
+                            error('Sorry could not find analysis file.');
+                        end
+                    end
+                    
+                    for i=1:length(analysisList)
+                       writeAnalysisStart(expnm,iii,analysisList(i).name);
+                        loadAnalysis(analysisList(i));
+                        processMovie(pathname);
+                        moveResults(analysisList(i).name);
+                        writeProcessEnd(expnm,iii);
+                    end
+                    
+                    
+                else % The checkbox is not enabled, just use settings from the GUI.
+                    processMovie(pathname);
+                    writeProcessEnd(expnm,iii);
+                end
+                
+                
+                
+                %% Write in the process file.
+                
+                
+            end
             
         end
         disp(['All movies in ' datadirname ' processed.']);
         dNmTxt.String = ['All movies in ' datadirname ' processed.'];
         
         zip([datadirname '\process\processSoft_' getenv('ComputerName') '_' getenv('username') '.zip'],'*.m')
+    end
+
+    function moveResults(analysisListName)
+        ffname = fname(1:end-4);
+        movefile([dirname fname '*.png'],[dirname analysisListName(1:end-4) '\']);
+        movefile([dirname ffname '*.png'],[dirname analysisListName(1:end-4) '\']);
+        movefile([dirname fname '*.pdf'],[dirname analysisListName(1:end-4) '\']);
+        movefile([dirname ffname '*.pdf'],[dirname analysisListName(1:end-4) '\']);
+        ffname = fname(1:end-4);
+        movefile([dirname 'output\' ffname '*.*'],[dirname analysisListName(1:end-4) '\output']);
+        
+    end
+    function loadAnalysis(FNname)
+        analysisCfgLoad(FNname);
+    end
+
+    function writeProcessEnd(expnm,iii)
+        %AP10Response(iii) = mASR;
+        fid =fopen([expnm{iii}.folder '\process\process_' expnm{iii}.name '.txt'],'a');
+        cl = clock;
+        fprintf(fid,['processed: '  num2str(cl(1)) '-' num2str(cl(2)) '-' num2str(cl(3)) ' ' num2str(cl(4)) ':' num2str(cl(5)) ':' num2str(cl(6)) '\r\n']);
+        fprintf(fid,['settings: ' ...
+            '\r\n\t stimFreq = ' num2str(stimFreq) ...
+            '\r\n\t Number of stimuli =' num2str(NOS) ...
+            '\r\n\t OnOffset = ' num2str(OnOffset) ...
+            '\r\n\t Eigen Value Nr = ' num2str(EVN) ...
+            '\r\n\t fps = ' num2str(fps) ...
+            '\r\n\t dt =  ' num2str(dt) ...
+            '\r\n\t Reuse Mask =  ' num2str(reuseMaskChkButton.Value) ...
+            '\r\n\t Threshold =  ' num2str(TValue) ....
+            '\r\n']);
+        fclose(fid);
     end
     function doProcessMovie(e,v,h)
         processMovie(pathname)
@@ -1469,7 +1550,11 @@ startUp();
               synRegio =  loadMask([pathname(1:end) '_mask.png']);
               setMask();
         else
-            segmentCellBodies=(segmentCellBodiesChkButton.Value==1);
+            if isfield(segmentCellBodiesChkButton,'Value')
+                segmentCellBodies=(segmentCellBodiesChkButton.Value==1);
+            else
+                segmentCellBodies=0; % Set default
+            end
             if segmentCellBodies
                 meanZ();
                 %EVN=1; warning ('eigenvalue hacked 2->1');
@@ -2054,7 +2139,18 @@ startUp();
         synRegio = loadMask(maskFilePath);
         setMask();
     end
-   
+
+    function analysisCfgLoad(stimCfgFN)
+        
+        stimCfgFN.folder=stimCfgFN.folder;
+        stimCfgFN.name=stimCfgFN.name;
+        analysisCfg = xmlSettingsExtractor(stimCfgFN);
+        setNOS(analysisCfg.pulseCount);
+        setFPS(analysisCfg.imageFreq);
+        setOnOffset(round(analysisCfg.delayTime*analysisCfg.imageFreq/1000));
+        setStimFreq(analysisCfg.stimFreq);
+    end
+
 
     function doStimCfgLoad(s,f,g)
         stimCfg = stimSettingsLoader(dirname);
