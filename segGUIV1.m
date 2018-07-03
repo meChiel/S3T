@@ -8,7 +8,7 @@ global synRegio; % Regionprops return
 global U S V; % eigv decomposition
 global wx wy wt;
 global synsignal;
-global EVN;
+global EVN; % Defines wich eigen value is used to create the mask
 global synProb; % Image before threshold for segmentation.
 global TValue;  % Threshold value
 global dt fps fpsTxt;
@@ -16,7 +16,7 @@ global maskRegio;
 global stimulationStartTime;
 global stimFreq NOS OnOffset;
 global stimFreqtxt NOStxt OnOffsettxt;
-global reuseMask reuseMaskChkButton fastLoadChkButton;
+global reuseMask reuseMaskChkButton fastLoadChkButton segmentCellBodiesChkButton segmentCellBodies; 
 global pauseCB;
 global nSynapses;
 
@@ -180,9 +180,6 @@ startUp();
             
             reuseMaskChkButton = uicontrol('Style','checkbox','Value',0,...
                 'Position',[70 by(-1)+2.5 100 15],'String','reuse Mask');
-            fastLoadChkButton = uicontrol('Style','checkbox','Value',0,...
-                'Position',[70 by(0)+2.5 100 15],'String','fast Load');
-        
         end
         
         thresTxt = uicontrol('Style', 'Edit', 'String', 'no threshold set',...
@@ -206,9 +203,13 @@ startUp();
     end
     function dispOptions(e,v,h)
         
+        segmentCellBodiesChkButton = uicontrol('Style','checkbox','Value',0,...
+            'Position',[70 by(1)+2.5 100 15],'String','segment Cell Bodies');
+        
         btn77 = uicontrol('Style', 'pushbutton', 'String', 'processDirs',...
             'Position', [160 by(5) 50 20],...
             'Callback', @processDirs);
+        
         thresTxt = uicontrol('Style', 'Edit', 'String', 'no threshold set',...
             'Position', [70 by(8) 50 20]);
         
@@ -710,10 +711,17 @@ startUp();
         imagesc(synapseBW);
     end
     function cleanBW(source,event,handles)
+        if segmentCellBodies
+        warning('close sz 2 changed to 1')
+        synapseBW = imerode(synapseBW,strel('disk',8));
+        synapseBW = imdilate(synapseBW,strel('disk',8));
+        warning('erode size hacked to 8')
+        else
         warning('close sz 2 changed to 1')
         synapseBW = imerode(synapseBW,strel('disk',1));
         synapseBW = imdilate(synapseBW,strel('disk',1));
-        %warning('erode size hacked to 8')
+        end
+        
         pause(.5);
         imagesc(synapseBW);
     end
@@ -932,7 +940,7 @@ startUp();
             for i=1:length(synRegio)
                 synapseSize(i)=length(synRegio(i).PixelList);
             end
-          swASR = sum(repmat(synapseSize',1,size(synsignal,1)) .*  dff(synsignal'))/sum(synapseSize); % size weighted average over all synapses
+          swASR = sum(repmat(synapseSize',1,size(synsignal,1)) .*  dff(synsignal'),1)/sum(synapseSize); % size weighted average over all synapses
       
             
         else
@@ -1461,9 +1469,10 @@ startUp();
               synRegio =  loadMask([pathname(1:end) '_mask.png']);
               setMask();
         else
-            segmentCellBodies=0;
+            segmentCellBodies=(segmentCellBodiesChkButton.Value==1);
             if segmentCellBodies
                 meanZ();
+                %EVN=1; warning ('eigenvalue hacked 2->1');
                 warning('processMovie hacked for neuron body processing' )
             else
                 segment2();
@@ -1485,6 +1494,7 @@ startUp();
             exportMask();
             setMask();
         end
+        
         
         % GetSignal
         synRegio = maskRegio;
