@@ -24,8 +24,8 @@ global nSynapses;
 stimFreq = 0.2;
 NOS = 3; % Number of stimuli
 OnOffset = 50;
-EVN = 2; % Eigen Value Number
-%warning('Eigen Value Hack 2->1')
+EVN = 3; % Eigen Value Number
+warning('Eigen Value Hack 2->1')
 fps = 33;
 dt = 1/fps;
 % For experiment:
@@ -176,13 +176,13 @@ startUp();
            
             
              fastLoadChkButton = uicontrol('Style','checkbox','Value',0,...
-                'Position',[70 by(0)+2.5 100 15],'String','Fast Load');
+                'Position',[70 by(1)+2.5 100 15],'String','Fast Load');
             
              loadAnalysisChkButton = uicontrol('Style','checkbox','Value',0,...
-                'Position',[70 by(-2)+2.5 100 15],'String','Load Analysis');
+                'Position',[70 by(-1)+2.5 100 15],'String','Load Analysis');
           
             reuseMaskChkButton = uicontrol('Style','checkbox','Value',0,...
-                'Position',[70 by(-1)+2.5 100 15],'String','reuse Mask');
+                'Position',[70 by(0)+2.5 100 15],'String','reuse Mask');
         end
         
         thresTxt = uicontrol('Style', 'Edit', 'String', 'no threshold set',...
@@ -207,7 +207,7 @@ startUp();
     function dispOptions(e,v,h)
         
         segmentCellBodiesChkButton = uicontrol('Style','checkbox','Value',0,...
-            'Position',[70 by(1)+2.5 100 15],'String','segment Cell Bodies');
+            'Position',[70 by(2)+2.5 100 15],'String','segment Cell Bodies');
         
         btn77 = uicontrol('Style', 'pushbutton', 'String', 'processDirs',...
             'Position', [160 by(5) 50 20],...
@@ -426,12 +426,9 @@ startUp();
             'Callback', @doStimCfgLoad);
         
     end
-
     function doDataViewer(s,e,h)
         dataViewer();
     end
-
-
     function doOverviewGenerator(s,e,h)
  
         goDeep(@overviewGenerator);
@@ -446,7 +443,6 @@ startUp();
         OnOffset= OnOffset2;
         OnOffsettxt.String = num2str(OnOffset);
     end
-
     function doSetStimFreq(s,e,h)
         setStimFreq(str2double(stimFreqtxt.String));
     end
@@ -454,7 +450,6 @@ startUp();
         stimFreq= stimFreq2;
         stimFreqtxt.String = num2str(stimFreq);
     end
-
     function doSetNOS(s,e,h) % Number of Stimuli
         setNOS( str2double(NOStxt.String));        
     end
@@ -462,7 +457,6 @@ startUp();
         NOS = NOS2;
         NOStxt.String = num2str(NOS);
     end
-    
     function doSetFPS(s,e,h)
      setFPS(str2double(fpsTxt.String));
     end
@@ -471,7 +465,6 @@ startUp();
         dt=1/fps;
         fpsTxt.String = num2str(fps);
     end
-
     function slide(s,e)
         imagesc(data(:,:,floor(sliderBtn.Value*size(data,3))+1));
     end
@@ -485,7 +478,6 @@ startUp();
         setTvalue(twosigma);
         threshold();
     end
-
     function changeZ(source,event,handles)
         synProb = mean(abs(bsxfun(@min,data,mean(data,3))),3);
         pause(.5);
@@ -501,8 +493,6 @@ startUp();
         pause(.5);
         imagesc(synProb);
     end
-
-
     function tophat(source,event,handles)
         se = strel('disk',1);
         %synProb = imadjust(imtophat(synProb ,se));
@@ -511,7 +501,6 @@ startUp();
         pause(.5);
         imagesc(synProb);
     end
-
     function laplaceFilter(s,e,h)
         sigma=.1;
         alpha=4;
@@ -519,7 +508,6 @@ startUp();
         psnr_denoised = psnr(B, synProb);
         synProb =B;
     end
-
     function go(source,event,handles)
         if exist(dirname)
             if (dirname~=0)
@@ -577,7 +565,6 @@ startUp();
         %plot(bsxfun(@plus,(synsignal')',1000*(1:size(synsignal,2))));
         savesubplot(4,4,subplotNr,[pathname(1:end-4) '_signals']);
     end
-
     function exportSynapseSignals (source,event,handles)
         %         pause(.5)
         %         subplot(4,4,16);
@@ -696,8 +683,12 @@ startUp();
         tophat(); warning('tophat ipo freqfilter')
        % freqfilter2D();
         
-        setTvalue((std(synProb(:))*2));
-        threshold(TValue);
+       
+         setTvalue(mean(synProb(:))+2*std(synProb(:)));
+       
+       
+      %  setTvalue((std(synProb(:))*2));
+      %  threshold(TValue);
         cleanBW();
         %savesubplot(4,4,16,[pathname '_mask']);
         imwrite(synapseBW,[pathname '_mask.png']);
@@ -1056,8 +1047,9 @@ startUp();
         subplot(4,4,8)
         cla
         plot(dt*(((1:length(ASR))-1)), ASR);
-        hold on;
-        plot(dt*(((1:length(AR))-1)), AR);
+     % If you want to see the pixel average
+     % hold on;
+     % plot(dt*(((1:length(AR))-1)), AR);
         xlabel(['Time(s) (' num2str(fps) 'fps)'])
         ylabel('\Delta F/F0');
         title('Analysis')
@@ -1561,15 +1553,15 @@ startUp();
                 warning('processMovie hacked for neuron body processing' )
             else
                 segment2();
-                rmvBkGrnd();
+                rmvBkGrnd(); % 2sigma is done
             end
             
-            threeSigThreshold();
+            %threeSigThreshold();
 %             onesigma = mean(synProb(:))+1*std(synProb(:));
 %             setTvalue(onesigma);
 %             threshold();
 %             warning('threshold Sigma = 1')
-            cleanBW();
+            %cleanBW();
             detectIslands();
             subtractBckgrnd();
             extractSignals();
@@ -2076,6 +2068,8 @@ startUp();
     end
     function doMultiResponseto1(s,e,h)
         ASR = multiResponseto1(ASR);
+        AR = multiResponseto1(AR);
+        
     end
     function meanData = multiResponseto1(data,exportPlot)
         if nargin==1

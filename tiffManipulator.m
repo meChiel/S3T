@@ -1,7 +1,7 @@
 function tiffManipulator
 
 
-global fname1 dir1 defaultDir dir2 fname2 trace
+global fname1 dir1 defaultDir dir2 fname2 fname3 dir3 trace freqEdt
 
 
 bgc = [0.95,0.95,0.96];
@@ -13,37 +13,37 @@ f4 = figure('Visible','on','name','Tiff Manipulator',...
     'Color',bgc,...
     'NumberTitle','off');
 
-%set(f4,'MenuBar', 'figure');
-set(f4,'MenuBar', 'none');
+set(f4,'MenuBar', 'figure');
+%set(f4,'MenuBar', 'none');
 %set(f2, 'ToolBar', 'auto');
 %set(f2, 'ToolBar', 'none');
 javaFrame = get(f4,'JavaFrame');
-javaFrame.setFigureIcon(javax.swing.ImageIcon('my_icon.png'));
+javaFrame.setFigureIcon(javax.swing.ImageIcon('tiffmanipulatorIcon.png'));
 
 openEdt1 = uicontrol('Style', 'edit', 'String', '...',...
-    'Position', [20 260 150 30],...
+    'Position', [20 360 150 30],...
     'Backgroundcolor',fgc,...
     'Callback', @doOpenFile1);
 
 openEdt2 = uicontrol('Style', 'edit', 'String', '...',...
-    'Position', [20 220 150 30],...
+    'Position', [20 320 150 30],...
     'Backgroundcolor',fgc,...
     'Callback', @doOpenFile2);
 
 
 
 openBtn1 = uicontrol('Style', 'pushbutton', 'String', 'Open,',...
-    'Position', [180 260 50 30],...
+    'Position', [180 360 50 30],...
     'Backgroundcolor',fgc,...
     'Callback', @doOpenFile1);
 
 openBtn2 = uicontrol('Style', 'pushbutton', 'String', 'Open,',...
-    'Position', [180 220 50 30],...
+    'Position', [180 320 50 30],...
     'Backgroundcolor',fgc,...
     'Callback', @doOpenFile2);
 
 joinBtn = uicontrol('Style', 'pushbutton', 'String', 'Join,',...
-    'Position', [250 240 50 30],...
+    'Position', [250 340 50 30],...
     'Backgroundcolor',fgc,...
     'Callback', @doJoin);
 
@@ -52,15 +52,15 @@ joinBtn = uicontrol('Style', 'pushbutton', 'String', 'Join,',...
 extractBtn1 = uicontrol('Style', 'pushbutton', 'String', 'Extract',...
     'Position', [220 20 50 30],...
     'Backgroundcolor',fgc,...
-    'Callback', @doExtract);
+    'Callback', @doMovieFrameExtractor);
 
 openEdt3 = uicontrol('Style', 'edit', 'String', '...',...
-    'Position', [20 120 150 30],...
+    'Position', [20 160 150 30],...
     'Backgroundcolor',fgc,...
     'Callback', @doOpenFile3);
 
 openBtn3 = uicontrol('Style', 'pushbutton', 'String', 'Open,',...
-    'Position', [180 120 50 30],...
+    'Position', [180 160 50 30],...
     'Backgroundcolor',fgc,...
     'Callback', @doOpenFile3);
 
@@ -81,6 +81,10 @@ stimOnEdt = uicontrol('Style', 'edit', 'String', '0',...
 stimOnTxt = uicontrol('Style', 'text', 'String', 'Stimulation On Time:(frames)',...
     'Position', [70 60 150 20],...
     'Backgroundcolor',bgc);
+stimOnTimeTxt = uicontrol('Style', 'Text', 'String', '', ...
+    'Position', [0 60 20 20],...
+    'Backgroundcolor',bgc);
+
 
 stimOffEdt = uicontrol('Style', 'edit', 'String', '0',...
     'Position', [20 40 50 20],...
@@ -90,19 +94,58 @@ stimOffEdt = uicontrol('Style', 'edit', 'String', '0',...
 stimOffTxt = uicontrol('Style', 'Text', 'String', 'Stimulation off Time: (frames)',...
     'Position', [70 40 150 20],...
     'Backgroundcolor',bgc);
+stimOffTimeTxt = uicontrol('Style', 'Text', 'String', '', ...
+    'Position', [0 40 20 20],...
+    'Backgroundcolor',bgc);
 
+
+freqEdt = uicontrol('Style', 'edit', 'String', '0',...
+    'Position', [20 130 50 20],...
+    'Backgroundcolor',fgc./fgc,...
+    'callback', @UpdatePlot);
+
+freqTxt = uicontrol('Style', 'Text', 'String', 'Freq. Time: (frames/sec)',...
+    'Position', [70 130 150 20],...
+    'Backgroundcolor',bgc-.0510);
+
+freqEdt.String='33.33334';
 
 stimOffsetEdt = uicontrol('Style', 'edit', 'String', '0',...
     'Position', [20 20 50 20],...
     'Backgroundcolor',fgc,...
     'callback', @UpdatePlot);
 
-
 stimOffsetTxt = uicontrol('Style', 'Text', 'String', 'stimulation offset (frames)', ...
     'Position', [70 20 150 20],...
     'Backgroundcolor',bgc,...
     'callback', @UpdatePlot);
 
+stimOffsetTimeTxt = uicontrol('Style', 'Text', 'String', '', ...
+    'Position', [0 20 20 20],...
+    'Backgroundcolor',bgc);
+
+openSettingsBtn1 = uicontrol('Style', 'pushbutton', 'String', 'Load settings', ...
+    'Position', [20 100 150 20],...
+    'Backgroundcolor',bgc,...
+    'callback', @loadSettings);
+
+ function loadSettings(g,f,h)
+     [stimCfgFN.name, stimCfgFN.folder]=uigetfile('*.xml','Get stimulation xml file.','L:\beerse\all\Public\Exchange\Camille\20180704\CS01_GluSnFR_1');
+     stimCfg=  xmlSettingsExtractor2(stimCfgFN);
+     freq = str2num(freqEdt.String);
+     stimRepeatsEdt.String=num2str(floor(stimCfg.pulseCount));
+     stimOnEdt.String=num2str(floor(freq*stimCfg.pulseWidth/1000));
+     stimOffEdt.String=num2str(floor(freq*(1/stimCfg.stimFreq-stimCfg.pulseWidth/1000)));
+     stimOffsetEdt.String=num2str(floor(freq*stimCfg.delayTime/1000)); 
+    
+     stimOnTimeTxt.String = stimCfg.pulseWidth/1000;
+     stimOffTimeTxt.String = (1/stimCfg.stimFreq-stimCfg.pulseWidth/1000);
+     stimOffsetTimeTxt.String = stimCfg.delayTime/1000;
+     
+
+     pause(.5)
+     UpdatePlot();
+ end
 
     function doOpenFile1(g,f,h)
         [fname1 dir1]=uigetfile('*.tif','File 1');
@@ -113,12 +156,22 @@ stimOffsetTxt = uicontrol('Style', 'Text', 'String', 'stimulation offset (frames
         [fname2 dir2]=uigetfile('*.tif','File 2',defaultDir);
          openEdt2.String=fname2 ;
     end
+
+   function doOpenFile3(g,f,h)
+        [fname3 dir3]=uigetfile('*.tif','File 3',defaultDir);
+         openEdt3.String=fname3 ;
+   end
+
     function doJoin(g,f,h)
+        joinBtn.String='busy...';
+        pause(.1)
         tiffJoiner(dir1,fname1,fname2)
+        joinBtn.String='done';
+        
     end
 
     function doMovieFrameExtractor(g,f,h)
-        movieFrameExtractor([dirname3 fname3]);
+        movieFrameExtractor([dir3 fname3]);
     end
 
 
@@ -126,20 +179,37 @@ stimOffsetTxt = uicontrol('Style', 'Text', 'String', 'stimulation offset (frames
         info1 = imfinfo(pathname1);
         num_images1 = numel(info1);
         
-        sx=size();
-        sy=size();
+        sx=info1(1).Width;
+        sy=info1(1).Height;
         sz=sum(trace);
-        A=zeros(sx,sy,sz);
-        L=0;
-        for k = 1:num_images1
-            if (trace(k)==1)
-                L=L+1;
-                A(:,:,L) = imread(fname1, k);
-            end
+        nM=length(trace);
+        if length(trace)~=num_images1
+            warning('trace and video does not have he same amount of frames')
+            nM=min(length(trace),num_images1);
         end
         
-        t = Tiff([pathname1 '_extract'],'w');
-        t1 = Tiff(fname1,'r');
+        A=zeros(sx,sy,sz);
+        L=0;
+        
+        
+        for k = 1:nM
+            if k==4800
+                disp('hey')
+            end
+            if mod(k,10)==0
+             extractBtn1.String=num2str(k);
+             pause(.01)
+            end
+            %disp(num2str(k))
+            if (trace(k)==1)
+                L=L+1;
+                A(:,:,L) = imread(pathname1, k);
+            end
+        end
+        A=A(:,:,1:L); %Clip the last part
+        
+        t = Tiff([pathname1(1:end-4) '_extract.tif'],'w');
+        t1 = Tiff(pathname1,'r');
         tagstruct.ImageLength = size(A,1)
         tagstruct.ImageWidth = size(A,2)
         tagstruct.Photometric = t1.getTag('Photometric');%Tiff.Photometric.MinIsBlack
@@ -151,22 +221,17 @@ stimOffsetTxt = uicontrol('Style', 'Text', 'String', 'stimulation offset (frames
         
         
         for k = 1:size(A,3)
+            if mod(k,10)==0
+             extractBtn1.String=num2str(k);
+             pause(.01)
+            end
             t.setTag(tagstruct)
             
-            %t.write(uint16(squeeze(A(:,:,k))));
-            t.write(squeeze(A(:,:,k)));
+            t.write(uint16(squeeze(A(:,:,k))));
+            %t.write(squeeze(A(:,:,k)));
             t.writeDirectory()
         end
         t.close();
-        
-        
-        
-        
-
-        
-        
-        
-        
         
     end
 
