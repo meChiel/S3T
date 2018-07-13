@@ -144,6 +144,7 @@ global stimLstX stimLstY
         if ~exist([plateDir dd2],'file')
             dd2 = ['..\' dd(1:end-13) '.tif_mask.png'];
         end
+     
         mask = imread([plateDir dd2]);
         [wy, wx] = size(mask);
         synregio = loadMask([plateDir dd2]);
@@ -155,7 +156,18 @@ global stimLstX stimLstY
         axis('off');axis ('equal');colormap('hot');
         
         subplot(4,4,[9,13]);  
-        wellAvg = imread([plateDir dd2(1:end-8) 'avg.png']);
+         dd2 = ['..\..\' dd(1:end-13) '.tif_avg.png'];
+        if ~exist([plateDir dd2],'file')
+            dd2 = ['..\' dd(1:end-13) '.tif_avg.png'];
+        end
+        if ~exist([plateDir dd2],'file')
+            dd2 = ['..\..\output\avg\' dd(1:end-13) '.tif_avg.png'];
+        end
+        if ~exist([plateDir dd2],'file')
+            dd2 = ['..\..\..\output\avg\' dd(1:end-13) '.tif_avg.png'];
+        end
+
+        wellAvg = imread([plateDir dd2]);
         imagesc(double(wellAvg)+activeSynapse*100);
         axis('off');axis ('equal');colormap('hot');
         %avgAx=gca();
@@ -215,25 +227,32 @@ global stimLstX stimLstY
             %responses = csvread([responsePath responseFile]);
             
             dd=plateFilename{fi};
-            dd = ['../' dd(1:end-3) 'csv'];
-            responses = csvread([plateDir dd]);
+            %dd = ['../' dd(1:end-3) 'csv'];
+            dd = [ dd(1:end-3) 'csv'];
+            responses = table2array(readtable([plateDir dd]));
+            time=responses (:,1);
+            responses =responses (:,2:end)';
             
             hold on; plot(currentDataX(tmi),currentDataY(tmi),'*r')
             subplot(4,4,5)
             hold off;
-            plot(responses (syNbr,:))
+            plot(time,responses (syNbr,:))
             
-        else
+        else % We are at well level.
             %wellNbr = data{fi}.FileNumber(tmi);
             detailFilename =plateFilename{fi};
             dd=plateFilename{fi};
             dd = [dd(1:end-12) 'synapses.csv'];
-            responses = csvread([plateDir dd]);
+            responses = table2array(readtable([plateDir '\synapseDetails\'  dd]));
+            time=responses (:,1);
+            responses =responses (:,2:end)';
+        
+        %    responses = csvread([plateDir dd]);
             subplot(4,4,5)
             hold off;
-            plot(responses (:,:)','Color',[0.5 0.5 0.5]);
+            plot(time,responses (:,:)','Color',[0.5 0.5 0.5]);
             hold on;
-            plot(mean(responses (:,:)),'k','LineWidth',4);
+            plot(time,mean(responses (:,:)),'k','LineWidth',4);
             syNbr=1;
             
             
@@ -241,9 +260,10 @@ global stimLstX stimLstY
                 'Position', [5+50+50+50 20 50 20],...
                 'Backgroundcolor',bgc,...
                 'Callback', @getWell);
-           
+             
         end
-        xlabel('frames'); ylabel('\Delta f/f')
+        xlabel('time'); ylabel('\Delta f/f')
+      
             
         seeWell(fi,syNbr);
         updatePlot();
