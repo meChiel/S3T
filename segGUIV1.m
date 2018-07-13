@@ -528,9 +528,8 @@ startUp();
     function doDataViewer(s,e,h)
         dataViewer();
     end
-    function doOverviewGenerator(s,e,h)
- 
-        goDeep(@overviewGenerator);
+    function doOverviewGenerator(s,e,h) 
+        goDeep(@overviewGenerator,'\*.png');
     end
     function doReadResults(s,e,h)
      goDeep(@readResults,'\*analysis.txt');
@@ -639,7 +638,9 @@ startUp();
             synsignal(:,j) = mean(rframes(pixlid,:),1);
         end
         if length(s2)==0
-            disp('No synapses found');
+            disp('No synapses found, combining all pixels into 1 big synapse.');
+             rframes=reshape(data,wx*wy,[]);
+            synsignal(:,1) = mean(rframes(:,:),1);
         end
     end
     function synSlider(s,e)
@@ -836,13 +837,13 @@ startUp();
         tophat(); warning('tophat ipo freqfilter')
        % freqfilter2D();
         
-       if sig2rb.Value
+       if sig2rb.Value      % Sigma 2 Radio Button
          setTvalue(mean(synProb(:))+2*std(synProb(:)));
        else
-           if sig3rb.Value
+           if sig3rb.Value % Sigma 3 Radio Button
                setTvalue(mean(synProb(:))+3*std(synProb(:)));
            else
-               if sigOthRB.Value
+               if sigOthRB.Value % Other Sigma Radio Button
                    setTvalue(str2double(otherSigmaValueEdit.String));
                end
            end
@@ -1117,8 +1118,8 @@ startUp();
         writetable(t,[dirname 'output\' fname(1:end-4) '_traces.csv']);
     end
     function analyseSingSynResponse(s,e,v)
-        stimulationStartTime = 1.0;
-        stimulationStartFrame = floor(stimulationStartTime /dt);
+    %    stimulationStartTime = 1.0;
+    %    stimulationStartFrame = floor(stimulationStartTime /dt);
         dffsynsignal=dff(synsignal')';
         for i=1:size(dffsynsignal,2)
             signal = dffsynsignal(:,i);
@@ -1141,14 +1142,14 @@ startUp();
             aboveThreshold(i) = mSig>(2*noiseSTD(i));
             
             
-            upframes = miSig-stimulationStartFrame;
-            upResponse = signal(stimulationStartFrame:miSig);
-            expdata.x = (0:(length(upResponse)-1))*dt;
-            expdata.y = upResponse;
+       %     upframes = miSig-stimulationStartFrame;
+       %     upResponse = signal(stimulationStartFrame:miSig);
+       %     expdata.x = (0:(length(upResponse)-1))*dt;
+       %     expdata.y = upResponse;
             %[expEqUp, fitCurve1] = curveFitV1(expdata,[.22 100 0 2 -1 2]);
             
             
-            if length(expdata.x(:))<=4000000
+            if 1 %length(expdata.x(:))<=4000000
                 expEqUp =[0 0 0 0] ;
          %       disp(['No synapse up kinetcis fit for: ' fname 'Synapse' num2str(i)]);
                 tau1(i)=0; amp(i)=0; t0(i)=0;
@@ -1194,12 +1195,10 @@ startUp();
             mkdir ([dirname 'output\']);
         end
         if (~isdir ([dirname 'output\SynapseDetails']))
-        mkdir ([dirname 'output\SynapseDetails']);
+            mkdir ([dirname 'output\SynapseDetails']);
         end
         writetable(t,[dirname 'output\SynapseDetails\' fname(1:end-4) '_synapses']);
-        disp([dirname 'output\SynapseDetails\' fname(1:end-4) '_synapses.txt']);disp([ 'created']);
-        
-        
+        disp([dirname 'output\SynapseDetails\' fname(1:end-4) '_synapses.txt']);disp(['created']);
         
     end
     function analyseAvgReponse(s,e)
@@ -1721,8 +1720,8 @@ startUp();
                 %EVN=1; warning ('eigenvalue hacked 2->1');
                 warning('processMovie hacked for neuron body processing' )
             else
-                segment2();
-                rmvBkGrnd(); % 2sigma is done
+                segment2(); % [synapseBW, synProb] = f(data)
+                rmvBkGrnd(); % synapseBW = f(synapseBW, synProb) 2sigma is done
             end
             
             %threeSigThreshold();
@@ -1731,24 +1730,25 @@ startUp();
 %             threshold();
 %             warning('threshold Sigma = 1')
             %cleanBW();
-            detectIslands();
-            subtractBckgrnd();
-            extractSignals();
+            detectIslands(); %  synRegio  = f(synapseBW)
+            %%%subtractBckgrnd(); % data = f(data)
+            %%%extractSignals(); % synsignal = f(synRegio)
             
             
             %loadTiff22();
-            exportMask();
-            setMask();
+            exportMask(); % f(synRegio)
+            setMask(); % maskRegio  = synRegio 
         end
         
         
         % GetSignal
         synRegio = maskRegio;
+        subtractBckgrnd();          % data = f(data)
+        
         if (length(synRegio) ~=0)
-            extractSignals();
-            subtractBckgrnd();
-            signalPlot();
-            exportSynapseSignals();
+            extractSignals();           % synsignal = f(synRegio)
+            signalPlot();               % f(dff(synsignal'))
+            exportSynapseSignals();     % tempThreshold(dff(synsignal'))
             
             % GetAmplitude
             analyseSingSynResponse();
@@ -1757,7 +1757,10 @@ startUp();
             analyseAvgReponse();
             
         else
+               
             % Invalidate:
+            extractSignals(); 
+            exportSynapseSignals();
             subplot(4,4,16);
             hold off;
             plot(0,0);
@@ -2207,6 +2210,8 @@ startUp();
         data=data-repmat(tempBG,[sz1 sz2 1]);        
     end
     function backGroundStrength=getBkgrnd(data)
+        % Calculates the average background dynamics of the 5% darkest
+        % pixels. The darkest pixels of the time average.
         image=mean(data(:,:,1:end),3);
         [~, sii] = sort(image(:));
         fivePrctInterval = floor(length(sii)/100*5);
@@ -2255,7 +2260,7 @@ startUp();
         %figure;
         subplot(4,4,12)
         [spart,~,~,level]=linBleachCorrect(part');
-        part = (spart-level)'; %Using expansion
+        part = (spart-level)'; %Using Matlab Matrix expansion
         plot(part);
         hold on
         
@@ -2266,6 +2271,7 @@ startUp();
         meanData = meanData'-baseLevel;
         plot(meanData,'k','LineWidth',3);
         hold off
+        pause(.01);
         if (exportPlot)
             savesubplot(4,4,12,[pathname '_align']);
         end
