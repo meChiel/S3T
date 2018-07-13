@@ -1,7 +1,7 @@
 function tiffManipulator
 
-
-global fname1 dir1 defaultDir dir2 fname2 fname3 dir3 trace freqEdt
+%% Define buttons
+global fname1 dir1 defaultDir dir2 fname2 fname3 dir3 trace freqEdt extractIndividchkBtn1
 
 
 bgc = [0.95,0.95,0.96];
@@ -53,6 +53,11 @@ extractBtn1 = uicontrol('Style', 'pushbutton', 'String', 'Extract',...
     'Position', [220 20 50 30],...
     'Backgroundcolor',fgc,...
     'Callback', @doMovieFrameExtractor);
+
+
+extractIndividchkBtn1 = uicontrol('Style', 'checkbutton', 'String', 'Create Individual files',...
+    'Position', [270 20 50 30],...
+    'Backgroundcolor',fgc);
 
 openEdt3 = uicontrol('Style', 'edit', 'String', '...',...
     'Position', [20 160 150 30],...
@@ -128,7 +133,7 @@ openSettingsBtn1 = uicontrol('Style', 'pushbutton', 'String', 'Load settings', .
     'Position', [20 100 150 20],...
     'Backgroundcolor',bgc,...
     'callback', @loadSettings);
-
+%%
  function loadSettings(g,f,h)
      [stimCfgFN.name, stimCfgFN.folder]=uigetfile('*.xml','Get stimulation xml file.','L:\beerse\all\Public\Exchange\Camille\20180704\CS01_GluSnFR_1');
      stimCfg=  xmlSettingsExtractor2(stimCfgFN);
@@ -171,7 +176,80 @@ openSettingsBtn1 = uicontrol('Style', 'pushbutton', 'String', 'Load settings', .
     end
 
     function doMovieFrameExtractor(g,f,h)
-        movieFrameExtractor([dir3 fname3]);
+       if d==0
+           movieFrameExtractor([dir3 fname3]);
+        else
+            movieFrameExtractor2multipleMovies();
+    end
+    end
+
+
+    function movieFrameExtractor2multipleMovies(pathname1)
+        info1 = imfinfo(pathname1);
+        num_images1 = numel(info1);
+        
+        sx=info1(1).Width;
+        sy=info1(1).Height;
+        %  sz=sum(trace);
+        nM=length(trace);
+        if length(trace)~=num_images1
+            warning('trace and video does not have he same amount of frames')
+            nM=min(length(trace),num_images1);
+        end
+        sz=str2num(stimOnEdt.String);
+        sOff=str2num(stimOffEdt.String);
+        nRepeat=str2num(stimRepeatsEdt.String);
+        for jj=1:nRepeat
+            A=zeros(sx,sy,sz);
+            nM=min(sz,num_images1-(jj-1)*(sz+sOff));
+            
+            for k = 1:nM
+                A(:,:,k) = imread(pathname1, (jj-1)*(sz+sOff)+k);
+            end
+            
+            
+            %         L=0;
+            %         for k = 1:nM
+            %             if k==4800
+            %                 disp('hey')
+            %             end
+            %             if mod(k,10)==0
+            %              extractBtn1.String=num2str(k);
+            %              pause(.01)
+            %             end
+            %             %disp(num2str(k))
+            %             if (trace(k)==1)
+            %                 L=L+1;
+            %                 A(:,:,L) = imread(pathname1, k);
+            %             end
+            %         end
+            %         A=A(:,:,1:L); %Clip the last part
+            
+            t = Tiff([pathname1(1:end-4) '_extract_P' num2str(jj) '.tif'],'w');
+            t1 = Tiff(pathname1,'r');
+            tagstruct.ImageLength = size(A,1)
+            tagstruct.ImageWidth = size(A,2)
+            tagstruct.Photometric = t1.getTag('Photometric');%Tiff.Photometric.MinIsBlack
+            tagstruct.BitsPerSample = t1.getTag('BitsPerSample');
+            tagstruct.SamplesPerPixel = t1.getTag('SamplesPerPixel');
+            tagstruct.RowsPerStrip = t1.getTag('RowsPerStrip');
+            tagstruct.PlanarConfiguration = t1.getTag('PlanarConfiguration');%Tiff.PlanarConfiguration.Chunky
+            tagstruct.Software = 'S3T:tiffManipulator';
+            
+            for k = 1:size(A,3)
+                if mod(k,10)==0
+                    extractBtn1.String=num2str(k);
+                    pause(.01)
+                end
+                t.setTag(tagstruct)
+                
+                t.write(uint16(squeeze(A(:,:,k))));
+                %t.write(squeeze(A(:,:,k)));
+                t.writeDirectory()
+            end
+            t.close();
+            
+        end
     end
 
 

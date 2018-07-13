@@ -1,4 +1,5 @@
 function segGUIV1()
+%% Define global values
 global controlResponse
 global data;
 global fNmTxt dNmTxt prjTxt thresTxt; % Text field in UI for file-name.
@@ -8,7 +9,7 @@ global synRegio; % Regionprops return
 global U S V; % eigv decomposition
 global wx wy wt;
 global synsignal;
-global EVN; % Defines wich eigen value is used to create the mask
+global EVN eigTxt; % Defines wich eigen value is used to create the mask
 global synProb; % Image before threshold for segmentation.
 global TValue;  % Threshold value
 global dt fps fpsTxt;
@@ -19,15 +20,10 @@ global stimFreqtxt NOStxt OnOffsettxt;
 global reuseMask reuseMaskChkButton fastLoadChkButton segmentCellBodiesChkButton segmentCellBodies loadAnalysisChkButton; 
 global pauseCB;
 global nSynapses;
+global sig2rb sig3rb sigOthRB otherSigmaValueEdit;
+global tempSig2rb tempSig3rb tempSigOtherRB tempOtherSigmaValueEdit tempSigNoneRB;
 
-% Set default values on load
-stimFreq = 0.2;
-NOS = 3; % Number of stimuli
-OnOffset = 50;
-EVN = 3; % Eigen Value Number
-warning('Eigen Value Hack 2->1')
-fps = 33;
-dt = 1/fps;
+
 % For experiment:
 global C1Data C1pathname C1fname C1dirname                                 % Control 1AP
 global C10Data C10pathname C10fname C10dirname                             % Control 10AP
@@ -41,8 +37,15 @@ global ASR mASR miASR stdSR mstdSR swASR stdswASR AR mAR miAR AR1 rAR
 global defaultDir
 global sliderBtn synSliderBtn
 global bgc fullVersion;
-
-% Create a figure and axes
+%% Set default values on load
+stimFreq = 0.2;
+NOS = 3; % Number of stimuli
+OnOffset = 50;
+EVN = 2; % Eigen Value Number
+%warning('Eigen Value Hack 2->1')
+fps = 33;
+dt = 1/fps;
+%% Create a figure and axes
 startUp();
     function startUp()
         fullVersion = 0;
@@ -178,13 +181,93 @@ startUp();
              fastLoadChkButton = uicontrol('Style','checkbox','Value',0,...
                 'Position',[70 by(1)+2.5 100 15],'String','Fast Load');
             
-             loadAnalysisChkButton = uicontrol('Style','checkbox','Value',0,...
+             loadAnalysisChkButton = uicontrol('Style','checkbox','Value',1,...
                 'Position',[70 by(-1)+2.5 100 15],'String','Load Analysis');
           
             reuseMaskChkButton = uicontrol('Style','checkbox','Value',0,...
                 'Position',[70 by(0)+2.5 100 15],'String','reuse Mask');
         end
         
+        createRadioButtons1();
+        createRadioButtons2();
+        
+        function createRadioButtons1()
+            rb1title = uicontrol('Style', 'Text', 'String',  {'Spatial Threshold'},...
+                'Position', [20 700 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08]);
+           
+           % buttonGroup1 = uibuttongroup(f2,'Position',[137 113 123 85]);  
+            sig2rb = uicontrol('Style', 'radiobutton', 'String',  {'2 Sigma'},...
+                'Position', [20 680 250 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],'callback',@set2sigma);
+            sig3rb = uicontrol('Style', 'radiobutton', 'String',  {'3 Sigma'},...
+                'Position', [20 660 250 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],'callback',@set3sigma);
+            sigOthRB = uicontrol('Style', 'radiobutton', 'String',  {'Other'},...
+                'Position', [20 640 250 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],'callback',@setOtherSigma);
+            otherSigmaValueEdit = uicontrol('Style', 'edit', 'String',  {'...'},...
+                'Position', [80 640 50 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],'callback',@checkFixedThresholdValue);
+            
+            sig2rb.Value=1;
+        end
+        function createRadioButtons2()
+            
+           rb2title = uicontrol('Style', 'Text', 'String',  {'Temporal Threshold'},...
+                'Position', [220 700 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08]);
+            
+           % buttonGroup1 = uibuttongroup(f2,'Position',[137 113 123 85]);  
+            tempSig2rb = uicontrol('Style', 'radiobutton', 'String',  {'2 Sigma'},...
+                'Position', [220 680 250 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],'callback',@setTemp2sigma);
+            tempSig3rb = uicontrol('Style', 'radiobutton', 'String',  {'3 Sigma'},...
+                'Position', [220 660 250 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],'callback',@setTemp3sigma);
+            tempSigOtherRB = uicontrol('Style', 'radiobutton', 'String',  {'Other'},...
+                'Position', [220 640 250 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],'callback',@setTempOtherSigma);
+            
+            tempSigNoneRB = uicontrol('Style', 'radiobutton', 'String',  {'None'},...
+                'Position', [220 620 250 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],'callback',@setTempNoneSigma);
+            tempOtherSigmaValueEdit = uicontrol('Style', 'edit', 'String',  {'...'},...
+                'Position', [280 640 50 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],'callback',@checkTempFixedThresholdValue);
+            
+            tempSig2rb.Value=1;
+        end
+        
+        function setTemp2sigma(g,h,e)
+            tempSig2rb.Value=1;
+            tempSig3rb.Value=0;
+            tempSigOtherRB.Value=0;
+            tempSigNoneRB.Value=0;
+        end
+        function setTemp3sigma(g,h,e)
+            tempSig2rb.Value=0;
+            tempSig3rb.Value=1;
+            tempSigOtherRB.Value=0;
+            tempSigNoneRB.Value=0;
+        end
+        function setTempOtherSigma(g,h,e)
+            tempSig2rb.Value=0;
+            tempSig3rb.Value=0;
+            tempSigOtherRB.Value=1;
+            tempSigNoneRB.Value=0;
+        end
+        function setTempNoneSigma(g,h,e)
+            tempSig2rb.Value=0;
+            tempSig3rb.Value=0;
+            tempSigOtherRB.Value=0;
+            tempSigNoneRB.Value=1;
+        end
+        
+        function set2sigma(g,h,e)
+            sig2rb.Value=1;
+            sig3rb.Value=0;
+            sigOthRB.Value=0;
+        end
+        function set3sigma(g,h,e)
+            sig2rb.Value=0;
+            sig3rb.Value=1;
+            sigOthRB.Value=0;
+        end
+        function setOtherSigma(g,h,e)
+            sig2rb.Value=0;
+            sig3rb.Value=0;
+            sigOthRB.Value=1;
+        end
         thresTxt = uicontrol('Style', 'Edit', 'String', 'no threshold set',...
             'Position', [20 by(1) 50 20]);
         
@@ -209,12 +292,16 @@ startUp();
         segmentCellBodiesChkButton = uicontrol('Style','checkbox','Value',0,...
             'Position',[70 by(2)+2.5 100 15],'String','segment Cell Bodies');
         
-        btn77 = uicontrol('Style', 'pushbutton', 'String', 'processDirs',...
-            'Position', [160 by(5) 50 20],...
-            'Callback', @processDirs);
+%         btn77 = uicontrol('Style', 'pushbutton', 'String', 'processDirs',...
+%             'Position', [160 by(5) 50 20],...
+%             'Callback', @processDirs);
         
         thresTxt = uicontrol('Style', 'Edit', 'String', 'no threshold set',...
             'Position', [70 by(8) 50 20]);
+   
+        eigTxt = uicontrol('Style', 'Edit', 'String', num2str(EVN),...
+            'Position', [70 by(7) 50 20],'Callback',@changeEig);
+        
         
         loadTiff22Btn = uicontrol('Style', 'pushbutton', 'String', 'File',...
             'Position', [5 by(1) 50 20],...
@@ -242,10 +329,10 @@ startUp();
         
         thresholdBtn = uicontrol('Style', 'pushbutton', 'String', 'threshold',...
             'Position', [20 by(8) 50 20],...
-            'Callback', @threshold);
+            'Callback', @doThreshold);
         thresholdBtn = uicontrol('Style', 'pushbutton', 'String', '3sig',...
             'Position', [170 by(8) 50 20],...
-            'Callback', @threeSigThreshold);
+            'Callback', @doThreeSigThreshold);
         
         
         
@@ -276,7 +363,7 @@ startUp();
         
         thresholdBtn = uicontrol('Style', 'pushbutton', 'String', '2sig',...
             'Position', [170 by(9) 50 20],...
-            'Callback', @twoSigThreshold);
+            'Callback', @doTwoSigThreshold);
         
         detectIslandsBtn = uicontrol('Style', 'pushbutton', 'String', 'detect Islands',...
             'Position', [5 by(10) 50 20],...
@@ -409,6 +496,10 @@ startUp();
             'Position', [5 by(18) 50 20],...
             'Callback', @PlateLayout2);
         
+        analysisBtn = uicontrol('Style', 'pushbutton', 'String', 'Analysis Configuration',...
+            'Position', [3*50+5 by(18) 50 20],...
+            'Callback', @doAnalysisCfgGenerator);
+        
         readResultsBtn = uicontrol('Style', 'pushbutton', 'String', 'Read Results',...
             'Position', [55 by(18) 50 20],...
             'Callback', @doReadResults);
@@ -425,6 +516,14 @@ startUp();
             'Position', [55 by(19) 50 20],...
             'Callback', @doStimCfgLoad);
         
+    end
+
+    function doAnalysisCfgGenerator(s,e,h)
+        analysisCfgGenerator();
+    end
+
+    function changeEig(s,e,h)
+        EVN = str2num(eigTxt.String);
     end
     function doDataViewer(s,e,h)
         dataViewer();
@@ -468,15 +567,16 @@ startUp();
     function slide(s,e)
         imagesc(data(:,:,floor(sliderBtn.Value*size(data,3))+1));
     end
-    function threeSigThreshold(source,event,handles)
+
+    function doThreeSigThreshold(source,event,handles)
         threesigma = mean(synProb(:))+3*std(synProb(:));
         setTvalue(threesigma);
-        threshold();
+        doThreshold();
     end
-    function twoSigThreshold(source,event,handles)
+    function doTwoSigThreshold(source,event,handles)
         twosigma = mean(synProb(:))+2*std(synProb(:));
         setTvalue(twosigma);
-        threshold();
+        doThreshold();
     end
     function changeZ(source,event,handles)
         synProb = mean(abs(bsxfun(@min,data,mean(data,3))),3);
@@ -569,10 +669,63 @@ startUp();
         %         pause(.5)
         %         subplot(4,4,16);
         %         plot(bsxfun(@plus,4*dff(synsignal')',1*(1:size(synsignal,2))));
-        mkdir([dirname 'output\']);
-        csvwrite([dirname 'output\' fname(1:end-4) '_synapses.csv'],dff(synsignal'))
+        if ~isdir([dirname 'output\'])
+            mkdir([dirname 'output\']);
+        end
+        if ~isdir([dirname 'output\SynapseDetails\'])
+            mkdir([dirname 'output\SynapseDetails\']);
+        end
+        tempThresSignals=tempThreshold(dff(synsignal'));
+        
+        tvec=(dt*(1:size(tempThresSignals,2))');
+        r=[tvec,tempThresSignals'];
+        tableLabels{1}='time';
+        for i=1:size(tempThresSignals,1)
+            tableLabels{i+1}=['syn' num2str(i)];
+        end
+        t=array2table(r,'VariableNames',tableLabels);
+        
+        writetable(t,[dirname 'output\SynapseDetails\' fname(1:end-4) '_synapses.csv']);
+        
+        %csvwrite([dirname 'output\SynapseDetails\' fname(1:end-4) '_synapses.csv'],tempThresSignals');
+        
         %plot(bsxfun(@plus,(synsignal')',1000*(1:size(synsignal,2))));
     end
+
+    function b=tempThreshold(a)
+        if tempSig2rb.Value
+            Nsigma = 2;
+        end
+        if tempSig3rb.Value
+            Nsigma = 3;
+        end
+        if tempSig2rb.Value ||  tempSig3rb.Value
+           b=a;
+            for i=size(a,1):1 %(SYNAPSES,TIME)
+                if (Nsigma*std(a(i,1:10)))>max(a(i,:))
+                    b(i,:)=[];
+                    disp(['Synapse ' num2str(i) ' removed: not reaching temporal threshold.']);
+                end
+            end
+        end
+        
+        if tempSigOtherRB.Value
+            b=a;
+            th=str2double(tempOtherSigmaValueEdit.String);
+            for i=size(a,1):1 %(SYNAPSES,TIME)
+                if th>max(a(i,:))
+                    b(i,:)=[];
+                    disp(['Synapse ' num2str(i) ' removed: not reaching temporal threshold.']);
+                end
+            end
+        size(a,1)    
+        end
+        if tempSigNoneRB.Value
+            b=a;
+        end
+        
+    end
+
     function detectIslands(s,e)
         synRegio  = regionprops(synapseBW(:,:),'PixelList','PixelIdxList');
     end
@@ -683,22 +836,35 @@ startUp();
         tophat(); warning('tophat ipo freqfilter')
        % freqfilter2D();
         
-       
+       if sig2rb.Value
          setTvalue(mean(synProb(:))+2*std(synProb(:)));
+       else
+           if sig3rb.Value
+               setTvalue(mean(synProb(:))+3*std(synProb(:)));
+           else
+               if sigOthRB.Value
+                   setTvalue(str2double(otherSigmaValueEdit.String));
+               end
+           end
+       end
        
        
       %  setTvalue((std(synProb(:))*2));
-      %  threshold(TValue);
+        doThreshold(TValue);
         cleanBW();
         %savesubplot(4,4,16,[pathname '_mask']);
         imwrite(synapseBW,[pathname '_mask.png']);
         subplot(4,4,4);
     end
+
+    function checkFixedThresholdValue(f,g,h)
+        otherSigmaValueEdit.String=num2str(str2double(otherSigmaValueEdit.String));
+    end
     function setTvalue(tvalue)
         TValue = tvalue;
         thresTxt.String = num2str(TValue);
     end
-    function threshold(source,event,handles)
+    function doThreshold(source,event,handles)
         TValue = str2double(thresTxt.String);
         synapseBW = synProb > TValue;
         pause(.5);
@@ -944,8 +1110,10 @@ startUp();
             mstdSR = 0;
             invalidate();
         end
-        r=[ASR',AR',swASR',rAR',AR1'];
-        t=array2table(r,'VariableNames',{'SynapseAverage','PixelAverage','SWSynapseAverage','rawAverageResponse','AverageResponse1'});
+        tvec=(dt*(1:size(ASR,2))');
+        r=[tvec,ASR',AR',swASR',rAR',AR1'];
+        t=array2table(r,'VariableNames',{'time','SynapseAverage','PixelAverage','SWSynapseAverage','rawAverageResponse','AverageResponse1'});
+        
         writetable(t,[dirname 'output\' fname(1:end-4) '_traces.csv']);
     end
     function analyseSingSynResponse(s,e,v)
@@ -1029,7 +1197,7 @@ startUp();
         mkdir ([dirname 'output\SynapseDetails']);
         end
         writetable(t,[dirname 'output\SynapseDetails\' fname(1:end-4) '_synapses']);
-        disp([dirname 'output\SynapseDetails\' fname(1:end-4) '_synapses.csv']);disp([ 'created']);
+        disp([dirname 'output\SynapseDetails\' fname(1:end-4) '_synapses.txt']);disp([ 'created']);
         
         
         
@@ -1229,7 +1397,7 @@ startUp();
             mkdir ([dirname 'output\']);
         end
         writetable(t,[dirname 'output\' fname(1:end-4) '_analysis']);
-        disp([dirname 'output\' fname(1:end-4) '_analysis.csv']);disp([ 'created']);
+        disp([dirname 'output\' fname(1:end-4) '_analysis.txt']);disp([ 'created']);
         
         
         subplot(4,4,15)
@@ -1286,38 +1454,39 @@ startUp();
         %    synProb = (-1*(sign(V(1,EVN)).*synProb));
     end
 
-    function processDirs(s,e,h)
-        %    [C10dirname] = uigetdir(defaultDir,'Select dir containing dirs to process:');
-        %    [C10dirname] = uigetdir(defaultDir,'Select dir containing dirs to process:');
-        
-%         batchDirs={
-%  'F:\share\toBeProcessed\GCAMP\NS_1120180504_155551_20180504_161603'
-%  'F:\share\toBeProcessed\GCAMP\NS_120180504_141003_20180504_143006'
-%  'F:\share\toBeProcessed\GCAMP\NS_1220180504_162547_20180504_164558'
-%  'F:\share\toBeProcessed\GCAMP\NS_1320180504_165538_20180504_171554'
-%  'F:\share\toBeProcessed\GCAMP\NS_1520180507_100016_20180507_101948'
-%  'F:\share\toBeProcessed\GCAMP\NS_6520180427_151013_20180427_152959'
-%  'F:\share\toBeProcessed\GCAMP\NS_6720180427_154455_20180427_160356'
-%  'F:\share\toBeProcessed\GCAMP\NS_6920180427_161455_20180427_163503'
-%  'F:\share\toBeProcessed\GCAMP\NS_820180504_151837_20180504_153852'
-%             };
-%       
+%%    
+%    function processDirs(s,e,h)
+%         %    [C10dirname] = uigetdir(defaultDir,'Select dir containing dirs to process:');
+%         %    [C10dirname] = uigetdir(defaultDir,'Select dir containing dirs to process:');
+%         
+% %         batchDirs={
+% %  'F:\share\toBeProcessed\GCAMP\NS_1120180504_155551_20180504_161603'
+% %  'F:\share\toBeProcessed\GCAMP\NS_120180504_141003_20180504_143006'
+% %  'F:\share\toBeProcessed\GCAMP\NS_1220180504_162547_20180504_164558'
+% %  'F:\share\toBeProcessed\GCAMP\NS_1320180504_165538_20180504_171554'
+% %  'F:\share\toBeProcessed\GCAMP\NS_1520180507_100016_20180507_101948'
+% %  'F:\share\toBeProcessed\GCAMP\NS_6520180427_151013_20180427_152959'
+% %  'F:\share\toBeProcessed\GCAMP\NS_6720180427_154455_20180427_160356'
+% %  'F:\share\toBeProcessed\GCAMP\NS_6920180427_161455_20180427_163503'
+% %  'F:\share\toBeProcessed\GCAMP\NS_820180504_151837_20180504_153852'
+% %             };
+% %       
+% %         for i=1:length(batchDirs)
+% %             processDir(batchDirs{i});
+% %         end
+% 
+%         [C10dirname] = uigetdir(defaultDir,'Select dir containing dirs to process:');
+%         batchDirs  = dir(C10dirname);
+%         batchDirs(1)=[];
+%         batchDirs(1)=[];
+%         
 %         for i=1:length(batchDirs)
-%             processDir(batchDirs{i});
+%             if isdir([batchDirs(i).folder '\' batchDirs(i).name])
+%                 processDir([batchDirs(i).folder '\' batchDirs(i).name]);
+%             end
 %         end
-
-        [C10dirname] = uigetdir(defaultDir,'Select dir containing dirs to process:');
-        batchDirs  = dir(C10dirname);
-        batchDirs(1)=[];
-        batchDirs(1)=[];
-        
-        for i=1:length(batchDirs)
-            if isdir([batchDirs(i).folder '\' batchDirs(i).name])
-                processDir([batchDirs(i).folder '\' batchDirs(i).name]);
-            end
-        end
-    end
-
+%     end
+%%
     function goDeep(func,filterOptions)
           [dataDirname] = uigetdir(defaultDir,'Select dir:');
         defaultDir =  [dataDirname '\..'];
@@ -1396,8 +1565,6 @@ startUp();
         
     end
 
-
-
     function [isProcessed, currentfolder]=writeProcessStart(expnm,iii,currentfolder)
         % Visualise we do new experiment.
         if (~strcmp(expnm{iii}.folder,currentfolder) )
@@ -1415,8 +1582,6 @@ startUp();
         end
     end
 
-
-
     function writeAnalysisStart(expnm,iii,analysisName)
         % Visualise we do new experiment.
         fid =fopen([expnm{iii}.folder '\process\process_' expnm{iii}.name '.txt'],'a');
@@ -1424,7 +1589,6 @@ startUp();
         fprintf(fid,['start Analysis: '  analysisName ': ' num2str(cl(1)) '-' num2str(cl(2)) '-' num2str(cl(3)) ' ' num2str(cl(4)) ':' num2str(cl(5)) ':' num2str(cl(6)) '\r\n']);
         fclose(fid);
     end
-
 
     function processDir(datadirname)
         % [C10dirname] = uigetdir(defaultDir,'Select control 10AP dir:');
@@ -1445,7 +1609,6 @@ startUp();
         for iii = 1:length(experiments)
             [isProcessed, currentfolder]=writeProcessStart(expnm,iii,currentfolder);
             if  ~isProcessed
-                
                 % Load the data
                 fNmTxt.String=['loading..' expnm{iii}.name];
                 [data, pathname, fname, dirname] = loadTiff([expnm{iii}.folder '\' expnm{iii}.name],fastLoadChkButton.Value );
@@ -1455,23 +1618,29 @@ startUp();
                 fNmTxt.String=fname;
                 pause(.01);
                 
-                
-                
                 %% Check for analysis files:
                 if (loadAnalysisChkButton.Value==1)
                     if ~isempty(dir( [pathname(1:end) '*_Analysis.xml']))
                         % Check if there is a special Analysis needed for this
                         % file.
                         analysisList = dir( [pathname(1:end) '*_Analysis.xml']);
-                    else
+                    else %Look if there are default analysis file in the dir.
                         k=strfind(pathname,'\');
                         kk=k(end);
                         
                         % If no special analysis, use default ones in dir.
                         if ~isempty(dir( [pathname(1:kk) '*_Analysis.xml']))
-                            analysisList = dir( [pathname(1:kk) '*_Analysis.xml']);
+                            analysisList = dir( [pathname(1:kk) '*_Analysis.xml']);                            
                         else
                             error('Sorry could not find analysis file.');
+                        end
+                        
+                        % Remove individual analysis files containg '*.tif' from this list.
+                        for i=1:length(analysisList)
+                            
+                            if ~isempty(strfind(analysisList(i).name,'tif'))
+                                analysisList(i)=[];
+                            end
                         end
                     end
                     
@@ -1511,12 +1680,12 @@ startUp();
         movefile([dirname ffname '*.pdf'],[dirname analysisListName(1:end-4) '\']);
         ffname = fname(1:end-4);
         movefile([dirname 'output\' ffname '*.*'],[dirname analysisListName(1:end-4) '\output']);
+        movefile([dirname 'output\SynapseDetails\' ffname '*.*'],[dirname analysisListName(1:end-4) '\output\SynapseDetails\']);
         
     end
     function loadAnalysis(FNname)
         analysisCfgLoad(FNname);
     end
-
     function writeProcessEnd(expnm,iii)
         %AP10Response(iii) = mASR;
         fid =fopen([expnm{iii}.folder '\process\process_' expnm{iii}.name '.txt'],'a');
@@ -1599,7 +1768,6 @@ startUp();
             
         end
     end
-
     function invalidate()
         % Write some files to output standard results when experiment is
         % invalid.
@@ -1618,7 +1786,6 @@ startUp();
         mkdir ([dirname 'output\']);
         writetable(t,[dirname 'output\' fname(1:end-4) '_analysis']);
     end
-
     function processSingleCoverslipExperiment(s,e,h)
                 [C10dirname] = uigetdir(defaultDir,'Select control 10AP dir:');
                 defaultDir =  [C10dirname '\..'];
@@ -1657,7 +1824,6 @@ startUp();
                 processMovie(M30expnm{1});
                 
     end
-        
     function doseResponse(s,e,h)
         
         % Select Data dirs
@@ -2034,14 +2200,12 @@ startUp();
         savesubplot(4,4,[2:4,6:8,10:12],[pathname '_doseResponse.png'])
         
     end
-
     function subtractBckgrnd(f,d,e)
         [sz1, sz2, sz3]=size(data);
         tempBG = getBkgrnd(data(:,:,:));
         tempBG =reshape(tempBG ,[ 1 1 sz3]);
         data=data-repmat(tempBG,[sz1 sz2 1]);        
     end
-
     function backGroundStrength=getBkgrnd(data)
         image=mean(data(:,:,1:end),3);
         [~, sii] = sort(image(:));
@@ -2109,7 +2273,6 @@ startUp();
         
         % ASR = meanData;
     end
-
     function fijime(d1,d2,d3)
         
         %!C:\Users\mvandyc5\Downloads\fiji-win64\Fiji.app\ImageJ-win64.exe C:\Users\mvandyc5\Desktop\Protocol13220180124_132350_e0007.tif
@@ -2133,7 +2296,6 @@ startUp();
         synRegio = loadMask(maskFilePath);
         setMask();
     end
-
     function analysisCfgLoad(stimCfgFN)
         
         stimCfgFN.folder=stimCfgFN.folder;
@@ -2143,9 +2305,8 @@ startUp();
         setFPS(analysisCfg.imageFreq);
         setOnOffset(round(analysisCfg.delayTime*analysisCfg.imageFreq/1000));
         setStimFreq(analysisCfg.stimFreq);
+        pause(0.1);
     end
-
-
     function doStimCfgLoad(s,f,g)
         stimCfg = stimSettingsLoader(dirname);
         setNOS(stimCfg.pulseCount);

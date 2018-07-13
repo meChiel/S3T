@@ -70,7 +70,7 @@ if extra
     %fig=figure;
     subplot(4,4,10);
     plot(ss);
-    axis off    
+   % axis off    
     savesubplot(4,4,10,[fname '_temp']);
     
     mpa = colormap(hot);
