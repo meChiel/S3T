@@ -21,11 +21,12 @@ names = {'temp','analysis','align','avg','mask','signals'};
 %  'eigenNeuron_1R','eigenNeuron_2R','eigenNeuron_3R','eigenNeuron_4R','eigenNeuron_5R'};
 
 
-
 for iii=1:length(names)
 ffname = names {iii};
+pngFiles=dir([inputDir '*' ffname '.png']);
+if ~isempty(pngFiles)
+ims=natsort(pngFiles);
 
-ims=natsort(dir([inputDir '*' ffname '.png']));
 %ims(1:2)=[]; disp('First 2 entries removed from overview!');%Delete first two entries
 clear a;
 for ii=1:length(ims)
@@ -37,10 +38,10 @@ end
 [s1,s2, s3, s4]=size(a);
 %b= reshape(a, 512,[]);
 b= reshape(a(:,:,:,1),[s1,s2,s3]);%, 512,[]);
-figure;imagesc(b);
+figure(6);imagesc(b);
 %
 nx=10-1;
-ny=7;
+ny=1;%=7;
 vspace=5;
 hspace=5;
 imHSize=s2;512;875;656;512;
@@ -76,6 +77,9 @@ else
     imwrite(bb,[inputDir ffname '_overview.png'])
 end
 disp([inputDir ffname '_overview.png Generated'])
-figure;image(bb);
-
+figure(7);image(bb);
+else
+    warning(['OverviewGenerator : No ' ffname ' entries found for overview generator in ' inputDir]);
+    %break;
+end
 end
