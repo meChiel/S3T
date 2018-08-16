@@ -30,6 +30,11 @@ openEdt2 = uicontrol('Style', 'edit', 'String', '...',...
     'Backgroundcolor',fgc,...
     'Callback', @doOpenFile2);
 
+thresholdField = uicontrol('Style', 'edit', 'String', '...',...
+    'Position', [470 60 50 30],...
+    'Backgroundcolor',fgc);
+    
+
 
 
 openBtn1 = uicontrol('Style', 'pushbutton', 'String', 'Open,',...
@@ -55,8 +60,12 @@ extractBtn1 = uicontrol('Style', 'pushbutton', 'String', 'Extract',...
     'Callback', @doMovieFrameExtractor);
 
 
-extractIndividchkBtn1 = uicontrol('Style', 'checkbutton', 'String', 'Create Individual files',...
-    'Position', [270 20 50 30],...
+extractIndividchkBtn1 = uicontrol('Style', 'checkbox', 'String', 'Create Individual files',...
+    'Position', [370 20 150 30],...
+    'Backgroundcolor',fgc);
+
+aboveThresholdchkBtn1 = uicontrol('Style', 'checkbox', 'String', 'Threshold',...
+    'Position', [370 60 100 30],...
     'Backgroundcolor',fgc);
 
 openEdt3 = uicontrol('Style', 'edit', 'String', '...',...
@@ -176,11 +185,12 @@ openSettingsBtn1 = uicontrol('Style', 'pushbutton', 'String', 'Load settings', .
     end
 
     function doMovieFrameExtractor(g,f,h)
-       if d==0
-           movieFrameExtractor([dir3 fname3]);
+        d=extractIndividchkBtn1.Value;
+        if d==0
+            movieFrameExtractor([dir3 fname3]);
         else
-            movieFrameExtractor2multipleMovies();
-    end
+            movieFrameExtractor2multipleMovies([dir3 fname3]);
+        end
     end
 
 
@@ -266,6 +276,10 @@ openSettingsBtn1 = uicontrol('Style', 'pushbutton', 'String', 'Load settings', .
             nM=min(length(trace),num_images1);
         end
         
+        if (aboveThresholdchkBtn1.Value)
+            nM=num_images1;
+        end
+        
         A=zeros(sx,sy,sz);
         L=0;
         
@@ -274,14 +288,22 @@ openSettingsBtn1 = uicontrol('Style', 'pushbutton', 'String', 'Load settings', .
             if k==4800
                 disp('hey')
             end
-            if mod(k,10)==0
+            if mod(k,10)==0 %Show some entertainment
              extractBtn1.String=num2str(k);
              pause(.01)
             end
             %disp(num2str(k))
-            if (trace(k)==1)
-                L=L+1;
-                A(:,:,L) = imread(pathname1, k);
+            
+            if (aboveThresholdchkBtn1.Value==0)
+                if (trace(k)==1)
+                    L=L+1;
+                    A(:,:,L) = imread(pathname1, k);
+                end
+            else
+                if(mean(mean(imread(pathname1, k)))>str2num(thresholdField.String));
+                    L=L+1;
+                    A(:,:,L) = imread(pathname1, k);
+                end
             end
         end
         A=A(:,:,1:L); %Clip the last part
@@ -299,7 +321,7 @@ openSettingsBtn1 = uicontrol('Style', 'pushbutton', 'String', 'Load settings', .
         
         
         for k = 1:size(A,3)
-            if mod(k,10)==0
+            if mod(k,10)==0 %Show some entertainment
              extractBtn1.String=num2str(k);
              pause(.01)
             end
@@ -310,6 +332,7 @@ openSettingsBtn1 = uicontrol('Style', 'pushbutton', 'String', 'Load settings', .
             t.writeDirectory()
         end
         t.close();
+         extractBtn1.String='Done';
         
     end
 
@@ -319,7 +342,7 @@ openSettingsBtn1 = uicontrol('Style', 'pushbutton', 'String', 'Load settings', .
         offTime = str2num(stimOffEdt.String);
         onTime = str2num(stimOnEdt.String);
         offsetTime =str2num(stimOffsetEdt.String);
-        subplot(10,10,[93:100]);
+        subplot(10,10,[63:70]);
         trace=[zeros(offsetTime,1); repmat([ones(onTime,1); zeros(offTime,1)],repeats,1)];
         plot(trace);
         xlabel('frames')

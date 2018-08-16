@@ -17,6 +17,7 @@ global maskRegio;
 global stimulationStartTime;
 global stimFreq NOS OnOffset;
 global stimFreqtxt NOStxt OnOffsettxt;
+global stimFreqtxt2 NOStxt2 OnOffsettxt2;
 global reuseMask reuseMaskChkButton fastLoadChkButton segmentCellBodiesChkButton segmentCellBodies loadAnalysisChkButton; 
 global pauseCB;
 global nSynapses;
@@ -45,6 +46,16 @@ EVN = 2; % Eigen Value Number
 %warning('Eigen Value Hack 2->1')
 fps = 33;
 dt = 1/fps;
+
+%% For post-processing
+%% Set default values on load
+stimFreq2 = 0.2;
+NOS2 = 3; % Number of stimuli
+OnOffset2 = 50;
+
+
+
+
 %% Create a figure and axes
 startUp();
     function startUp()
@@ -58,8 +69,8 @@ startUp();
         %set(f2,'MenuBar', 'none');
         %set(f2, 'ToolBar', 'auto');
         %set(f2, 'ToolBar', 'none');
-        javaFrame = get(f2,'JavaFrame');
-        javaFrame.setFigureIcon(javax.swing.ImageIcon('my_icon.png'));
+    %%%    javaFrame = get(f2,'JavaFrame');
+    %%%   javaFrame.setFigureIcon(javax.swing.ImageIcon('my_icon.png'));
         if fullVersion
             createListArray();
         end
@@ -89,16 +100,16 @@ startUp();
             
             fNmTxt = uicontrol('Style', 'Text', 'String', 'no File loaded',...
                 'Backgroundcolor',bgc,...
-                'Position', [15 by(-25) 200 20] ); % file name
+                'Position', [15 by(-23) 200 20] ); % file name
             
             dNmTxt = uicontrol('Style', 'Text', 'String', 'no Dir set',...
                 'Backgroundcolor',bgc,...
                 'FontSize',7,...
-                'Position', [15 by(-22) 200 60] ); % Dir Name
+                'Position', [15 by(-20) 200 60] ); % Dir Name
             %prjTxt = uicontrol('Style', 'Text', 'String', 'no prj set',...
             prjTxt = uicontrol('Style', 'Text', 'String', ' ',...
                 'Backgroundcolor',bgc,...
-                'Position', [15 by(-21) 200 20] );
+                'Position', [15 by(-19) 200 20] );
             
             foldButtons()
             function foldButtons()
@@ -118,6 +129,24 @@ startUp();
                     'Callback', @doSetOnOffset);
                 uicontrol('Style', 'text', 'String', 'Stim. delay',...
                     'Position', [70 by(-2) 100 20]);
+                
+                
+                
+               NOStxt2 = uicontrol('Style', 'Edit', 'String', num2str(NOS2),...
+                    'Position', [220 by(-4) 50 20],...
+                    'Callback', @doSetNOS2);
+                uicontrol('Style', 'text', 'String', 'Number of Stim.',...
+                    'Position', [270 by(-4) 100 20]);
+                stimFreqtxt2 = uicontrol('Style', 'Edit', 'String', num2str(stimFreq2),...
+                    'Position', [220 by(-3) 50 20],...
+                    'Callback', @doSetStimFreq2);
+                uicontrol('Style', 'text', 'String', 'Stim. freq.',...
+                    'Position', [270 by(-3) 100 20]);
+                OnOffsettxt2 = uicontrol('Style', 'Edit', 'String', num2str(OnOffset2),...
+                    'Position', [220 by(-2) 50 20],...
+                    'Callback', @doSetOnOffset2);
+                uicontrol('Style', 'text', 'String', 'Stim. delay',...
+                    'Position', [270 by(-2) 100 20]);
             end
             
             
@@ -182,7 +211,8 @@ startUp();
                 'Position',[70 by(1)+2.5 100 15],'String','Fast Load');
             
              loadAnalysisChkButton = uicontrol('Style','checkbox','Value',1,...
-                'Position',[70 by(-1)+2.5 100 15],'String','Load Analysis');
+                'Position',[70 by(-1)+2.5 100 15],'String','Load Analysis'...
+            ,   'Callback', @grayOutSettings);
           
             reuseMaskChkButton = uicontrol('Style','checkbox','Value',0,...
                 'Position',[70 by(0)+2.5 100 15],'String','reuse Mask');
@@ -280,6 +310,7 @@ startUp();
                 'Position', [-30 -5 200 20],'Backgroundcolor',bgc); %[figWidth-40 -5 200 20]
         end
         
+        grayOutSettings();
         defaultDir  = 'E:\share\Data\Rajiv';
     end
     function y = by(k) % calculate y coordinate of button
@@ -537,10 +568,20 @@ startUp();
     function doSetOnOffset(s,e,h)
         setOnOffset(str2double(OnOffsettxt.String));
     end
-    function setOnOffset(OnOffset2)
-        OnOffset= OnOffset2;
+    function setOnOffset(OnOffsetTemp)
+        OnOffset= OnOffsetTemp;
         OnOffsettxt.String = num2str(OnOffset);
     end
+
+
+    function doSetOnOffset2(s,e,h)
+        setOnOffset2(str2double(OnOffsettxt2.String));
+    end
+    function setOnOffset2(OnOffsetTemp)
+        OnOffset2= OnOffsetTemp;
+        OnOffsettxt2.String = num2str(OnOffset2);
+    end
+
     function doSetStimFreq(s,e,h)
         setStimFreq(str2double(stimFreqtxt.String));
     end
@@ -548,13 +589,34 @@ startUp();
         stimFreq= stimFreq2;
         stimFreqtxt.String = num2str(stimFreq);
     end
+
+function doSetStimFreq2(s,e,h)
+        setStimFreq2(str2double(stimFreqtxt2.String));
+    end
+    function setStimFreq2(stimFreqTemp)
+        stimFreq2= stimFreqTemp;
+        stimFreqtxt2.String = num2str(stimFreq2);
+    end
+
+
+
     function doSetNOS(s,e,h) % Number of Stimuli
         setNOS( str2double(NOStxt.String));        
     end
-    function setNOS(NOS2) % Number of Stimuli
-        NOS = NOS2;
+    function setNOS(NOSTemp) % Number of Stimuli
+        NOS = NOSTemp;
         NOStxt.String = num2str(NOS);
     end
+
+function doSetNOS2(s,e,h) % Number of Stimuli
+        setNOS2( str2double(NOStxt2.String));        
+    end
+    function setNOS2(NOSTemp) % Number of Stimuli
+        NOS2 = NOSTemp;
+        NOStxt2.String = num2str(NOS2);
+    end
+    
+
     function doSetFPS(s,e,h)
      setFPS(str2double(fpsTxt.String));
     end
@@ -857,7 +919,21 @@ startUp();
         imwrite(synapseBW,[pathname '_mask.png']);
         subplot(4,4,4);
     end
-
+    function grayOutSettings(source,event,handles)
+        if loadAnalysisChkButton.Value==1
+            set( NOStxt,'enable', 'off');
+            set(fpsTxt,'enable', 'off');
+            set(stimFreqtxt,'enable', 'off');
+            set(OnOffsettxt,'enable','off');
+        else
+            set(NOStxt,'enable','on');
+            set(fpsTxt,'enable','on');
+            set(stimFreqtxt,'enable','on');
+            set(OnOffsettxt,'enable','on');
+        end
+        drawnow();
+        
+    end
     function checkFixedThresholdValue(f,g,h)
         otherSigmaValueEdit.String=num2str(str2double(otherSigmaValueEdit.String));
     end
@@ -942,7 +1018,12 @@ startUp();
         %global fNmTxt;
         
         title('loading')
-        [data, pathname, fname, dirname] = loadTiff([],fastLoadChkButton.Value);
+        if (fastLoadChkButton.Value)
+            [data, pathname, fname, dirname, U, S, V] = loadTiff([],fastLoadChkButton.Value);
+            imageEigen(U,S,V);
+        else
+            [data, pathname, fname, dirname] = loadTiff([],fastLoadChkButton.Value);
+        end
         wx = size(data,2); wy = size(data,1);wt = size(data,3);
         fNmTxt.String=fname;
         dNmTxt.String=dirname;
@@ -1203,6 +1284,7 @@ startUp();
     end
     function analyseAvgReponse(s,e)
         % Amplitude
+        error =0; % Indicates if something was wrong with the data or dataprocessing
         [mASR, miASR] = max(ASR); % Find max ampl of the Average Synaptic Response
         [mswASR, miswASR] = max(swASR); % Find max ampl of the Average Synaptic Response
         [mAR, miAR] = max(AR); % Find max ampl of the Average Response
@@ -1238,6 +1320,16 @@ startUp();
         expdataPA.y = downResponse;
         
         [tau1PA, ampPA, t0PA] = exp1fit(expdataPA.x,expdataPA.y); %Pixel Average
+        if isempty(tau1PA)
+            tau1PA=0;
+            error=1;
+        end
+        if isempty(t0PA)
+            t0PA=0;
+            error=1;
+        end
+        
+        
         AUCPA = sum(AR.*(AR>0));
         nAUCPA = sum(AR.*(AR<0));
         
@@ -1385,7 +1477,7 @@ startUp();
         end
         
         savesubplot(4,4,8,[pathname '_analysis']);
-        error =0; % Indicates if something was wrong with the data or dataprocessing
+        
         
        
         t =array2table([mASR mstdSR miASR  mswASR miswASR fps UpHalfTime DownHalfTime tau1 amp nSynapses AUC nAUC tau1PA ampPA t0PA error ],...
@@ -1610,7 +1702,12 @@ startUp();
             if  ~isProcessed
                 % Load the data
                 fNmTxt.String=['loading..' expnm{iii}.name];
-                [data, pathname, fname, dirname] = loadTiff([expnm{iii}.folder '\' expnm{iii}.name],fastLoadChkButton.Value );
+                if fastLoadChkButton.Value
+                    [data, pathname, fname, dirname,U,S,V] = loadTiff([expnm{iii}.folder '\' expnm{iii}.name],fastLoadChkButton.Value );
+                    imageEigen(U,S,V);
+                else
+                    [data, pathname, fname, dirname] = loadTiff([expnm{iii}.folder '\' expnm{iii}.name],fastLoadChkButton.Value );
+                end
                 defaultDir = dirname;
                 dNmTxt.String = defaultDir;
                 wx = size(data,2); wy = size(data,1);
@@ -1646,6 +1743,7 @@ startUp();
                     for i=1:length(analysisList)
                        writeAnalysisStart(expnm,iii,analysisList(i).name);
                         loadAnalysis(analysisList(i));
+                        pause(0.05);
                         processMovie(pathname);
                         moveResults(analysisList(i).name);
                         writeProcessEnd(expnm,iii);
@@ -1680,7 +1778,10 @@ startUp();
         ffname = fname(1:end-4);
         movefile([dirname 'output\' ffname '*.*'],[dirname analysisListName(1:end-4) '\output']);
         movefile([dirname 'output\SynapseDetails\' ffname '*.*'],[dirname analysisListName(1:end-4) '\output\SynapseDetails\']);
-        
+       
+       % Put some files back .
+        copyfile([dirname analysisListName(1:end-4) '\' fname '_mask.png'],[dirname]);
+       
     end
     function loadAnalysis(FNname)
         analysisCfgLoad(FNname);
@@ -1750,10 +1851,12 @@ startUp();
             signalPlot();               % f(dff(synsignal'))
             exportSynapseSignals();     % tempThreshold(dff(synsignal'))
             
+            
+            doPostProcessing();
             % GetAmplitude
             analyseSingSynResponse();
-            avgSynapseResponse();
-            doMultiResponseto1();             
+            avgSynapseResponse(); % AR=f(synsignal)
+            doMultiResponseto1(); %AR=mr(AR), ASR=mr(ASR)             
             analyseAvgReponse();
             
         else
@@ -2279,6 +2382,133 @@ startUp();
         
         % ASR = meanData;
     end
+    function doPostProcessing(d1,d2,d3)
+        postProcess(synsignal');%dff(synsignal')')
+    end
+
+    function postProcess(synsignalTemp)
+        dffsynsignal=dff(synsignal')';
+        for i=1:size(dffsynsignal,2)
+            signal = dffsynsignal(:,i);
+            synapseNbr(i) = i;
+            
+            centre = mean(synRegio(i).PixelList,1);
+            xCentPos(i) = centre(2);
+            yCentPos(i) = centre(1);
+            bbox(i,1:2)=max(synRegio(i).PixelList,[],1);
+            bbox(i,3:4)=min(synRegio(i).PixelList,[],1);
+            
+            signal = multiResponseto1(signal,0);
+            
+            interStimPeriod = floor(1/stimFreq2*fps);
+            iSP = interStimPeriod;
+            part=zeros(iSP,NOS2);
+            for j = 1:NOS2
+                %part(:,j)=signal(OnOffset2+(j-1)*iSP+(1:iSP));
+                part(:,j)=signal(OnOffset2+floor((j-1)/stimFreq2*fps)+(1:iSP)); % Here the rounding is done after the multiplication = better
+               
+            end
+            plot(part);
+            pause(.5);
+            
+            for j = 1:NOS2
+                signal = part(:,j);
+                
+                
+                [mSig, miSig] = max(signal,[],1); % Find max ampl of the Average Synaptic Response
+                mSigA(i,j)=mSig;
+                miSigA(i,j)=miSig;
+                AUC(i,j) = sum((signal>0).*signal);
+                nAUC(i,j) = sum((signal<0).*signal);
+                noiseSTD(i,j) = nan;%std(signal(1:15)); % Calculate noise power (std).
+                aboveThreshold(i,j) = mSig>(2*noiseSTD(i,j));
+                
+                %     upframes = miSig-stimulationStartFrame;
+                %     upResponse = signal(stimulationStartFrame:miSig);
+                %     expdata.x = (0:(length(upResponse)-1))*dt;
+                %     expdata.y = upResponse;
+                %[expEqUp, fitCurve1] = curveFitV1(expdata,[.22 100 0 2 -1 2]);
+                
+                
+                if 1 %length(expdata.x(:))<=4000000
+                    expEqUp =[0 0 0 0] ;
+                    %       disp(['No synapse up kinetcis fit for: ' fname 'Synapse' num2str(i)]);
+                    tau1(i,j)=0; amp(i,j)=0; t0(i,j)=0;
+                else
+                    [tau1(i), amp(i), t0(i)] = exp1fit(expdata.x,expdata.y);
+                    %            [fitCurve1] = fit(expdata.x(:),expdata.y(:),'exp2');%[.22 100 0 2 -1 2]);
+                    %            expEqUp = coeffvalues(fitCurve1);
+                    hold on;
+                    %plot(miASR*dt+expdata.x, amp*exp(-expdata.x/tau1));
+                    plot(miSig*dt+t0+expdata.x, amp*exp(-expdata.x/tau1));
+                    %temp.     plot(expdata.x+stimulationStartTime, fitCurve1(expdata.x));
+                end
+                %downResponse = ASR(miASR:miASR+floor(3.0/dt));
+                downResponse = signal(miSig:end);
+                expdata.x = (0:(length(downResponse)-1))*dt;
+                expdata.y = downResponse;
+                %[expEqDown, fitCurve2] = curveFitV1(expdata,[0 1 0 2 1 2]);
+                
+                if length(expdata.x(:))<=4
+                    expEqDown =[0 0 0 0] ;
+                    disp(['No down kinetics fit for: ' fname]);
+                    tau1(i,j)=0; amp(i,j)=0;t0(i,j)=0;
+                else
+                    [tau1(i,j), amp(i,j), t0(i,j)] = exp1fit(expdata.x,expdata.y);
+                    %            [fitCurve2] = fit(expdata.x(:),expdata.y(:),'exp2');
+                    %            expEqDown = coeffvalues(fitCurve2);
+                                     hold off;
+                    %                 %plot(miASR*dt+expdata.x, fitCurve2(expdata.x));
+                    %                 %plot(miASR*dt+expdata.x, amp*exp(-expdata.x/tau1));
+%                                      plot(miSig*dt+expdata.x,expdata.y);
+%                                      hold on;
+%                                      plot(miSig*dt+t0(i)+expdata.x, amp(i)*exp(-expdata.x/tau1(i)));
+%                                      drawnow();%pause(.5)
+                end
+            end
+            synapseSize(i) = length(synRegio(i).PixelList);
+        end
+        
+        
+            
+        UpHalfTime=tau1*0; DownHalfTime=tau1*0;
+        error=tau1*0;
+        
+        tauL=labelVar('tau_',NOS2);
+        maxSynL=labelVar('synapseAmplitude',NOS2);
+        miSynL=labelVar('synapseMaxFrame',NOS2);
+        noiseSTDL=labelVar('noiseSTD',NOS2);
+        aboveThresholdL=labelVar('aboveThreshold',NOS2);
+        UpHalfTimeL=labelVar('UpHalfTime',NOS2);
+        downHalfTimeL=labelVar('downHalfTime',NOS2);
+        AUCL=labelVar('AUC_',NOS2);
+        nAUCL=labelVar('nAUC_',NOS2);
+        ampSSL=labelVar('ampSS_',NOS2);
+         errorL=labelVar('error_',NOS2);
+   
+        t =     array2table([synapseNbr', mSigA     miSigA synapseSize' noiseSTD aboveThreshold UpHalfTime    DownHalfTime    tau1    amp      error, xCentPos', yCentPos',  bbox(:,2), bbox(:,1), bbox(:,4), bbox(:,3), AUC, nAUC],...
+            'VariableNames',[{'synapseNbr'},maxSynL, miSynL, {'synapseSize'}, noiseSTDL, aboveThresholdL, UpHalfTimeL, downHalfTimeL, tauL, ampSSL, errorL,{'xCentPos'},{'yCentPos'},  {'bboxUx'},{'bboxUy'},{'bboxDx'},{'bboxDy'},AUCL,nAUCL]);
+        
+        if(~isdir ([dirname 'output\']))
+            mkdir ([dirname 'output\']);
+        end
+        if (~isdir ([dirname 'output\SynapseDetails']))
+            mkdir ([dirname 'output\SynapseDetails']);
+        end
+        writetable(t,[dirname 'output\SynapseDetails\' fname(1:end-4) '_PPsynapses']);
+        disp([dirname 'output\SynapseDetails\' fname(1:end-4) '_PPsynapses.txt']);disp(['created']);
+        
+
+    end
+
+    function tableLabels = labelVar(label,ii)
+        tableLabels=[];
+        for i=1:ii
+            tableLabels{i}=[label num2str(i)];
+        end
+        
+    end
+
     function fijime(d1,d2,d3)
         
         %!C:\Users\mvandyc5\Downloads\fiji-win64\Fiji.app\ImageJ-win64.exe C:\Users\mvandyc5\Desktop\Protocol13220180124_132350_e0007.tif
@@ -2311,6 +2541,10 @@ startUp();
         setFPS(analysisCfg.imageFreq);
         setOnOffset(round(analysisCfg.delayTime*analysisCfg.imageFreq/1000));
         setStimFreq(analysisCfg.stimFreq);
+        EVN = analysisCfg.eigenvalueNumber;
+% if exist('eigTxt')
+%     eigTxt.String = EVN; 
+% end
         pause(0.1);
     end
     function doStimCfgLoad(s,f,g)

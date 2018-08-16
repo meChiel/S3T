@@ -50,6 +50,21 @@ pulseCount=str2num(aa(rr(1)+ss(1)+4:rr(1)+ss(1)+ss2(1)-2));
 
 
 
+
+
+rr = strfind(aa,'<Name>Eigenvalue Number</Name>');
+if length(rr)>0
+    if length(rr)>1
+        warning('did find multiple Eigen Value, chosing Eigen value 1')
+    end
+    
+    ss=strfind(aa(rr(1):end),'<Val>');
+    
+    ss2=strfind(aa(rr(1)+(ss(1)):end),'</Val>');
+    
+    eigenvalueNumber=str2num(aa(rr(1)+ss(1)+4:rr(1)+ss(1)+ss2(1)-2));
+end
+
 rr = strfind(aa,'Camera Exposure Time (s)');
 if length(rr)>1
     warning('did find multiple camera ep times, chosing 1')
@@ -67,5 +82,11 @@ stimCfg.stimFreq =stimFreq;
 stimCfg.imageFreq =imageFreq;
 stimCfg.pulseCount=pulseCount;
 
+if exist('eigenvalueNumber') 
+    stimCfg.eigenvalueNumber=eigenvalueNumber;
+else
+    % Set default eigenvalue
+    stimCfg.eigenvalueNumber=2;
+end
 
 end

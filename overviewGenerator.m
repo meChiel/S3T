@@ -41,7 +41,7 @@ b= reshape(a(:,:,:,1),[s1,s2,s3]);%, 512,[]);
 figure(6);imagesc(b);
 %
 nx=10-1;
-ny=1;%=7;
+ny=7;
 vspace=5;
 hspace=5;
 imHSize=s2;512;875;656;512;
