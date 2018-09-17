@@ -1,4 +1,7 @@
 function [bcresponse, dff, BC, mstart] = linMinBleachCorrect(signal)
+%
+%
+
 LM=size(signal,2);
 avgSampleSize=floor(LM/4);
 aSS = avgSampleSize;

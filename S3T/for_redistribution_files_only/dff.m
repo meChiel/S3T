@@ -1,30 +1,32 @@
 function dff=dff(signal,BC)
-% Calculates teh delta fluoresence / base fluoresence signal.
+% Calculates the delta fluoresence / base fluoresence signal.
 %
 % BC enables/disables bleach correction. Default = on;
 if nargin <= 2
     BC = 1;
 end
 
-if BC == 1
+if BC == 1  %Do Bleach Correction?
     if 1
         [~,dff] = linBleachCorrect(signal);
      %   [~,dff] = linMinBleachCorrect(signal);warning ('dff hack');
+     %   [~,dff] = exp2BleachCorrection(signal);warning ('dff hack');
         
     else
         filterExperiment();
     end
-else % No bleach correction.
+else
+    % No bleach correction.
      mstart = mean(signal(:,1:30),2);
-%     dff = (signal-BC-repmat(mstart,1,LM))./repmat(mstart,1,LM); % Delta f
-dff = (signal-repmat(mstart,1,LM))./repmat(mstart,1,LM); % Delta f over v
+     %     dff = (signal-BC-repmat(mstart,1,LM))./repmat(mstart,1,LM); % Delta f
+     dff = (signal-repmat(mstart,1,LM))./repmat(mstart,1,LM); % Delta f over v
       %     warning('Is -BC juist');
     
-    if 0 % When using the minima
-    LM = length(signal,2);
-    mstart = min(signal(:,1:floor(LM/3)),[],2);
-    dff = (signal-repmat(mstart,1,LM))./repmat(mstart,1,LM); % Delta f over f
-    end
+      if 0 % When using the minima
+          LM = length(signal,2);
+          mstart = min(signal(:,1:floor(LM/3)),[],2);
+          dff = (signal-repmat(mstart,1,LM))./repmat(mstart,1,LM); % Delta f over f
+      end
 end
 
 end

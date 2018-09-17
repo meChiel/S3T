@@ -1,4 +1,6 @@
 function segGUIV1()
+global Version
+Version = 'V0.69';
 %% Define global values
 global controlResponse
 global data;
@@ -23,7 +25,7 @@ global pauseCB;
 global nSynapses;
 global sig2rb sig3rb sigOthRB otherSigmaValueEdit;
 global tempSig2rb tempSig3rb tempSigOtherRB tempOtherSigmaValueEdit tempSigNoneRB;
-
+global debug 
 
 % For experiment:
 global C1Data C1pathname C1fname C1dirname                                 % Control 1AP
@@ -46,12 +48,13 @@ EVN = 2; % Eigen Value Number
 %warning('Eigen Value Hack 2->1')
 fps = 33;
 dt = 1/fps;
+debug = 0;
 
 %% For post-processing
 %% Set default values on load
-stimFreq2 = 0.2;
-NOS2 = 3; % Number of stimuli
-OnOffset2 = 50;
+stimFreq2 = 0;
+NOS2 = 0; % Number of stimuli
+OnOffset2 = 0;
 
 
 
@@ -88,7 +91,7 @@ startUp();
                 'Position', [0 lstY+80 250 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08] );
            
         end
-        createPushButtons();
+      
         function createPushButtons
             
             
@@ -122,12 +125,12 @@ startUp();
                 stimFreqtxt = uicontrol('Style', 'Edit', 'String', num2str(stimFreq),...
                     'Position', [20 by(-3) 50 20],...
                     'Callback', @doSetStimFreq);
-                uicontrol('Style', 'text', 'String', 'Stim. freq.',...
+                uicontrol('Style', 'text', 'String', 'Stim. freq.(Hz)',...
                     'Position', [70 by(-3) 100 20]);
                 OnOffsettxt = uicontrol('Style', 'Edit', 'String', num2str(OnOffset),...
                     'Position', [20 by(-2) 50 20],...
                     'Callback', @doSetOnOffset);
-                uicontrol('Style', 'text', 'String', 'Stim. delay',...
+                uicontrol('Style', 'text', 'String', 'Stim. delay (fr.)',...
                     'Position', [70 by(-2) 100 20]);
                 
                 
@@ -140,12 +143,12 @@ startUp();
                 stimFreqtxt2 = uicontrol('Style', 'Edit', 'String', num2str(stimFreq2),...
                     'Position', [220 by(-3) 50 20],...
                     'Callback', @doSetStimFreq2);
-                uicontrol('Style', 'text', 'String', 'Stim. freq.',...
+                uicontrol('Style', 'text', 'String', 'Stim. freq. (Hz)',...
                     'Position', [270 by(-3) 100 20]);
                 OnOffsettxt2 = uicontrol('Style', 'Edit', 'String', num2str(OnOffset2),...
                     'Position', [220 by(-2) 50 20],...
                     'Callback', @doSetOnOffset2);
-                uicontrol('Style', 'text', 'String', 'Stim. delay',...
+                uicontrol('Style', 'text', 'String', 'Stim. delay (frames)',...
                     'Position', [270 by(-2) 100 20]);
             end
             
@@ -198,6 +201,7 @@ startUp();
             %dispOptions();
             
         end
+        createPushButtons();
         createCheckBoxes();
         function createCheckBoxes()
             %             rbgCB = uicontrol('Style','checkbox','Value',1,...
@@ -306,7 +310,7 @@ startUp();
             pos = get(f2, 'Position'); %// gives x left, y bottom, width, height
             figWidth = pos(3);
             figHeight = pos(4);
-            txt2 = uicontrol('Style', 'Text', 'String', 'M. Van Dyck (UAntwerpen)',...
+            txt2 = uicontrol('Style', 'Text', 'String', ['S3T: ' Version ', M. Van Dyck (UAntwerpen)'],...
                 'Position', [-30 -5 200 20],'Backgroundcolor',bgc); %[figWidth-40 -5 200 20]
         end
         
@@ -547,6 +551,13 @@ startUp();
             'Position', [55 by(19) 50 20],...
             'Callback', @doStimCfgLoad);
         
+        
+        AnalysisLoadBtn = uicontrol('Style', 'pushbutton', 'String', 'Load Analysis',...
+            'Position', [105 by(19) 50 20],...
+            'Callback', @doLoadAnalysisSettings);
+        
+        
+        
     end
 
     function doAnalysisCfgGenerator(s,e,h)
@@ -560,11 +571,18 @@ startUp();
         dataViewer();
     end
     function doOverviewGenerator(s,e,h) 
-        goDeep(@overviewGenerator,'\*.png');
+        %goDeep(@overviewGenerator,'\*.png');
+        rootdir=uigetdir(defaultDir);
+        goDeep(@overviewGenerator,'\*mask.png',rootdir);
+        goDeep(@overviewGenerator,'\*align.png',rootdir);
+        goDeep(@overviewGenerator,'\*analysis.png',rootdir);
+        goDeep(@overviewGenerator,'\*temp.png',rootdir);
+        goDeep(@overviewGenerator,'\*signals.png',rootdir);
     end
     function doReadResults(s,e,h)
      goDeep(@readResults,'\*analysis.txt');
     end
+
     function doSetOnOffset(s,e,h)
         setOnOffset(str2double(OnOffsettxt.String));
     end
@@ -572,7 +590,6 @@ startUp();
         OnOffset= OnOffsetTemp;
         OnOffsettxt.String = num2str(OnOffset);
     end
-
 
     function doSetOnOffset2(s,e,h)
         setOnOffset2(str2double(OnOffsettxt2.String));
@@ -590,15 +607,13 @@ startUp();
         stimFreqtxt.String = num2str(stimFreq);
     end
 
-function doSetStimFreq2(s,e,h)
+    function doSetStimFreq2(s,e,h)
         setStimFreq2(str2double(stimFreqtxt2.String));
     end
     function setStimFreq2(stimFreqTemp)
         stimFreq2= stimFreqTemp;
         stimFreqtxt2.String = num2str(stimFreq2);
     end
-
-
 
     function doSetNOS(s,e,h) % Number of Stimuli
         setNOS( str2double(NOStxt.String));        
@@ -608,14 +623,13 @@ function doSetStimFreq2(s,e,h)
         NOStxt.String = num2str(NOS);
     end
 
-function doSetNOS2(s,e,h) % Number of Stimuli
+    function doSetNOS2(s,e,h) % Number of Stimuli
         setNOS2( str2double(NOStxt2.String));        
     end
     function setNOS2(NOSTemp) % Number of Stimuli
         NOS2 = NOSTemp;
         NOStxt2.String = num2str(NOS2);
     end
-    
 
     function doSetFPS(s,e,h)
      setFPS(str2double(fpsTxt.String));
@@ -738,18 +752,21 @@ function doSetNOS2(s,e,h) % Number of Stimuli
         if ~isdir([dirname 'output\SynapseDetails\'])
             mkdir([dirname 'output\SynapseDetails\']);
         end
-        tempThresSignals=tempThreshold(dff(synsignal'));
+        dfftempThresSignals=tempThreshold(dff(synsignal'));
+        tempThresSignals=tempThreshold((synsignal'));
         
         tvec=(dt*(1:size(tempThresSignals,2))');
+        dffr=[tvec,dfftempThresSignals'];
         r=[tvec,tempThresSignals'];
         tableLabels{1}='time';
         for i=1:size(tempThresSignals,1)
             tableLabels{i+1}=['syn' num2str(i)];
         end
-        t=array2table(r,'VariableNames',tableLabels);
+        t=array2table(dffr,'VariableNames',tableLabels);
+        t2=array2table(r,'VariableNames',tableLabels);
         
-        writetable(t,[dirname 'output\SynapseDetails\' fname(1:end-4) '_synapses.csv']);
-        
+        writetable(t,[dirname 'output\SynapseDetails\' fname(1:end-4) '_synTraces.csv']);
+        writetable(t2,[dirname 'output\SynapseDetails\' fname(1:end-4) '_RawSynTraces.csv']);
         %csvwrite([dirname 'output\SynapseDetails\' fname(1:end-4) '_synapses.csv'],tempThresSignals');
         
         %plot(bsxfun(@plus,(synsignal')',1000*(1:size(synsignal,2))));
@@ -1172,7 +1189,7 @@ function doSetNOS2(s,e,h) % Number of Stimuli
             [TSpAPA , TSpAPAi] = max(mdd); %Temporal spike Averaged Pixel Amplitude
            
                
-            AR1 = mean(dff(reshape(data,wx*wy,[]),1)); % Average over all pixels, average Response
+     warning('AR1 disabled ;') ; AR1=AR*0;%      AR1 = mean(dff(reshape(data,wx*wy,[]),1)); % Average over all pixels, average Response
            rAR = mean(reshape(data,wx*wy,[]),1); % Average over all pixels, average Response
            
             stdSR = std(dff(synsignal'),1); %stdSR for all points in time
@@ -1219,7 +1236,7 @@ function doSetNOS2(s,e,h) % Number of Stimuli
             AUC(i) = sum((signal>0).*signal);
             nAUC(i) = sum((signal<0).*signal);
             synapseSize(i) = length(synRegio(i).PixelList);
-            noiseSTD(i) = std(signal(1:15)); % Calculate noise power (std).
+            noiseSTD(i) = std(signal(1:5)); % Calculate noise power (std).
             aboveThreshold(i) = mSig>(2*noiseSTD(i));
             
             
@@ -1578,10 +1595,21 @@ function doSetNOS2(s,e,h) % Number of Stimuli
 %         end
 %     end
 %%
-    function goDeep(func,filterOptions)
-          [dataDirname] = uigetdir(defaultDir,'Select dir:');
-        defaultDir =  [dataDirname '\..'];
-        
+    function goDeep(func,filterOptions,rootDir)
+        % GoDeep will evaluate the function func on specific files in
+        % current directory or subdirectory. 
+        % It wil look in subdirectories up to 6 deep to find files of a
+        % particular type. If the file is found than, the function
+        % is evaluated on that directory.
+        % The type can be specified with filterOptions.
+        % If these particular files are found, than the subsequent
+        % subdirectories of that folder are NOT looked into. 
+        if nargin<3  
+            [dataDirname] = uigetdir(defaultDir,'Select dir:');
+            defaultDir =  [dataDirname '\..'];
+        else
+            dataDirname=rootDir;  
+        end
         if nargin<2
             filterOptions='\*.tif';
         end
@@ -1728,7 +1756,7 @@ function doSetNOS2(s,e,h) % Number of Stimuli
                         if ~isempty(dir( [pathname(1:kk) '*_Analysis.xml']))
                             analysisList = dir( [pathname(1:kk) '*_Analysis.xml']);                            
                         else
-                            error('Sorry could not find analysis file.');
+                            error('Sorry could not find analysis file.\n Processing aborted...');
                         end
                         
                         % Remove individual analysis files containg '*.tif' from this list.
@@ -1765,8 +1793,9 @@ function doSetNOS2(s,e,h) % Number of Stimuli
         end
         disp(['All movies in ' datadirname ' processed.']);
         dNmTxt.String = ['All movies in ' datadirname ' processed.'];
-        
-        zip([datadirname '\process\processSoft_' getenv('ComputerName') '_' getenv('username') '.zip'],'*.m')
+        p = mfilename('fullpath');
+        bp = strfind(p,'\');
+        zip([datadirname '\process\processSoft_' getenv('ComputerName') '_' getenv('username') '.zip'],[p(1:(bp(end))) '*.m'])
     end
 
     function moveResults(analysisListName)
@@ -1795,6 +1824,9 @@ function doSetNOS2(s,e,h) % Number of Stimuli
             '\r\n\t stimFreq = ' num2str(stimFreq) ...
             '\r\n\t Number of stimuli =' num2str(NOS) ...
             '\r\n\t OnOffset = ' num2str(OnOffset) ...
+            '\r\n\t Partial stimFreq = ' num2str(stimFreq2) ...
+            '\r\n\t Partial number of stimuli =' num2str(NOS2) ...
+            '\r\n\t Partial OnOffset = ' num2str(OnOffset2) ...
             '\r\n\t Eigen Value Nr = ' num2str(EVN) ...
             '\r\n\t fps = ' num2str(fps) ...
             '\r\n\t dt =  ' num2str(dt) ...
@@ -2350,19 +2382,25 @@ function doSetNOS2(s,e,h) % Number of Stimuli
         % stimFreq = 0.125;%Hz
         % Number of Stimuli
         % NOS = 3; % Number of Stimuli
-        interStimPeriod = floor(1/stimFreq*fps);
+        interStimPeriod = 1/stimFreq*fps; %Do not floor here but only after multiplication.
         iSP = interStimPeriod;
-        part=zeros(iSP,NOS);
+        dCOF=0;
+        if (dCOF==0 || dCOF>iSP)
+            dCOF = floor(iSP);    
+        end
+        
+        dCOF = floor(iSP); %dutyCycleOnFrames.
+        part = zeros(dCOF,NOS);
         for iii = 1:NOS
-            part(:,iii)=data(OnOffset+(iii-1)*iSP+(1:iSP));
+            part(:,iii)=data(OnOffset+floor((iii-1)*iSP)+(1:dCOF));
         end
         %         part(:,2)=data(OnOffset+1*iSP+(1:iSP));
         %         part(:,3)=data(OnOffset+2*iSP+(1:iSP));
         %         part(:,4)=data(OnOffset+3*iSP+(1:iSP));
         %         part(:,5)=data(OnOffset+4*iSP+(1:iSP));
-        %figure;
+        % figure;
         subplot(4,4,12)
-        [spart,~,~,level]=linBleachCorrect(part');
+        [spart,~,~,level] = linBleachCorrect(part');
         part = (spart-level)'; %Using Matlab Matrix expansion
         plot(part);
         hold on
@@ -2399,22 +2437,35 @@ function doSetNOS2(s,e,h) % Number of Stimuli
             bbox(i,3:4)=min(synRegio(i).PixelList,[],1);
             
             signal = multiResponseto1(signal,0);
-            
-            interStimPeriod = floor(1/stimFreq2*fps);
+            if (stimFreq2<stimFreq) && (stimFreq2~=0)
+                stimFreq2=stimFreq;
+                warning(['stimFreq2 adjusted to: ' num2str(stimFreq) 'to fit interval.']);
+                warning(['Continue on your own by pressing a key ' ]);
+                pause();
+            end
+                
+            if stimFreq2==0
+                sFq2=stimFreq;
+            else 
+                sFq2=stimFreq2;
+            end
+            interStimPeriod = floor(1/sFq2*fps);
             iSP = interStimPeriod;
+            if NOS2==0
+                setNOS2(1);
+            end
             part=zeros(iSP,NOS2);
             for j = 1:NOS2
                 %part(:,j)=signal(OnOffset2+(j-1)*iSP+(1:iSP));
-                part(:,j)=signal(OnOffset2+floor((j-1)/stimFreq2*fps)+(1:iSP)); % Here the rounding is done after the multiplication = better
+                part(:,j)=signal(OnOffset2+floor((j-1)/sFq2*fps)+(1:iSP)); % Here the rounding is done after the multiplication = better
                
             end
-            plot(part);
-            pause(.5);
-            
+            if debug
+                plot(part);
+                pause(.01);
+            end
             for j = 1:NOS2
                 signal = part(:,j);
-                
-                
                 [mSig, miSig] = max(signal,[],1); % Find max ampl of the Average Synaptic Response
                 mSigA(i,j)=mSig;
                 miSigA(i,j)=miSig;
@@ -2542,11 +2593,24 @@ function doSetNOS2(s,e,h) % Number of Stimuli
         setOnOffset(round(analysisCfg.delayTime*analysisCfg.imageFreq/1000));
         setStimFreq(analysisCfg.stimFreq);
         EVN = analysisCfg.eigenvalueNumber;
+        
+        setNOS2(analysisCfg.pulseCount2);
+        setOnOffset2(round(analysisCfg.delayTime2*analysisCfg.imageFreq/1000));
+        setStimFreq2(analysisCfg.stimFreq2);
+        
+        
 % if exist('eigTxt')
 %     eigTxt.String = EVN; 
 % end
         pause(0.1);
     end
+
+    function doLoadAnalysisSettings(s,f,g)
+        [FN.name, FN.folder]=uigetfile('*Analysis.xml',['Select mask:'],[defaultDir '\']);
+        analysisCfgLoad(FN);
+    end
+
+
     function doStimCfgLoad(s,f,g)
         stimCfg = stimSettingsLoader(dirname);
         setNOS(stimCfg.pulseCount);

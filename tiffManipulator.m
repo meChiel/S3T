@@ -1,8 +1,8 @@
 function tiffManipulator
 
 %% Define buttons
-global fname1 dir1 defaultDir dir2 fname2 fname3 dir3 trace freqEdt extractIndividchkBtn1
-
+global fname1 dir1 defaultDir dir2 fname2 fname3 dir3 trace freqEdt extractIndividchkBtn1 Version
+Version = 'V0.3';
 
 bgc = [0.95,0.95,0.96];
 fgc = [0.6,0.6,0.6];
@@ -19,6 +19,10 @@ set(f4,'MenuBar', 'figure');
 %set(f2, 'ToolBar', 'none');
 javaFrame = get(f4,'JavaFrame');
 javaFrame.setFigureIcon(javax.swing.ImageIcon('tiffmanipulatorIcon.png'));
+
+versionTxt = uicontrol('Style', 'text', 'String', Version,...
+    'Position', [0 0 30 20],...
+    'Backgroundcolor',bgc);
 
 openEdt1 = uicontrol('Style', 'edit', 'String', '...',...
     'Position', [20 360 150 30],...

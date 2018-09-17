@@ -20,6 +20,10 @@ well96Data=1;
 % Load Andor file to link exp. with well.
 tttt = dir([dirname '\..\NS_*.txt']);
 if (length(tttt)==0)
+    tttt = dir([dirname '\..\..' '\NS*.txt']);
+end
+
+if (length(tttt)==0)
     tttt = dir([dirname '\..' '\Protocol*.txt']);
 end
 if (length(tttt)==0)
@@ -56,6 +60,9 @@ if (well96Data)
     
     % Load the compound for all wells.
     tcsv = dir([dirname '\..' '\plateLayout_*.csv']);
+    if (length(tcsv)==0)
+        tcsv = dir([dirname '\..\..' '\plateLayout_*.csv']);
+    end
     
     
     subplot(4,4,[2:3, 6:7]);

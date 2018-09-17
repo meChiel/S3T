@@ -86,7 +86,10 @@ global stimLstX stimLstY
                 % Open Well data
                 k=strfind(plateDir,'SynapseDetails\'); %find parent directory
                 plateDir=plateDir(1:(k(1)-1));
-                fn = [plateFilename{1}(1:end-13) '_analysis.txt' ];
+                
+                fn=strrep(plateFilename{1},'_PPSynapses','_synapses');
+                fn = [fn(1:end-13) '_analysis.txt' ];
+               
                 openFiles(fn,plateDir);
                 currentLevel='wellLevel';
             case 'wellLevel'
@@ -140,6 +143,7 @@ global stimLstX stimLstY
     function seeWell(fi,synNbr)
         subplot(4,4,1)
         dd=plateFilename{fi};
+        dd=strrep(dd,'_PPsynapses','_synapses');
         dd2 = ['..\..\' dd(1:end-13) '.tif_mask.png'];
         if ~exist([plateDir dd2],'file')
             dd2 = ['..\' dd(1:end-13) '.tif_mask.png'];
@@ -226,10 +230,12 @@ global stimLstX stimLstY
             %[responseFile, responsePath]=uigetfile('*.csv');
             %responses = csvread([responsePath responseFile]);
             
-            dd=plateFilename{fi};
+            tempFilename=plateFilename{fi};
             %dd = ['../' dd(1:end-3) 'csv'];
-            dd = [ dd(1:end-3) 'csv'];
-            responses = table2array(readtable([plateDir dd]));
+            tempFilename=strrep(tempFilename,'_PPsynapses','_synapses');
+            tempFilename=strrep(tempFilename,'_synapses','_synTraces');
+            tempFilename = [ tempFilename(1:end-3) 'csv'];
+            responses = table2array(readtable([plateDir tempFilename]));
             time=responses (:,1);
             responses =responses (:,2:end)';
             
@@ -242,8 +248,8 @@ global stimLstX stimLstY
             %wellNbr = data{fi}.FileNumber(tmi);
             detailFilename =plateFilename{fi};
             dd=plateFilename{fi};
-            dd = [dd(1:end-12) 'synapses.csv'];
-            responses = table2array(readtable([plateDir '\synapseDetails\'  dd]));
+            dd = [dd(1:end-12) 'synTraces.csv'];
+            responses = table2array(readtable([plateDir 'synapseDetails\'  dd]));
             time=responses (:,1);
             responses =responses (:,2:end)';
         
@@ -298,7 +304,7 @@ global stimLstX stimLstY
             currentLevel='wellLevel';
         end
         end
-        if strcmp   (plateFilename{1}(end-11:end),'AllWells.txt')
+        if strcmp(plateFilename{1}(end-11:end),'AllWells.txt')
             currentLevel='plateLevel';
         end
         data=[];

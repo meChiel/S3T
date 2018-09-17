@@ -40,8 +40,8 @@ end
 b= reshape(a(:,:,:,1),[s1,s2,s3]);%, 512,[]);
 figure(6);imagesc(b);
 %
-nx=10-1;
-ny=7;
+nx=10;
+ny=6;
 vspace=5;
 hspace=5;
 imHSize=s2;512;875;656;512;
@@ -49,16 +49,16 @@ imVSize=s1;512;656;875;512;
 if isa(a,'uint8')
     bb=uint8(zeros((imVSize+vspace)*ny,(imHSize+hspace)*nx,s3));
 elseif isa(a,'uint16')
-    bb=uint16(zeros((imVSize+vspace)*ny,(imHSize+hspace)*nx,s3));
+    bb=uint16(zeros((imVSize+vspace)*ny,(imHSize+hspace)*(nx),s3));
     if strcmp(ffname,'mask')
-        bb=bb+2^15-1;
+        bb=bb+2^15-1; %makes background grey
     end
 end
 
 %bb=zeros((imVSize+vspace)*ny,(imHSize+hspace)*nx,3);
 k=0;
-for i=0:ny
-    for j=0:nx
+for i=0:(ny-1)
+    for j=0:(nx-1)
         k=k+1;
         %if k<=size(a,3)
         if k<=size(a,4)
