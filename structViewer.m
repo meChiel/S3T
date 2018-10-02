@@ -1,21 +1,30 @@
-function structViewer(s,name)
-if nargin<2
-    name='struct';
+function structViewer(s,rootName,f)
+% s =struct to view
+% Name of the rootNode
+% f is the uifigure handle, if not, a new figure will be created.
+if nargin<3
+    f = uifigure;
 end
-f = uifigure;
-t = uitree(f,'Position',[20 20 150 150]);
+if nargin<2
+    rootName='struct';
+end
 
-rootNode = uitreenode(t,'Text',name,'NodeData',[]);
+        
+%c2 = ;
+%c3 = ;
+t = uitree(f,'Position',[20 150 550 550]);
+
+rootNode = uitreenode(t,'Text',rootName,'NodeData',[]);
 if length(s)~=1
     s3=s;
     for pk=1:length(s3)
         s=s3(pk);
-         rNode2{pk} = uitreenode(rootNode,'Text',[ name ': ' '[' num2str(pk) ']'],'NodeData',[]);
-        createStructFieldNodes(rNode2{pk},s,[name ': ' num2str(pk)]);
+         rNode2{pk} = uitreenode(rootNode,'Text',[ rootName ': ' '[' num2str(pk) ']'],'NodeData',[]);
+        createStructFieldNodes(rNode2{pk},s,[rootName ': ' num2str(pk)]);
     end
 else
     
-    createStructFieldNodes(rootNode,s,name);
+    createStructFieldNodes(rootNode,s,rootName);
 %    %
 %     
 %     fn = fieldnames(s);

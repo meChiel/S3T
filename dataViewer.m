@@ -235,7 +235,14 @@ global stimLstX stimLstY
             tempFilename=strrep(tempFilename,'_PPsynapses','_synapses');
             tempFilename=strrep(tempFilename,'_synapses','_synTraces');
             tempFilename = [ tempFilename(1:end-3) 'csv'];
-            responses = table2array(readtable([plateDir tempFilename]));
+
+            try
+                responses = table2array(readtable([plateDir tempFilename]));
+            catch
+                warning('using _synapses.csv files is old file naming, please rename files to _synTraces.csv');
+                tempFilename = [tempFilename(1:end-13) 'synapses.csv'];
+                 responses = table2array(readtable([plateDir tempFilename]));
+            end
             time=responses (:,1);
             responses =responses (:,2:end)';
             
@@ -249,7 +256,14 @@ global stimLstX stimLstY
             detailFilename =plateFilename{fi};
             dd=plateFilename{fi};
             dd = [dd(1:end-12) 'synTraces.csv'];
-            responses = table2array(readtable([plateDir 'synapseDetails\'  dd]));
+            try
+                responses = table2array(readtable([plateDir 'synapseDetails\'  dd]));
+            catch
+                warning('No synTraces.csv file found, trying _synapses.csv.');
+                warning('using _synapses.csv files is old file naming, please rename files to _synTraces.csv');
+                dd = [dd(1:end-13) 'synapses.csv'];
+                responses = table2array(readtable([plateDir 'synapseDetails\'  dd]));
+            end
             time=responses (:,1);
             responses =responses (:,2:end)';
         

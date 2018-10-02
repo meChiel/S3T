@@ -1,6 +1,6 @@
 function segGUIV1()
 global Version
-Version = 'V0.69';
+Version = 'V0.70';
 %% Define global values
 global controlResponse
 global data;
@@ -26,6 +26,7 @@ global nSynapses;
 global sig2rb sig3rb sigOthRB otherSigmaValueEdit;
 global tempSig2rb tempSig3rb tempSigOtherRB tempOtherSigmaValueEdit tempSigNoneRB;
 global debug 
+global dataFrameSelectionTxt PhotoBleachingTxt;
 
 % For experiment:
 global C1Data C1pathname C1fname C1dirname                                 % Control 1AP
@@ -55,9 +56,6 @@ debug = 0;
 stimFreq2 = 0;
 NOS2 = 0; % Number of stimuli
 OnOffset2 = 0;
-
-
-
 
 %% Create a figure and axes
 startUp();
@@ -558,7 +556,24 @@ startUp();
         
         
         
+        viewTracesBtn = uicontrol('Style', 'pushbutton', 'String', 'View traces',...
+            'Position', [155 by(19) 50 20],...
+            'Callback', @doviewTraces);
+        
+        
+        viewMetaDataBtn = uicontrol('Style', 'pushbutton', 'String', 'View traces',...
+            'Position', [155 by(19) 50 20],...
+            'Callback', @doViewMetaData);
+        
     end
+
+    function doViewMetaData(s,e,h)
+        analysisCfgGenerator();
+    end
+    function doviewTraces(s,e,h)
+        viewTraces();
+    end
+
 
     function doAnalysisCfgGenerator(s,e,h)
         analysisCfgGenerator();
@@ -630,6 +645,8 @@ startUp();
         NOS2 = NOSTemp;
         NOStxt2.String = num2str(NOS2);
     end
+
+
 
     function doSetFPS(s,e,h)
      setFPS(str2double(fpsTxt.String));
@@ -887,10 +904,6 @@ startUp();
             V(:,ii) = thesign .*V(:,ii);
             %synProb = (-1*(sign(V(1,EVN)).*synProb));
         end
-        synProb=reshape(U(:,EVN),[wy,wx]);
-        % EVN=1; %Eigen vector number
-        synapseBW = reshape(((U(:,EVN))>(std(U(:,EVN))*3)),wy,wx); % Assume first frame, the synapses do no peak. V(1,2) gives direction of 2nd U(:,2).
-        subplot(4,4,16);imagesc(synapseBW);colormap('gray');
         if ~isdir([dirname './eigs/'])
             mkdir([dirname './eigs/'])
         end
@@ -899,6 +912,16 @@ startUp();
             csvwrite([dirname './eigs/' fname '_eigV' num2str(evnI) '.csv'], V(:,evnI));
             csvwrite([dirname './eigs/' fname '_eigS' num2str(evnI) '.csv'],S(evnI,evnI));
         end
+        if EVN==0
+            EVNtxt= (inputdlg('Which Eigen Vector to use','EigenVector',1,{'2','1'}));
+            EVN=str2num(EVNtxt{1});
+        end
+        synProb=reshape(U(:,EVN),[wy,wx]);
+        % EVN=1; %Eigen vector number
+        synapseBW = reshape(((U(:,EVN))>(std(U(:,EVN))*3)),wy,wx); % Assume first frame, the synapses do no peak. V(1,2) gives direction of 2nd U(:,2).
+        subplot(4,4,16);imagesc(synapseBW);colormap('gray');
+        
+        
         %% Read Eig
 %         for evnI=1:16
 %             p = imread([dirname './eigs/' fname '_eigU' num2str(evnI) '.png']);
@@ -1017,6 +1040,9 @@ startUp();
         hold off;
         plot(V(:,3));
         title('eig 3')
+        subplot(4,4,13);
+        plot(V(:,4));
+        title('eig 4')
     end
     function loadDefault(source,event,handles)
         pathname = 'E:\share\data\Rajiv\20171027\plate 1\row B\NS_120171027_105928_20171027_110118\NS_120171027_105928_e0006.tif';
@@ -1760,7 +1786,7 @@ startUp();
                         end
                         
                         % Remove individual analysis files containg '*.tif' from this list.
-                        for i=1:length(analysisList)
+                        for i=length(analysisList):-1:1 % Remove from end to begin, to keep the indexing logical.
                             
                             if ~isempty(strfind(analysisList(i).name,'tif'))
                                 analysisList(i)=[];
@@ -1769,16 +1795,18 @@ startUp();
                     end
                     
                     for i=1:length(analysisList)
-                       writeAnalysisStart(expnm,iii,analysisList(i).name);
+                        dataFrameSelectionTxt ='(1:end)';
+                        writeAnalysisStart(expnm,iii,analysisList(i).name);
                         loadAnalysis(analysisList(i));
                         pause(0.05);
-                        processMovie(pathname);
-                        moveResults(analysisList(i).name);
+                        %processMovie(pathname);
+                        %moveResults(analysisList(i).name);
                         writeProcessEnd(expnm,iii);
                     end
                     
                     
                 else % The checkbox is not enabled, just use settings from the GUI.
+                    dataFrameSelectionTxt ='(1:end)';
                     processMovie(pathname);
                     writeProcessEnd(expnm,iii);
                 end
@@ -1832,6 +1860,7 @@ startUp();
             '\r\n\t dt =  ' num2str(dt) ...
             '\r\n\t Reuse Mask =  ' num2str(reuseMaskChkButton.Value) ...
             '\r\n\t Threshold =  ' num2str(TValue) ....
+            '\r\n\t data Frames Selection =  ' dataFrameSelectionTxt ...
             '\r\n']);
         fclose(fid);
     end
@@ -1839,6 +1868,8 @@ startUp();
         processMovie(pathname)
     end
     function processMovie(pathname)
+        
+        eval(['data=data(:,:,' dataFrameSelectionTxt ');']);
         if (reuseMaskChkButton.Value==1)
               synRegio =  loadMask([pathname(1:end) '_mask.png']);
               setMask();
@@ -2457,8 +2488,21 @@ startUp();
             part=zeros(iSP,NOS2);
             for j = 1:NOS2
                 %part(:,j)=signal(OnOffset2+(j-1)*iSP+(1:iSP));
+try
                 part(:,j)=signal(OnOffset2+floor((j-1)/sFq2*fps)+(1:iSP)); % Here the rounding is done after the multiplication = better
-               
+catch e
+     d = dialog('Position',[300 300 250 150],'Name','Wrong Numbers');
+
+    txt = uicontrol('Parent',d,...
+               'Style','text',...
+               'Position',[20 80 210 40],...
+               'String','The artificial intelligence say''s the analysis numbers are wrong.');
+
+    btn = uicontrol('Parent',d,...
+               'Position',[85 20 70 25],...
+               'String','Close',...
+               'Callback','delete(gcf)');
+end
             end
             if debug
                 plot(part);
@@ -2593,18 +2637,34 @@ startUp();
         setOnOffset(round(analysisCfg.delayTime*analysisCfg.imageFreq/1000));
         setStimFreq(analysisCfg.stimFreq);
         EVN = analysisCfg.eigenvalueNumber;
+        setFrameSelectionTxt(analysisCfg.FrameSelectionTxt); %'(1:end)';
         
+    
         setNOS2(analysisCfg.pulseCount2);
         setOnOffset2(round(analysisCfg.delayTime2*analysisCfg.imageFreq/1000));
         setStimFreq2(analysisCfg.stimFreq2);
         
-        
+        setReuseMask(analysisCfg.reuseMask);
+        setFrameSelectionTxt(analysisCfg.FrameSelectionTxt);
+        setPhotoBleachingTxt(analysisCfg.PhotoBleachingTxt);
+
 % if exist('eigTxt')
 %     eigTxt.String = EVN; 
 % end
         pause(0.1);
     end
 
+
+    function setReuseMask(value)
+        reuseMaskChkButton.Value=value;
+    end
+    function setFrameSelectionTxt(FrameSelectionTxt);
+        dataFrameSelectionTxt = FrameSelectionTxt;
+    end
+    function setPhotoBleachingTxt(PBT);
+        PhotoBleachingTxt = PBT;
+    end
+ 
     function doLoadAnalysisSettings(s,f,g)
         [FN.name, FN.folder]=uigetfile('*Analysis.xml',['Select mask:'],[defaultDir '\']);
         analysisCfgLoad(FN);

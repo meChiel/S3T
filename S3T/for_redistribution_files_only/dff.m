@@ -1,4 +1,5 @@
 function dff=dff(signal,BC)
+global PhotoBleachingTxt;
 % Calculates the delta fluoresence / base fluoresence signal.
 %
 % BC enables/disables bleach correction. Default = on;
@@ -8,25 +9,34 @@ end
 
 if BC == 1  %Do Bleach Correction?
     if 1
-        [~,dff] = linBleachCorrect(signal);
-     %   [~,dff] = linMinBleachCorrect(signal);warning ('dff hack');
-     %   [~,dff] = exp2BleachCorrection(signal);warning ('dff hack');
+        
+        switch PhotoBleachingTxt
+            case 'linInt'
+                [~,dff] = linBleachCorrect(signal);
+            case 'minimum'
+                %   [~,dff] = linMinBleachCorrect(signal);warning ('dff hack');
+            case '2expInt'
+                [~,dff] = exp2BleachCorrection(signal);warning ('dff hack');
+            otherwise
+                error('Bleach correction Type not recognised.')
+        end
+        
         
     else
         filterExperiment();
     end
 else
     % No bleach correction.
-     mstart = mean(signal(:,1:30),2);
-     %     dff = (signal-BC-repmat(mstart,1,LM))./repmat(mstart,1,LM); % Delta f
-     dff = (signal-repmat(mstart,1,LM))./repmat(mstart,1,LM); % Delta f over v
-      %     warning('Is -BC juist');
+    mstart = mean(signal(:,1:30),2);
+    %     dff = (signal-BC-repmat(mstart,1,LM))./repmat(mstart,1,LM); % Delta f
+    dff = (signal-repmat(mstart,1,LM))./repmat(mstart,1,LM); % Delta f over v
+    %     warning('Is -BC juist');
     
-      if 0 % When using the minima
-          LM = length(signal,2);
-          mstart = min(signal(:,1:floor(LM/3)),[],2);
-          dff = (signal-repmat(mstart,1,LM))./repmat(mstart,1,LM); % Delta f over f
-      end
+    if 0 % When using the minima
+        LM = length(signal,2);
+        mstart = min(signal(:,1:floor(LM/3)),[],2);
+        dff = (signal-repmat(mstart,1,LM))./repmat(mstart,1,LM); % Delta f over f
+    end
 end
 
 end

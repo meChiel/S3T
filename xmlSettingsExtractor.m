@@ -94,6 +94,7 @@ if length(rr)>0
 end
 
 rr = strfind(aa,'Camera Exposure Time (s)');
+if length(rr)>0
 if length(rr)>1
     warning('did find multiple camera ep times, chosing 1')
 end
@@ -104,15 +105,68 @@ ss2=strfind(aa(rr(1)+(ss(1)):end),sprintf('\r'));
 
 imagePeriod=str2num(aa(rr(1)+ss(1)+2:rr(1)+ss(1)+ss2(1)-0));
 imageFreq = 1/imagePeriod;
+else 
+    warning('did not find Camera Exposure Time (s)')
+    imageFreq = nan; 
+end
+
+
+rr = strfind(aa,'<Name>Frame Selection</Name>');
+if length(rr)>0
+    if length(rr)>1
+        warning('did find multiple Frame Selection, chosing 1')
+    end
+    ss=strfind(aa(rr(1):end),'<Val>');
+    ss2=strfind(aa(rr(1)+(ss(1)):end),'</Val>');
+    FrameSelectionTxt=(aa(rr(1)+ss(1)+4:rr(1)+ss(1)+ss2(1)-2));
+    
+else
+    warning('did not find frame selection, using all frames')
+    FrameSelectionTxt = '(1:end)';
+end
+
+
+
+rr = strfind(aa,'<Name>Photo Bleaching</Name>');
+if length(rr)>0
+    if length(rr)>1
+        warning('did find multiple Photo Bleaching, chosing 1')
+    end
+    ss=strfind(aa(rr(1):end),'<Val>');
+    ss2=strfind(aa(rr(1)+(ss(1)):end),'</Val>');
+    PhotoBleachingTxt=(aa(rr(1)+ss(1)+4:rr(1)+ss(1)+ss2(1)-2));
+    
+else
+    disp('Did not find Photo Bleaching type, using Lin. Interpolation.')
+    PhotoBleachingTxt = 'linInt'; %2expInt
+end
+
+
+
+rr = strfind(aa,'<Name>Reuse Mask</Name>');
+if length(rr)>0
+    if length(rr)>1
+        warning('did find multiple reuse mask, chosing 1')
+    end
+    ss=strfind(aa(rr(1):end),'<Val>');
+    ss2=strfind(aa(rr(1)+(ss(1)):end),'</Val>');
+    reuseMask=str2num(aa(rr(1)+ss(1)+4:rr(1)+ss(1)+ss2(1)-2));
+    
+else
+    disp('Did not find Reuse Mask type, using no.')
+    reuseMask = 0; %1
+end
 
 stimCfg.delayTime =delayTime;
 stimCfg.delayTime2 =delayTime2;
 stimCfg.stimFreq =stimFreq;
 stimCfg.stimFreq2 =stimFreq2;
 stimCfg.imageFreq =imageFreq;
-stimCfg.pulseCount=pulseCount;
-stimCfg.pulseCount2=pulseCount2;
-
+stimCfg.pulseCount =pulseCount;
+stimCfg.pulseCount2 =pulseCount2;
+stimCfg.FrameSelectionTxt = FrameSelectionTxt;
+stimCfg.PhotoBleachingTxt = PhotoBleachingTxt;
+stimCfg.reuseMask = reuseMask;
 
 if exist('eigenvalueNumber') 
     stimCfg.eigenvalueNumber=eigenvalueNumber;

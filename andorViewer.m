@@ -1,5 +1,12 @@
 %% Creates a dynamic tree view of the Andor file.
 function andorViewer(tt)
+
+if nargin<1
+    [fn dn]=uigetfile('*.txt');
+    fid = fopen([dn fn]);
+    tt=fread(fid, inf, 'uint8=>char');
+    fclose(fid);
+end
 if 0 % for test
     fid = fopen('NS_720180814_105523.txt');
     tt=fread(fid, inf, 'uint8=>char');
@@ -11,7 +18,7 @@ end
     expression = {'(.*?)\['};
     rooTxt = regexpi(tt',expression,'match');
     
-    f = uifigure;
+    f = uifigure('Name','Andor Viewer');
     t = uitree(f,'Position',[20 20 150 150]);
 
     record = uitreenode(t,'Text','Andor Recording','NodeData',[]);

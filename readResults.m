@@ -16,6 +16,8 @@ for i=1:(length(files))
     %t = [t; readtable([dirname '\' num2fname(i)])];
     fnNber = [fnNber,  extractNumber(files(i).name)];
 end
+
+
 well96Data=1;
 % Load Andor file to link exp. with well.
 tttt = dir([dirname '\..\NS_*.txt']);
@@ -57,7 +59,6 @@ if (well96Data)
     %     experiments = 1:19; warning('experiments Hack');
     experiments = (1:size(t,1))-1;
     
-    
     % Load the compound for all wells.
     tcsv = dir([dirname '\..' '\plateLayout_*.csv']);
     if (length(tcsv)==0)
@@ -77,9 +78,7 @@ if (well96Data)
         plate.plateValues = plateValues;
         plate.expwells = exp2wellNr;
         
-        
         wellQty = getPlateValue(plate,experiments);
-        
         
         qtyName = plateFilename(13:(end-4))
         %NESTable = array2table(wellQty','VariableNames',{'NES'});

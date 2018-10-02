@@ -17,6 +17,10 @@ function val = getPlateValue(plate,experiments )
             1	2	3	4	5	6	7	8	9	10	11	12
             ];
         end
+        if isempty(firstExpNb)
+            firstExpNb=0;
+            warning('firstExpNb was not defined is now set to 0.');
+        end
         for ii=1:length(experiments)
             val(ii) = plate.plateValues(plateIndex(:)==(plate.expwells(experiments(ii)+1-firstExpNb)));
         end

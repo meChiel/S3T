@@ -1,7 +1,7 @@
 %fname = '../../data/Experiment 1_iglu spontaneous.tif';
 %fname = '../../data/data_endoscope.tif';
 
-function [A, fname, FileName, PathName, U, S, V]=loadTiff(fname,fastload)
+function [A, fname, FileName, PathName, U, S, V]=loadTiff(fname,fastload,frameNumbers)
 %set Fastload Default value
 if nargin<2
    fastload=0;

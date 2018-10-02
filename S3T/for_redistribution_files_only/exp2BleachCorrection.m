@@ -7,12 +7,12 @@ LM=size(signal,2);
 
 mmend= mean(signal(:,end-aSS:end),2);
 
-x=[(1:aSS*2) (LM-(aSS*20)):LM];
+x=[(1:aSS*1) (LM-(aSS*1)):LM];
 
 for i=1:size(signal,1)
-    mstart= signal(i,1:aSS*2);
+    mstart= signal(i,1:aSS*1);
     
-    mend= signal(i,end-(aSS*20):end);
+    mend= signal(i,end-(aSS*1):end);
 
     y=[mstart mend];
 
@@ -30,7 +30,7 @@ dff=(signal-BC)./(real(a')); % Delta f over f
 
 
 % Debug
-debug = 0;
+debug = 1;
 n=1;
 if debug
   %figure;
