@@ -561,9 +561,9 @@ startUp();
             'Callback', @doviewTraces);
         
         
-        viewMetaDataBtn = uicontrol('Style', 'pushbutton', 'String', 'View traces',...
-            'Position', [155 by(19) 50 20],...
-            'Callback', @doViewMetaData);
+        viewMetaDataBtn = uicontrol('Style', 'pushbutton', 'String', 'View Meta Data',...
+            'Position', [205 by(19) 50 20],...
+            'Callback', @metaDataImporter);
         
     end
 
@@ -1799,8 +1799,8 @@ startUp();
                         writeAnalysisStart(expnm,iii,analysisList(i).name);
                         loadAnalysis(analysisList(i));
                         pause(0.05);
-                        %processMovie(pathname);
-                        %moveResults(analysisList(i).name);
+                        processMovie(pathname);
+                        moveResults(analysisList(i).name);
                         writeProcessEnd(expnm,iii);
                     end
                     

@@ -1,6 +1,6 @@
 function viewTraces(d)
 if nargin<1
-    d=uigetdir();
+    d=uigetdir('','Select the output dir in the analysis folder.');
 end
 dcs=dir([d '\*.csv']); % Directory Csv'S
 for i=1:length(dcs)
