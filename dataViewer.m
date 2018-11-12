@@ -1,6 +1,7 @@
 function dataViewer()
-global plateFilename plateDir responses detailFilename defaultDir currentFile fittt histtt exporttt currentLevel
+global plateFilename plateDir responses detailFilename defaultDir currentFile fittt histtt exporttt currentLevel STToggle seeTraceBtn
 bgc=[0.5 0.5 0.5];
+STToggle=0;
 f3 = figure('Visible','on','name','S3T: Data Viewer',...
     'Color',bgc,...
     'NumberTitle','off');
@@ -181,6 +182,9 @@ global stimLstX stimLstY
         
     end
     function seeTrace(d,f,e)
+        STToggle=~STToggle;
+        while (STToggle)
+            set(seeTraceBtn, 'Backgroundcolor',bgc+[.2 -0.5 -0.5]);   
         [x, y]=ginput(1);
         tmaxx =-inf;
         tminx=inf;
@@ -241,7 +245,7 @@ global stimLstX stimLstY
             catch
                 warning('using _synapses.csv files is old file naming, please rename files to _synTraces.csv');
                 tempFilename = [tempFilename(1:end-13) 'synapses.csv'];
-                 responses = table2array(readtable([plateDir tempFilename]));
+                responses = table2array(readtable([plateDir tempFilename]));
             end
             time=responses (:,1);
             responses =responses (:,2:end)';
@@ -287,6 +291,8 @@ global stimLstX stimLstY
             
         seeWell(fi,syNbr);
         updatePlot();
+        end
+        set(seeTraceBtn, 'Backgroundcolor',bgc);
     end
     function r=pseudoRandom(n)
         r = mod((1:n)*6.3,5)'/10;
@@ -333,15 +339,21 @@ global stimLstX stimLstY
         %             plot(x{i},y{i},'.'), hold on;
         %         end
         
-        stimLstX = uicontrol('Style', 'popup', 'String', [data{1}.Properties.VariableNames, {'fileName'}],...
+        selectionOptions=data{1}.Properties.VariableNames;
+        for i=1:length(selectionOptions)
+            selectionOptions{i}=OKname2text(selectionOptions{i});
+        end
+        
+        
+        stimLstX = uicontrol('Style', 'popup', 'String', [selectionOptions, {'fileName'}],...
             'Position', [10 60 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
             'CallBack',@updatePlot );
         
-        stimLstY = uicontrol('Style', 'popup', 'String', [data{1}.Properties.VariableNames , {'fileName'}],...
+        stimLstY = uicontrol('Style', 'popup', 'String', [selectionOptions , {'fileName'}],...
             'Position', [10 80 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
             'CallBack',@updatePlot );
         
-        filterFieldLst = uicontrol('Style', 'popup', 'String', [data{1}.Properties.VariableNames , {'fileName'}],...
+        filterFieldLst = uicontrol('Style', 'popup', 'String', [selectionOptions , {'fileName'}],...
             'Position', [10 200 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
             'CallBack',@updatePlot );
         
@@ -461,8 +473,8 @@ global stimLstX stimLstY
             aa.Visible='off'
             subplot(4,4,[2:3,6:7,10:11,14:15]);
         end
-        xlabel(xlabelText,'FontName','Helvetica','FontSize',18);
-        ylabel(ylabelText,'FontName','Helvetica','FontSize',18);
+        xlabel(OKname2text(xlabelText),'FontName','Helvetica','FontSize',18);
+        ylabel(OKname2text(ylabelText),'FontName','Helvetica','FontSize',18);
     end
 
     function fitt(f,e,g)

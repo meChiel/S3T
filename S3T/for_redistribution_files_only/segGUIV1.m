@@ -1,6 +1,19 @@
-function segGUIV1()
+function segGUIV1(myDir)
 global Version
-Version = 'V0.70';
+Version = 'V0.73-Rel';
+disp(['S3T: Stimulated Synapse Segmentation Tool ' Version]);
+disp('------------------------------------------------------');
+try
+    fid = fopen('asciNeuron.txt', 'r');
+    neuronText = fread(fid, inf, 'uint8=>char')';
+    fclose(fid);
+    disp(neuronText);
+catch
+    disp('no asciNeuron found');
+end
+disp(['                                                    S3T: Stimulated Synapse Segmentation Tool ' Version]);
+disp('                                                     ---------------------------------------------------');
+
 %% Define global values
 global controlResponse
 global data;
@@ -20,13 +33,13 @@ global stimulationStartTime;
 global stimFreq NOS OnOffset;
 global stimFreqtxt NOStxt OnOffsettxt;
 global stimFreqtxt2 NOStxt2 OnOffsettxt2;
-global reuseMask reuseMaskChkButton fastLoadChkButton segmentCellBodiesChkButton segmentCellBodies loadAnalysisChkButton; 
+global reuseMask reuseMaskChkButton fastLoad fastLoadChkButton segmentCellBodiesChkButton segmentCellBodies loadAnalysisChkButton; 
 global pauseCB;
 global nSynapses;
 global sig2rb sig3rb sigOthRB otherSigmaValueEdit;
 global tempSig2rb tempSig3rb tempSigOtherRB tempOtherSigmaValueEdit tempSigNoneRB;
 global debug 
-global dataFrameSelectionTxt PhotoBleachingTxt;
+global dataFrameSelectionTxt PhotoBleachingTxt reloadMovie writeSVD skipMovie;
 
 % For experiment:
 global C1Data C1pathname C1fname C1dirname                                 % Control 1AP
@@ -59,6 +72,10 @@ OnOffset2 = 0;
 
 %% Create a figure and axes
 startUp();
+%pause(5);
+if nargin>0
+    processDirAndSubDirs(myDir);
+end
     function startUp()
         fullVersion = 0;
         bgc=[.35 .35 .38];
@@ -387,7 +404,7 @@ startUp();
         
         subtractBckgrndBtn = uicontrol('Style', 'pushbutton', 'String', 'rmvBkGrnd!',...
             'Position', [70 by(9) 50 20],...
-            'Callback', @subtractBckgrnd);
+            'Callback', @subtractBlackLevel);
         
         
         topHatBtn = uicontrol('Style', 'pushbutton', 'String', 'Tophat',...
@@ -407,7 +424,7 @@ startUp();
             'Callback', @doloadMask);
         exportMaskBtn = uicontrol('Style', 'pushbutton', 'String', 'exp. Mask',...
             'Position', [105 by(10) 50 20],...
-            'Callback', @exportMask);
+            'Callback', @doExportMask);
         
         btn7 = uicontrol('Style', 'pushbutton', 'String', 'saveROIs!',...
             'Position', [5+50 by(10) 50 20],...
@@ -439,7 +456,7 @@ startUp();
         
         avgAnalyseBtn = uicontrol('Style', 'pushbutton', 'String', 'Analyze AVG',...
             'Position', [150 by(13) 50 20],...
-            'Callback', @analyseAvgReponse);
+            'Callback', @analyseAvgResponse);
         
         
         exportSynapseHeatmapBtn = uicontrol('Style', 'pushbutton', 'String', 'exportSynapseHeatmap',...
@@ -563,8 +580,12 @@ startUp();
         
         viewMetaDataBtn = uicontrol('Style', 'pushbutton', 'String', 'View Meta Data',...
             'Position', [205 by(19) 50 20],...
-            'Callback', @metaDataImporter);
+            'Callback', @doMetaDataImporter);
         
+    end
+
+    function doMetaDataImporter(a,b,c)
+        metaDataImporter();
     end
 
     function doViewMetaData(s,e,h)
@@ -595,7 +616,10 @@ startUp();
         goDeep(@overviewGenerator,'\*signals.png',rootdir);
     end
     function doReadResults(s,e,h)
-     goDeep(@readResults,'\*analysis.txt');
+        rootdir=uigetdir(defaultDir);
+        goDeep(@plateMetaDataConverter,'\barcode.txt',rootdir);
+        pause(.5);
+        goDeep(@readResults,'\*analysis.txt',rootdir);
     end
 
     function doSetOnOffset(s,e,h)
@@ -689,9 +713,9 @@ startUp();
         se = strel('disk',1);
         %synProb = imadjust(imtophat(synProb ,se));
         synProb = imsharpen(synProb,'Radius',16,'Amount',40);% ,'roberts');
-        
-        pause(.5);
         imagesc(synProb);
+        pause(.5);
+        
     end
     function laplaceFilter(s,e,h)
         sigma=.1;
@@ -758,6 +782,15 @@ startUp();
         drawnow();
         %plot(bsxfun(@plus,(synsignal')',1000*(1:size(synsignal,2))));
         savesubplot(4,4,subplotNr,[pathname(1:end-4) '_signals']);
+        ttdffs = tempThreshold(dff(synsignal'))';
+        if ~isempty(ttdffs)
+            plot(bsxfun(@plus,4* ttdffs,1*(1:size(ttdffs,2))));
+        else
+            hold off
+            plot(0);
+        end
+        drawnow();
+        savesubplot(4,4,subplotNr,[pathname(1:end-4) '_signalsAT']); % AT: After Threshold
     end
     function exportSynapseSignals (source,event,handles)
         %         pause(.5)
@@ -769,17 +802,24 @@ startUp();
         if ~isdir([dirname 'output\SynapseDetails\'])
             mkdir([dirname 'output\SynapseDetails\']);
         end
-        dfftempThresSignals=tempThreshold(dff(synsignal'));
-        tempThresSignals=tempThreshold((synsignal'));
         
-        tvec=(dt*(1:size(tempThresSignals,2))');
+        [dfftempThresSignals, thresKeepIdx] = tempThreshold(dff(synsignal')); % For synapse Traces
+        synsignal = synsignal(:,thresKeepIdx); % Here synsignal is Thresholded.
+        synRegio=synRegio(thresKeepIdx); % Here the mask is adjusted.
+        rawTempThresSignals = synsignal'; % For Raw Synapse Traces.
+        
+        
+     %   if size(dfftempThresSignals,1)==0
+     %       dfftempThresSignals=zeros(1,size(dfftempThresSignals,2));
+     %   end
+        tvec=(dt*(1:size(rawTempThresSignals,2))');
         dffr=[tvec,dfftempThresSignals'];
-        r=[tvec,tempThresSignals'];
+        r=[tvec,rawTempThresSignals'];
         tableLabels{1}='time';
-        for i=1:size(tempThresSignals,1)
+        for i=1:size(rawTempThresSignals,1)
             tableLabels{i+1}=['syn' num2str(i)];
         end
-        t=array2table(dffr,'VariableNames',tableLabels);
+        t =array2table(dffr,'VariableNames',tableLabels);
         t2=array2table(r,'VariableNames',tableLabels);
         
         writetable(t,[dirname 'output\SynapseDetails\' fname(1:end-4) '_synTraces.csv']);
@@ -789,38 +829,54 @@ startUp();
         %plot(bsxfun(@plus,(synsignal')',1000*(1:size(synsignal,2))));
     end
 
-    function b=tempThreshold(a)
+    function [b, keptIdx, removedIdx]=tempThreshold(a)
+        b=a;
+        removedIdx=[];
+        keptIdx=1:size(a,1);
+        numberOfSynapsesDeleted=0;
+        th=nan; % Initialise th for the case there are no synapses found.
         if tempSig2rb.Value
             Nsigma = 2;
         end
         if tempSig3rb.Value
             Nsigma = 3;
         end
+       if size(a,2)<10
+           warning('not enough samples to estimate temporal sigma.')
+       end
         if tempSig2rb.Value ||  tempSig3rb.Value
-           b=a;
-            for i=size(a,1):1 %(SYNAPSES,TIME)
-                if (Nsigma*std(a(i,1:10)))>max(a(i,:))
-                    b(i,:)=[];
-                    disp(['Synapse ' num2str(i) ' removed: not reaching temporal threshold.']);
+            for i=size(a,1):-1:1 %(SYNAPSES,TIME)
+                th=(mean(a(i,1:10))+Nsigma*std(a(i,1:10)));
+                if th>max(a(i,:))
+                    removeSynapse();
                 end
             end
         end
         
         if tempSigOtherRB.Value
-            b=a;
             th=str2double(tempOtherSigmaValueEdit.String);
-            for i=size(a,1):1 %(SYNAPSES,TIME)
+            for i=size(a,1):-1:1 %(SYNAPSES,TIME)
                 if th>max(a(i,:))
-                    b(i,:)=[];
-                    disp(['Synapse ' num2str(i) ' removed: not reaching temporal threshold.']);
+                    removeSynapse();
                 end
             end
-        size(a,1)    
-        end
-        if tempSigNoneRB.Value
-            b=a;
         end
         
+        if tempSigNoneRB.Value
+        % Do nothing, just move a to b
+        th=inf;
+        end
+        
+        disp([num2str(numberOfSynapsesDeleted) ' Synapses removed due to not reaching temporal threshold: ' num2str(th)]);
+        function removeSynapse()
+                    
+                    b(i,:)=[];
+                    keptIdx(i)=[];
+                    removedIdx=[removedIdx, i];
+                    %disp(['Synapse ' num2str(i) ' removed: not reaching temporal threshold.']);
+                    numberOfSynapsesDeleted = numberOfSynapsesDeleted + 1;
+           
+        end
     end
 
     function detectIslands(s,e)
@@ -907,10 +963,13 @@ startUp();
         if ~isdir([dirname './eigs/'])
             mkdir([dirname './eigs/'])
         end
-        for evnI=1:16
-            imwrite(reshape(uint16(U(:,evnI)*length(U)+2^15),[wy,wx]),[dirname './eigs/' fname '_eigU' num2str(evnI) '.png'],'BitDepth',16);
-            csvwrite([dirname './eigs/' fname '_eigV' num2str(evnI) '.csv'], V(:,evnI));
-            csvwrite([dirname './eigs/' fname '_eigS' num2str(evnI) '.csv'],S(evnI,evnI));
+       % writeSVD=1;
+        if writeSVD
+            for evnI=1:16
+                imwrite(reshape(uint16(U(:,evnI)*length(U)+2^15),[wy,wx]),[dirname './eigs/' fname '_eigU' num2str(evnI) '.png'],'BitDepth',16);
+                csvwrite([dirname './eigs/' fname '_eigV' num2str(evnI) '.csv'], V(:,evnI));
+                csvwrite([dirname './eigs/' fname '_eigS' num2str(evnI) '.csv'],S(evnI,evnI));
+            end
         end
         if EVN==0
             EVNtxt= (inputdlg('Which Eigen Vector to use','EigenVector',1,{'2','1'}));
@@ -918,8 +977,9 @@ startUp();
         end
         synProb=reshape(U(:,EVN),[wy,wx]);
         % EVN=1; %Eigen vector number
-        synapseBW = reshape(((U(:,EVN))>(std(U(:,EVN))*3)),wy,wx); % Assume first frame, the synapses do no peak. V(1,2) gives direction of 2nd U(:,2).
-        subplot(4,4,16);imagesc(synapseBW);colormap('gray');
+       % Thresholding is done later.
+        % synapseBW = reshape(((U(:,EVN))>(std(U(:,EVN))*3)),wy,wx); % Assume first frame, the synapses do no peak. V(1,2) gives direction of 2nd U(:,2).
+       % subplot(4,4,16);imagesc(synapseBW);colormap('gray');
         
         
         %% Read Eig
@@ -936,9 +996,10 @@ startUp();
     end
     function rmvBkGrnd(source,event,handles)
         subplot(4,4,16);
-        tophat(); warning('tophat ipo freqfilter')
+        tophat(); disp('tophat ipo freqfilter')
        % freqfilter2D();
-        
+       
+       % Set the threshold.
        if sig2rb.Value      % Sigma 2 Radio Button
          setTvalue(mean(synProb(:))+2*std(synProb(:)));
        else
@@ -956,7 +1017,9 @@ startUp();
         doThreshold(TValue);
         cleanBW();
         %savesubplot(4,4,16,[pathname '_mask']);
-        imwrite(synapseBW,[pathname '_mask.png']);
+       % This is bin, mask=obsolete, new mask has numbers 
+       % written later
+       % imwrite(synapseBW,[pathname '_mask.png']);
         subplot(4,4,4);
     end
     function grayOutSettings(source,event,handles)
@@ -984,23 +1047,22 @@ startUp();
     function doThreshold(source,event,handles)
         TValue = str2double(thresTxt.String);
         synapseBW = synProb > TValue;
-        pause(.5);
         imagesc(synapseBW);
+        pause(.5);
     end
     function cleanBW(source,event,handles)
         if segmentCellBodies
-        warning('close sz 2 changed to 1')
+        
         synapseBW = imerode(synapseBW,strel('disk',8));
         synapseBW = imdilate(synapseBW,strel('disk',8));
         warning('erode size hacked to 8')
         else
-        warning('close sz 2 changed to 1')
+        disp('close sz 2 changed to 1 in cleanBW')
         synapseBW = imerode(synapseBW,strel('disk',1));
         synapseBW = imdilate(synapseBW,strel('disk',1));
         end
-        
-        pause(.5);
         imagesc(synapseBW);
+        pause(.5);
     end
     function [Ub, Sb, Vb] = doeigy(source, event, handles)
         [Ub, Sb, Vb] = calcEigY(data);
@@ -1027,6 +1089,9 @@ startUp();
         subplot(4,4,14);
         imagesc(reshape(U(:,3),size(data,1),size(data,2)));colormap('gray');
         title('eig 3')
+        subplot(4,4,15);
+        imagesc(reshape(U(:,3),size(data,1),size(data,2)));colormap('gray');
+        title('eig 4')
         
         subplot(4,4,4);
         hold off;
@@ -1040,7 +1105,7 @@ startUp();
         hold off;
         plot(V(:,3));
         title('eig 3')
-        subplot(4,4,13);
+        subplot(4,4,16);
         plot(V(:,4));
         title('eig 4')
     end
@@ -1215,7 +1280,7 @@ startUp();
             [TSpAPA , TSpAPAi] = max(mdd); %Temporal spike Averaged Pixel Amplitude
            
                
-     warning('AR1 disabled ;') ; AR1=AR*0;%      AR1 = mean(dff(reshape(data,wx*wy,[]),1)); % Average over all pixels, average Response
+     disp('AR1 disabled in AVGSynapseResponse ;') ; AR1=AR*0;%      AR1 = mean(dff(reshape(data,wx*wy,[]),1)); % Average over all pixels, average Response
            rAR = mean(reshape(data,wx*wy,[]),1); % Average over all pixels, average Response
            
             stdSR = std(dff(synsignal'),1); %stdSR for all points in time
@@ -1244,7 +1309,12 @@ startUp();
     function analyseSingSynResponse(s,e,v)
     %    stimulationStartTime = 1.0;
     %    stimulationStartFrame = floor(stimulationStartTime /dt);
-        dffsynsignal=dff(synsignal')';
+    
+    % Initialise output variables for when there are no synapses found.
+    mSigA=nan; miSigA=nan; synapseSize=nan; noiseSTD=nan; aboveThreshold=nan; UpHalfTime=nan;    DownHalfTime=nan;    tau1=nan;
+    amp=nan;      error=nan; xCentPos=nan; yCentPos=nan; synapseNbr=nan; bbox=[nan,nan,nan,nan]; AUC=nan; nAUC=nan;
+    
+    dffsynsignal=dff(synsignal')';
         for i=1:size(dffsynsignal,2)
             signal = dffsynsignal(:,i);
             synapseNbr(i) = i;
@@ -1325,7 +1395,7 @@ startUp();
         disp([dirname 'output\SynapseDetails\' fname(1:end-4) '_synapses.txt']);disp(['created']);
         
     end
-    function analyseAvgReponse(s,e)
+    function analyseAvgResponse(s,e)
         % Amplitude
         error =0; % Indicates if something was wrong with the data or dataprocessing
         [mASR, miASR] = max(ASR); % Find max ampl of the Average Synaptic Response
@@ -1386,7 +1456,7 @@ startUp();
         
         if length(expdata.x(:))<=4000000
             expEqUp =[0 0 0 0] ;
-            disp(['No up kinetcis fit for: ' fname]);
+            % disp(['No up kinetcis fit for: ' fname]);
             tau1=0; amp=0;
         else
             [tau1, amp, t0] = exp1fit(expdata.x,expdata.y);
@@ -1678,6 +1748,11 @@ startUp();
     end
     function doProcessDir(s,e,h)
         [dataDirname] = uigetdir(defaultDir,'Select dir:');
+        processDirAndSubDirs(dataDirname);
+    end
+
+    function processDirAndSubDirs(dataDirname)
+    
         defaultDir =  [dataDirname '\..'];
         if isempty(dir([dataDirname '\*.tif']))
             dd= dir([dataDirname '\*.*']);
@@ -1707,7 +1782,7 @@ startUp();
         else
             processDir(dataDirname);
         end
-        
+    
     end
 
     function [isProcessed, currentfolder]=writeProcessStart(expnm,iii,currentfolder)
@@ -1719,7 +1794,7 @@ startUp();
         if (~isfile([expnm{iii}.folder '\process\process_' expnm{iii}.name '.txt']))
             fid =fopen([expnm{iii}.folder '\process\process_' expnm{iii}.name '.txt'],'w');
             cl = clock;
-            fprintf(fid,['start: '  num2str(cl(1)) '-' num2str(cl(2)) '-' num2str(cl(3)) ' ' num2str(cl(4)) ':' num2str(cl(5)) ':' num2str(cl(6)) '\r\n']);
+            fprintf(fid,['S3T: ' Version  ' \n start: '  num2str(cl(1)) '-' num2str(cl(2)) '-' num2str(cl(3)) ' ' num2str(cl(4)) ':' num2str(cl(5)) ':' num2str(cl(6)) '\r\n']);
             fclose(fid);
             isProcessed=0;
         else
@@ -1751,16 +1826,16 @@ startUp();
         end
         currentfolder=expnm{1}.folder;
         
-        for iii = 1:length(experiments)
-            [isProcessed, currentfolder]=writeProcessStart(expnm,iii,currentfolder);
+        for EID = 1:length(experiments)
+            [isProcessed, currentfolder]=writeProcessStart(expnm,EID,currentfolder);
             if  ~isProcessed
                 % Load the data
-                fNmTxt.String=['loading..' expnm{iii}.name];
+                fNmTxt.String=['loading..' expnm{EID}.name];
                 if fastLoadChkButton.Value
-                    [data, pathname, fname, dirname,U,S,V] = loadTiff([expnm{iii}.folder '\' expnm{iii}.name],fastLoadChkButton.Value );
+                    [data, pathname, fname, dirname,U,S,V] = loadTiff([expnm{EID}.folder '\' expnm{EID}.name],fastLoadChkButton.Value );
                     imageEigen(U,S,V);
                 else
-                    [data, pathname, fname, dirname] = loadTiff([expnm{iii}.folder '\' expnm{iii}.name],fastLoadChkButton.Value );
+                    [data, pathname, fname, dirname] = loadTiff([expnm{EID}.folder '\' expnm{EID}.name],fastLoadChkButton.Value );
                 end
                 defaultDir = dirname;
                 dNmTxt.String = defaultDir;
@@ -1796,19 +1871,24 @@ startUp();
                     
                     for i=1:length(analysisList)
                         dataFrameSelectionTxt ='(1:end)';
-                        writeAnalysisStart(expnm,iii,analysisList(i).name);
+                        writeAnalysisStart(expnm,EID,analysisList(i).name);
                         loadAnalysis(analysisList(i));
-                        pause(0.05);
-                        processMovie(pathname);
-                        moveResults(analysisList(i).name);
-                        writeProcessEnd(expnm,iii);
+                        if reloadMovie % If with frameselection only a part of the movie is loaded, by reload, another part of the same movie can be loaded to create a mask.
+                            [data, pathname, fname, dirname] = loadTiff([expnm{EID}.folder '\' expnm{EID}.name],fastLoadChkButton.Value );
+                        end
+                        if ~skipMovie
+                            pause(0.05);
+                            processMovie(pathname);
+                            moveResults(analysisList(i).name);
+                            writeProcessEnd(expnm,EID);
+                        end
                     end
                     
                     
                 else % The checkbox is not enabled, just use settings from the GUI.
                     dataFrameSelectionTxt ='(1:end)';
                     processMovie(pathname);
-                    writeProcessEnd(expnm,iii);
+                    writeProcessEnd(expnm,EID);
                 end
                 
                 
@@ -1833,9 +1913,21 @@ startUp();
         movefile([dirname fname '*.pdf'],[dirname analysisListName(1:end-4) '\']);
         movefile([dirname ffname '*.pdf'],[dirname analysisListName(1:end-4) '\']);
         ffname = fname(1:end-4);
-        movefile([dirname 'output\' ffname '*.*'],[dirname analysisListName(1:end-4) '\output']);
-        movefile([dirname 'output\SynapseDetails\' ffname '*.*'],[dirname analysisListName(1:end-4) '\output\SynapseDetails\']);
-       
+        try
+           movefile([dirname 'output\' ffname '*.*'],[dirname analysisListName(1:end-4) '\output']);
+           movefile([dirname 'output\SynapseDetails\' ffname '*.*'],[dirname analysisListName(1:end-4) '\output\SynapseDetails\']);
+       catch 
+           disp('one of these files is open and prevents writing: (probably excell)')
+           disp(dir([dirname 'output\SynapseDetails\' ffname '*.*']));
+           disp(dir([dirname 'output\' ffname '*.*']));
+           disp([dirname analysisListName(1:end-4) '\output\SynapseDetails\']);
+           disp('press anu key to try again');
+           pause()
+           movefile([dirname 'output\' ffname '*.*'],[dirname analysisListName(1:end-4) '\output']);
+           movefile([dirname 'output\SynapseDetails\' ffname '*.*'],[dirname analysisListName(1:end-4) '\output\SynapseDetails\']);
+  
+           
+       end
        % Put some files back .
         copyfile([dirname analysisListName(1:end-4) '\' fname '_mask.png'],[dirname]);
        
@@ -1900,27 +1992,27 @@ startUp();
             
             
             %loadTiff22();
-            exportMask(); % f(synRegio)
+            exportMask('_maskBTT.png'); % mask Before Temporal Thresholding
             setMask(); % maskRegio  = synRegio 
         end
         
         
         % GetSignal
         synRegio = maskRegio;
-        subtractBckgrnd();          % data = f(data)
+        subtractBlackLevel();          % data = f(data)
         
         if (length(synRegio) ~=0)
-            extractSignals();           % synsignal = f(synRegio)
+            extractSignals();           % synsignal = f(synRegio,data)
             signalPlot();               % f(dff(synsignal'))
             exportSynapseSignals();     % tempThreshold(dff(synsignal'))
+            exportMask('_mask.png'); % Mask after temporal Thresholding, =default to (reuse)
             
-            
-            doPostProcessing();
+            doPostProcessing(); % Partial Processing
             % GetAmplitude
             analyseSingSynResponse();
             avgSynapseResponse(); % AR=f(synsignal)
-            doMultiResponseto1(); %AR=mr(AR), ASR=mr(ASR)             
-            analyseAvgReponse();
+            doMultiResponseto1(); %AR=mr(AR), ASR=mr(ASR)   % Temporal Averaging          
+            analyseAvgResponse();
             
         else
                
@@ -2122,7 +2214,7 @@ startUp();
                segment2();
                rmvBkGrnd();
              detectIslands();
-             exportMask();
+             doExportMask();
             setMask();
            end
             extractSignals();
@@ -2141,7 +2233,7 @@ startUp();
                 
                 %  doMultiResponseto1(); 
                 
-                analyseAvgReponse();
+                analyseAvgResponse();
                 AP10Response(iii) = mASR;
                 
                 % Load exp 2: control
@@ -2169,7 +2261,7 @@ startUp();
                         avgSynapseResponse();
                         ASR=multiResponseto1(ASR);
                         
-                        analyseAvgReponse();
+                        analyseAvgResponse();
                         subplot(4,4,12)
                         
                         controlResponse(iii) = mASR;
@@ -2206,7 +2298,7 @@ startUp();
                         hold off
                         savesubplot(4,4,12,[pathname '_response'])
                         ASR=multiResponseto1(ASR);
-                        analyseAvgReponse();
+                        analyseAvgResponse();
                         min5Response(iii) = mASR;
                     else
                         disp(['No synapses identified in: ' fname])
@@ -2240,7 +2332,7 @@ startUp();
                         %figure
                         subplot(4,4,8);
                         ASR=multiResponseto1(ASR);
-                        analyseAvgReponse();
+                        analyseAvgResponse();
                         min10Response(iii) = mASR;
                     else
                         disp(['No synapses identified in: ' fname])
@@ -2272,7 +2364,7 @@ startUp();
                         avgSynapseResponse();
                         ASR=multiResponseto1(ASR);
                         
-                        analyseAvgReponse();
+                        analyseAvgResponse();
                         min20Response(iii) = mASR;
                     else
                         disp(['No synapses identified in: ' fname])
@@ -2369,11 +2461,11 @@ startUp();
         savesubplot(4,4,[2:4,6:8,10:12],[pathname '_doseResponse.png'])
         
     end
-    function subtractBckgrnd(f,d,e)
+    function subtractBlackLevel(f,d,e)
         [sz1, sz2, sz3]=size(data);
-        tempBG = getBkgrnd(data(:,:,:));
-        tempBG =reshape(tempBG ,[ 1 1 sz3]);
-        data=data-repmat(tempBG,[sz1 sz2 1]);        
+        backGroundStrength = getBkgrnd(data(:,:,:));
+        backGroundStrength =reshape(backGroundStrength ,[ 1 1 sz3]);
+        data=data-repmat(backGroundStrength,[sz1 sz2 1]);        
     end
     function backGroundStrength=getBkgrnd(data)
         % Calculates the average background dynamics of the 5% darkest
@@ -2384,9 +2476,11 @@ startUp();
         data2=reshape(data,[],size(data,3));
         backGroundStrength = mean(data2(sii(1:fivePrctInterval),:));      
     end
-    function ok = exportMask(s,e,h)
+    function ok = doExportMask(s,e,h)
+        exportMask('_mask.png');
+    end
+    function ok = exportMask(fileExtension)
         s2=synRegio;
-        synsignal=[];
         mask=uint16 (zeros(wy,wx));
         for j=1:length(s2)
             %pixl=s2(j).PixelList;
@@ -2396,7 +2490,7 @@ startUp();
         if length(s2)==0
             mask=zeros(wy,wx);
         end
-        imwrite(mask,[pathname '_mask.png'],'bitdepth',16);
+        imwrite(mask,[pathname fileExtension],'bitdepth',16);
     end
     function meanData = mR1(data)
         meanData = multiResponseto1(data);
@@ -2415,7 +2509,7 @@ startUp();
         % NOS = 3; % Number of Stimuli
         interStimPeriod = 1/stimFreq*fps; %Do not floor here but only after multiplication.
         iSP = interStimPeriod;
-        dCOF=0;
+        dCOF=0; % DutyCycleOnFrames.  |--dCOF--|____|-----|____
         if (dCOF==0 || dCOF>iSP)
             dCOF = floor(iSP);    
         end
@@ -2423,7 +2517,14 @@ startUp();
         dCOF = floor(iSP); %dutyCycleOnFrames.
         part = zeros(dCOF,NOS);
         for iii = 1:NOS
-            part(:,iii)=data(OnOffset+floor((iii-1)*iSP)+(1:dCOF));
+try
+    part(:,iii)=data(OnOffset+floor((iii-1)*iSP)+(1:dCOF));
+catch e
+    disp(['size(data) = ' num2str(size(data)) ', OnOffset= ' num2str(OnOffset) ' iSP =' num2str(iSP) ', dCOF= ' num2str(dCOF) ]);
+    disp('press any to crash, or set a breakpoint to investigate')
+    pause;
+    error(e);
+end
         end
         %         part(:,2)=data(OnOffset+1*iSP+(1:iSP));
         %         part(:,3)=data(OnOffset+2*iSP+(1:iSP));
@@ -2451,12 +2552,22 @@ startUp();
         
         % ASR = meanData;
     end
-    function doPostProcessing(d1,d2,d3)
+    function doPostProcessing(s,e,h)
         postProcess(synsignal');%dff(synsignal')')
     end
 
     function postProcess(synsignalTemp)
+        % To create the *PP_Synapse.txt file
         dffsynsignal=dff(synsignal')';
+        
+        
+        expEqDown =[nan nan nan nan] ;
+        expEqUp =[nan nan nan nan] ;
+        
+        synapseNbr=nan; mSigA=nan;     miSigA=nan; synapseSize=nan; noiseSTD=nan; aboveThreshold=nan;
+        UpHalfTime=nan;    DownHalfTime=nan;    tau1=nan;    amp=nan;      error=nan; xCentPos=nan; yCentPos=nan;
+        bbox=[nan,nan,nan,nan]; AUC=nan; nAUC=nan;
+        
         for i=1:size(dffsynsignal,2)
             signal = dffsynsignal(:,i);
             synapseNbr(i) = i;
@@ -2468,10 +2579,13 @@ startUp();
             bbox(i,3:4)=min(synRegio(i).PixelList,[],1);
             
             signal = multiResponseto1(signal,0);
+            
+            % Check if the partial interval is bigger than the interval
+            % itself.
             if (stimFreq2<stimFreq) && (stimFreq2~=0)
                 stimFreq2=stimFreq;
                 warning(['stimFreq2 adjusted to: ' num2str(stimFreq) 'to fit interval.']);
-                warning(['Continue on your own by pressing a key ' ]);
+                warning(['Continue on your own risk by pressing a key ' ]);
                 pause();
             end
                 
@@ -2496,7 +2610,7 @@ catch e
     txt = uicontrol('Parent',d,...
                'Style','text',...
                'Position',[20 80 210 40],...
-               'String','The artificial intelligence say''s the analysis numbers are wrong.');
+               'String','The artificial intelligence says the partial analysis numbers are wrong.');
 
     btn = uicontrol('Parent',d,...
                'Position',[85 20 70 25],...
@@ -2509,21 +2623,20 @@ end
                 pause(.01);
             end
             for j = 1:NOS2
-                signal = part(:,j);
-                [mSig, miSig] = max(signal,[],1); % Find max ampl of the Average Synaptic Response
+                pSignal = part(:,j);
+                [mSig, miSig] = max(pSignal,[],1); % Find max ampl of the Average Synaptic Response
                 mSigA(i,j)=mSig;
                 miSigA(i,j)=miSig;
-                AUC(i,j) = sum((signal>0).*signal);
-                nAUC(i,j) = sum((signal<0).*signal);
-                noiseSTD(i,j) = nan;%std(signal(1:15)); % Calculate noise power (std).
+                AUC(i,j) = sum((pSignal>0).*pSignal);
+                nAUC(i,j) = sum((pSignal<0).*pSignal);
+                noiseSTD(i,j) = std(signal(1:10)); % Calculate noise power (std). From the start of the signal.
                 aboveThreshold(i,j) = mSig>(2*noiseSTD(i,j));
                 
                 %     upframes = miSig-stimulationStartFrame;
                 %     upResponse = signal(stimulationStartFrame:miSig);
                 %     expdata.x = (0:(length(upResponse)-1))*dt;
                 %     expdata.y = upResponse;
-                %[expEqUp, fitCurve1] = curveFitV1(expdata,[.22 100 0 2 -1 2]);
-                
+                %     [expEqUp, fitCurve1] = curveFitV1(expdata,[.22 100 0 2 -1 2]);
                 
                 if 1 %length(expdata.x(:))<=4000000
                     expEqUp =[0 0 0 0] ;
@@ -2539,7 +2652,7 @@ end
                     %temp.     plot(expdata.x+stimulationStartTime, fitCurve1(expdata.x));
                 end
                 %downResponse = ASR(miASR:miASR+floor(3.0/dt));
-                downResponse = signal(miSig:end);
+                downResponse = pSignal(miSig:end);
                 expdata.x = (0:(length(downResponse)-1))*dt;
                 expdata.y = downResponse;
                 %[expEqDown, fitCurve2] = curveFitV1(expdata,[0 1 0 2 1 2]);
@@ -2579,9 +2692,9 @@ end
         AUCL=labelVar('AUC_',NOS2);
         nAUCL=labelVar('nAUC_',NOS2);
         ampSSL=labelVar('ampSS_',NOS2);
-         errorL=labelVar('error_',NOS2);
+        errorL=labelVar('error_',NOS2);
    
-        t =     array2table([synapseNbr', mSigA     miSigA synapseSize' noiseSTD aboveThreshold UpHalfTime    DownHalfTime    tau1    amp      error, xCentPos', yCentPos',  bbox(:,2), bbox(:,1), bbox(:,4), bbox(:,3), AUC, nAUC],...
+        t = array2table([synapseNbr', mSigA     miSigA synapseSize' noiseSTD aboveThreshold UpHalfTime    DownHalfTime    tau1    amp      error, xCentPos', yCentPos',  bbox(:,2), bbox(:,1), bbox(:,4), bbox(:,3), AUC, nAUC],...
             'VariableNames',[{'synapseNbr'},maxSynL, miSynL, {'synapseSize'}, noiseSTDL, aboveThresholdL, UpHalfTimeL, downHalfTimeL, tauL, ampSSL, errorL,{'xCentPos'},{'yCentPos'},  {'bboxUx'},{'bboxUy'},{'bboxDx'},{'bboxDy'},AUCL,nAUCL]);
         
         if(~isdir ([dirname 'output\']))
@@ -2592,8 +2705,6 @@ end
         end
         writetable(t,[dirname 'output\SynapseDetails\' fname(1:end-4) '_PPsynapses']);
         disp([dirname 'output\SynapseDetails\' fname(1:end-4) '_PPsynapses.txt']);disp(['created']);
-        
-
     end
 
     function tableLabels = labelVar(label,ii)
@@ -2645,6 +2756,11 @@ end
         setStimFreq2(analysisCfg.stimFreq2);
         
         setReuseMask(analysisCfg.reuseMask);
+        setReloadMovie(analysisCfg.reloadMovie);
+        setwriteSVD(analysisCfg.writeSVD);
+        setSkipMovie(analysisCfg.skipMovie);
+       % for now, let the button overrule the text
+       disp('fast load xml setting disabled');%setFastLoad(analysisCfg.fastLoad);
         setFrameSelectionTxt(analysisCfg.FrameSelectionTxt);
         setPhotoBleachingTxt(analysisCfg.PhotoBleachingTxt);
 
@@ -2655,13 +2771,39 @@ end
     end
 
 
+
+function setSkipMovie(value)
+        if exist('skipMovieChkButton','var')
+            skipMovieChkButton.Value=value;
+        end
+        skipMovie = value;
+    end
+    
+    function setFastLoad(value)
+        if exist('fastLoadChkButton','var')
+            fastLoadChkButton.Value=value;
+        end
+        fastLoad = value;
+    end
+    
+    function setwriteSVD(value)
+        if exist('writeSVDChkButton','var')
+            writeSVDChkButton.Value=value;
+        end
+        writeSVD=value;
+    end
+
     function setReuseMask(value)
         reuseMaskChkButton.Value=value;
     end
-    function setFrameSelectionTxt(FrameSelectionTxt);
+
+    function setReloadMovie(reloadMovieT)
+        reloadMovie = reloadMovieT;
+    end
+    function setFrameSelectionTxt(FrameSelectionTxt)
         dataFrameSelectionTxt = FrameSelectionTxt;
     end
-    function setPhotoBleachingTxt(PBT);
+    function setPhotoBleachingTxt(PBT)
         PhotoBleachingTxt = PBT;
     end
  

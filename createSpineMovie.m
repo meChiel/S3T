@@ -44,6 +44,7 @@ for jj=0:59
     totFrames=floor(totalTime/tFrame);
     images=zeros(512,512);
     image2=zeros(sX,sY,totFrames);
+    image3=zeros(512,512,totFrames);
     for i=1:length(pos)
         images(pos(i,1),pos(i,2)) = bgF(i);
     end
@@ -62,6 +63,7 @@ for jj=0:59
         image2(:,:,f) = conv2(spineshape,images);
         image2(:,:,f) = image2(:,:,f)+10*0.5*randn(size(image2(:,:,f)));
         image2(:,:,f) = image2(:,:,f)+background;
+        image3(:,:,f) = image2(1:512,1:512,f);
     end
     figure(1);colormap gray;
     tic
@@ -73,6 +75,7 @@ for jj=0:59
     %%
     figure(2)
     hold off
+    % Plot the response of the first synapse centre
     plot((1:totFrames)*tFrame, squeeze(image2(pos(1,1)+conn(1)/2,pos(1,2)+conn(2)/2,:)));
     hold on;
     % Decay time:
@@ -80,20 +83,45 @@ for jj=0:59
     %% Export the movie:
     %image2=conv2(images,spineshape);
     ID = num2str(10000+jj);
-    mkdir(['E:/simulated_e' ID(2:end)] );
-    mkdir(['E:/simulated_e' ID(2:end) '/GT'] );
-    for i=1:totFrames
-        image(image2(:,:,i)/20);
-        
-        imwrite(image2(:,:,i)/1024, ['E:/simulated_e' ID(2:end) '/frame' num2str(i) '.png'],'BitDepth',16);
-        pause(.01)
-    end
-    save(['E:/simulated_e' ID(2:end) '/GT/groundTruth' ID(2:end) '.mat'])
+    mkdir(['E:/simulated_exp' ] );
+    %mkdir(['E:/simulated_exp' ID(2:end) '/GT'] );
+    mkdir(['E:/simulated_exp' '/GT'] );
+    ffname=['E:/simulated_exp' '/NS_20181002_1046_e' ID(2:end)  '.tif'];
+   % imwrite(uint16(image3(:,:,1)/1024),ffname)
     
+   try   
+   imwrite(uint16(image3(:,:,1)*4),ffname)
+   catch
+       pause(1);
+       disp ('trying imwrite again');
+       imwrite(uint16(image3(:,:,1)*4),ffname)
+   end
+    for i=2:totFrames
+try
+    imwrite(uint16(image3(:,:,i)*4),ffname,'WriteMode','append')
+catch
+    pause(0.01);
+    disp('trying imwrite append again');
+    try 
+         pause(1);
+        imwrite(uint16(image3(:,:,i)*4),ffname,'WriteMode','append');
+    catch(e)
+        error('tried 2 times but could not write to file')
+    end
+end
+    
+    
+%        image(image2(:,:,i)/20);        
+        %imwrite(image2(:,:,i)/1024, ['E:/simulated_e' ID(2:end) '/frame' num2str(i) '.png'],'BitDepth',16);
+ %       pause(.01)
+    end
+    %save(['E:/simulated_e' ID(2:end) '/GT/groundTruth' ID(2:end) '.mat'])
+    clear image2 image3;
+    save(['E:/simulated_exp/GT/groundTruth' ID(2:end) '.mat'])
     
 end
 %% Convert png seqs to tif
-!C:\Users\SA-PRD-Synapse\Documents\ij150-win-jre6\ImageJ\ImageJ-win64.exe --headless --console -macro ./png2tif.ijm 
-
+%!"C:\Users\SA-PRD-Synapse\Documents\ij150-win-jre6\ImageJ.exe" --headless --console -macro ./png2tif.ijm 
+%!%systemdrive%%homepath%\Documents\ij150-win-jre6\ImageJ.exe" --headless --console -macro ./png2tif.ijm 
 %'folder=../folder1 parameters=a.properties output=../samples/Output'
 

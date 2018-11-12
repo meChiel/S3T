@@ -1,9 +1,11 @@
 function metaDataImporter()
-
+try
 fid = fopen('../urls/urls.json', 'r');
 c = fread(fid, inf, 'uint8=>char')';
 fclose(fid);
- 
+catch
+    disp(['Could not find urls.json in ' pwd '../urls/'] )
+end
 
 
 f= uifigure('AutoResizeChildren','off');

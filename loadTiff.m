@@ -20,26 +20,28 @@ FileName = fname(bkslsh(end)+1:end);
 PathName = fname(1:bkslsh(end));
 
 %%
-info = imfinfo(fname);
-num_images = numel(info);
+
 extra=1; % Provides some animation. Avg movie, avg signal, ...
 
 
 if extra==1
-imagesc(imread(fname, 1));
+%imagesc(imread(fname, 1));
 title('Loading ....')
 drawnow();
 end
 
 if fastload
     if extra==1 
-    title(['fastLoading .../' num2str(num_images)])
+    title(['fastLoading .../'])%num2str(num_images)])
     end
     [A, U, S, V] = fastLoadTiff(fname);
     warning('Using fastload');
+    extra=0; %Don't animate with fastload.
+    num_images=size(A,3); % If eigs where calculated on a part of the movie, and the 
 
 else
-    
+    info = imfinfo(fname);
+num_images = numel(info);
 A=zeros(info(1).Height,info(1).Width,num_images);
 
 for k = 1:num_images
