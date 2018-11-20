@@ -6,7 +6,7 @@ disp('------------------------------------------------------');
 try
     fid = fopen('asciNeuron.txt', 'r');
     neuronText = fread(fid, inf, 'uint8=>char')';
-    fclose(fid);
+    fclose(fid);Fproc
     disp(neuronText);
 catch
     disp('no asciNeuron found');
@@ -402,7 +402,7 @@ end
             'Callback', @rmvBkGrnd);
         
         
-        subtractBckgrndBtn = uicontrol('Style', 'pushbutton', 'String', 'rmvBkGrnd!',...
+        subtractBckgrndBtn = uicontrol('Style', 'pushbutton', 'String', 'Black!',...
             'Position', [70 by(9) 50 20],...
             'Callback', @subtractBlackLevel);
         

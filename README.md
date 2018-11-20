@@ -2,7 +2,7 @@
 *Disclaimer: This software is still in active development and for this, not (yet) user nor*
 *developper friendly.*
 
-![alt text](https://github.com/meChiel/S3T/blob/master/my_icon.png "S3T Logo")
+![alt text](https://github.com/meChiel/S3T/blob/master/thelogo.png "S3T Logo")
 
 A tool to segment and analyze high troughput screen recordings of electronically stimulated synapses.
 
