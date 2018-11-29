@@ -1,9 +1,30 @@
 % This creates a full 96 well plate of data.
 % The well on teh boundaries are not used, and not iamged and so do not 
 % have data.
+
+
+plateOnOff = [...
+    0 0 0 0 0 0 0 0 0 0 0 0;
+    0 1 1 1 1 1 1 1 1 1 1 0;
+    0 1 1 1 1 1 1 1 1 1 1 0;
+    0 1 1 1 1 1 1 1 1 1 1 0;
+    0 1 1 1 1 1 1 1 1 1 1 0;
+    0 1 1 1 1 1 1 1 1 1 1 0;
+    0 1 1 1 1 1 1 1 1 1 1 0;
+    0 0 0 0 0 0 0 0 0 0 0 0;
+    ]'; % Transpose to make the serialisation from left to right iso up to down. 
+% this direction is the direction the virtual microscope XY - stage will
+% scan the different wells.
+
+numOfWells = sum(plateOnOff(:));
+
+fs=30; % Frames per second
+totalTime=17;% recording time in seconds
+    
+
 tic
 storD=uigetdir([],'Select directory to store artificial data.');
-for jj=0:59
+for jj=0:(numOfWells-1)
     nSpikes = 3;
     freqSpikes = 0.2;
     Nspines = 20; % Active spines
@@ -43,9 +64,7 @@ for jj=0:59
     sc=1;
     background=.000005*(((X.*X*0.01*sc-200).*(X*sc-200)+Y*sc.*X.*Y*sc));%+(X*sc-20).*Y));
     
-    fs=30;
     tFrame=1/fs;
-    totalTime=17;
     totFrames=floor(totalTime/tFrame);
     images=zeros(512,512);
     image2=zeros(sX,sY,totFrames);
@@ -91,7 +110,7 @@ for jj=0:59
     mkdir(['E:/simulated_exp' ] );
     %mkdir(['E:/simulated_exp' ID(2:end) '/GT'] );
     mkdir(['E:/simulated_exp' '/GT'] );
-    ffname=['E:/simulated_exp' '/NS_20181002_1046_e' ID(2:end)  '.tif'];
+    ffname=['E:/simulated_exp' '/NS_120181002_1046_e' ID(2:end)  '.tif'];
    % imwrite(uint16(image3(:,:,1)/1024),ffname)
     
    try
@@ -133,3 +152,21 @@ toc
 %!%systemdrive%%homepath%\Documents\ij150-win-jre6\ImageJ.exe" --headless --console -macro ./png2tif.ijm 
 %'folder=../folder1 parameters=a.properties output=../samples/Output'
 
+
+%
+
+
+andorText = ['Well ' num2str(numOfWells) '\r\n-----------\r\n\r\n Repeat - Well\r\n']; 
+
+layout = [1:12;13:24;25:36;37:48;49:60;61:72;73:84;85:96]';
+idx=find(plateOnOff==1);
+
+for i=1:numOfWells
+    andorText = [andorText '\t Well ' num2str(layout((idx(i)))) '\r\n \t\t XY 1- \r\n'];
+end
+
+   andorText = [andorText '\r\n \r\nCamera Exposure Time (s) - ' num2str(1/fs) ];
+fid = fopen([storD '\NS_120181002_1046.txt'],'w');
+fprintf(fid,andorText,'%s');
+fclose(fid);
+    
