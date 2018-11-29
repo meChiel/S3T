@@ -1,3 +1,8 @@
+% This creates a full 96 well plate of data.
+% The well on teh boundaries are not used, and not iamged and so do not 
+% have data.
+tic
+storD=uigetdir([],'Select directory to store artificial data.');
 for jj=0:59
     nSpikes = 3;
     freqSpikes = 0.2;
@@ -66,12 +71,12 @@ for jj=0:59
         image3(:,:,f) = image2(1:512,1:512,f);
     end
     figure(1);colormap gray;
-    tic
+    
     %  for f=1:totFrames
     %     image(image2(:,:,f)*.10);
     %     pause(.0285);
     %  end
-    toc
+    
     %%
     figure(2)
     hold off
@@ -89,26 +94,28 @@ for jj=0:59
     ffname=['E:/simulated_exp' '/NS_20181002_1046_e' ID(2:end)  '.tif'];
    % imwrite(uint16(image3(:,:,1)/1024),ffname)
     
-   try   
-   imwrite(uint16(image3(:,:,1)*4),ffname)
+   try
+       imwrite(uint16(image3(:,:,1)*4),ffname)
    catch
        pause(1);
        disp ('trying imwrite again');
        imwrite(uint16(image3(:,:,1)*4),ffname)
    end
-    for i=2:totFrames
-try
-    imwrite(uint16(image3(:,:,i)*4),ffname,'WriteMode','append')
-catch
-    pause(0.01);
-    disp('trying imwrite append again');
-    try 
-         pause(1);
-        imwrite(uint16(image3(:,:,i)*4),ffname,'WriteMode','append');
-    catch(e)
-        error('tried 2 times but could not write to file')
-    end
-end
+   for i=2:totFrames
+       try
+           
+           
+           imwrite(uint16(image3(:,:,i)*4),ffname,'WriteMode','append')
+       catch
+           pause(0.01);
+           disp('trying imwrite append again');
+           try
+               pause(1);
+               imwrite(uint16(image3(:,:,i)*4),ffname,'WriteMode','append');
+           catch(e)
+               error('tried 2 times but could not write to file')
+           end
+       end
     
     
 %        image(image2(:,:,i)/20);        
@@ -120,6 +127,7 @@ end
     save(['E:/simulated_exp/GT/groundTruth' ID(2:end) '.mat'])
     
 end
+toc
 %% Convert png seqs to tif
 %!"C:\Users\SA-PRD-Synapse\Documents\ij150-win-jre6\ImageJ.exe" --headless --console -macro ./png2tif.ijm 
 %!%systemdrive%%homepath%\Documents\ij150-win-jre6\ImageJ.exe" --headless --console -macro ./png2tif.ijm 
