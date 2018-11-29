@@ -805,7 +805,9 @@ end
         
         [dfftempThresSignals, thresKeepIdx] = tempThreshold(dff(synsignal')); % For synapse Traces
         synsignal = synsignal(:,thresKeepIdx); % Here synsignal is Thresholded.
-        synRegio=synRegio(thresKeepIdx); % Here the mask is adjusted.
+        if   ~isempty(synRegio) 
+            synRegio=synRegio(thresKeepIdx); % Here the mask is adjusted.
+        end
         rawTempThresSignals = synsignal'; % For Raw Synapse Traces.
         
         
@@ -1921,7 +1923,7 @@ end
            disp(dir([dirname 'output\SynapseDetails\' ffname '*.*']));
            disp(dir([dirname 'output\' ffname '*.*']));
            disp([dirname analysisListName(1:end-4) '\output\SynapseDetails\']);
-           disp('press anu key to try again');
+           disp('press any key to try again');
            pause()
            movefile([dirname 'output\' ffname '*.*'],[dirname analysisListName(1:end-4) '\output']);
            movefile([dirname 'output\SynapseDetails\' ffname '*.*'],[dirname analysisListName(1:end-4) '\output\SynapseDetails\']);
@@ -2019,6 +2021,8 @@ end
             % Invalidate:
             extractSignals(); 
             exportSynapseSignals();
+            exportMask('_mask.png'); % Mask after temporal Thresholding, =default to (reuse)
+            
             subplot(4,4,16);
             hold off;
             plot(0,0);

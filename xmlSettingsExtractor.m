@@ -152,8 +152,8 @@ else
         writeSVD=str2num((aa(rr(1)+ss(1)+4:rr(1)+ss(1)+ss2(1)-2)));
         
     else
-        disp('Did not find Write SVD, writeSVD set to 0. ')
-        writeSVD = 0;
+        disp('Did not find Write SVD, writeSVD set to 1. ')
+        writeSVD = 1;
     end
     %%  skipMovie
    rr = strfind(aa,'<Name>Skip Movie</Name>');
