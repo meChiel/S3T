@@ -40,8 +40,9 @@ ims=natsort(pngFiles);
 clear a;
 for ii=1:length(ims)
     %[a(:,:,i), mapp(:,:,i)]=imread([inputDir  ims(i).name]);
-    [sx, sy, sz]= size(imread([inputDir  ims(ii).name]));
-    [a(1:sx,1:sy,1:sz,ii)]=imread([inputDir  ims(ii).name]);
+    tempImage=imread([inputDir  ims(ii).name]);
+    [sx, sy, sz]= size(tempImage);
+    [a(1:sx,1:sy,1:sz,ii)]=tempImage;
 end
 %
 [s1,s2, s3, s4]=size(a);

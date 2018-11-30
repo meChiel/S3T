@@ -50,7 +50,7 @@ global M15Data M15pathname M15fname M15dirname
 global M10Data M10pathname M10fname M10dirname                             % 10min. after drug addition
 global M20Data M20pathname M20fname M20dirname                             % 20min. after drug addition
 global M30Data M30pathname M30fname M30dirname                             % 20min. after drug addition
-global ASR mASR miASR stdSR mstdSR swASR stdswASR AR mAR miAR AR1 rAR 
+global ASR mASR miASR stdSR mstdSR swASR stdswASR AR mAR miAR AR1 rAR RSTmean RSTABSmean 
 global defaultDir
 global sliderBtn synSliderBtn
 global bgc fullVersion;
@@ -1595,8 +1595,8 @@ end
         
         
        
-        t =array2table([mASR mstdSR miASR  mswASR miswASR fps UpHalfTime DownHalfTime tau1 amp nSynapses AUC nAUC tau1PA ampPA t0PA error ],...
-            'VariableNames',{'peakAmp', 'mstdSR', 'miASR', 'sizeWeightedMASR', 'swmiASR', 'fps', 'UpHalfTime', 'downHalfTime', 'tau1', 'ampSS', 'nSynapses','AUC','nAUC' , 'tau1PA', 'ampPA', 't0PA' ,'error'});
+        t =array2table([mASR mstdSR miASR  mswASR miswASR fps UpHalfTime DownHalfTime tau1 amp nSynapses AUC nAUC tau1PA ampPA t0PA RSTmean RSTABSmean error ],...
+            'VariableNames',{'peakAmp', 'mstdSR', 'miASR', 'sizeWeightedMASR', 'swmiASR', 'fps', 'UpHalfTime', 'downHalfTime', 'tau1', 'ampSS', 'nSynapses','AUC','nAUC' , 'tau1PA', 'ampPA', 't0PA' ,'RSTmean','RSTABSmean','error'});
         %t =array2table([mASR miASR fps UpHalfTime DownHalfTime expEqUp expEqDown error ],'VariableNAmes',{'mASR', 'miASR', 'fps', 'UpHalfTime', 'downHalfTime', 'expEqy0', 'upA1', 'upx0', 'upT1', 'expEqdwny0', 'dwnA1', 'dwnx0', 'dwnT1','error'});
         %t =array2table([mASR miASR fps UpHalfTime DownHalfTime expEqUp expEqDown ],'VariableNAmes',{'mASR', 'miASR', 'fps', 'UpHalfTime', 'downHalfTime', 'expEqy0', 'upA1', 'upx0', 'upT1', 'upA2', 'upT2', 'expEqdwny0', 'dwnA1', 'dwnx0', 'dwnT1', 'dwnA2', 'dwnT2'});
         if ~isdir([dirname 'output\']);
@@ -2001,8 +2001,9 @@ end
         
         % GetSignal
         synRegio = maskRegio;
+        RSTmean = mean(data(:)); %Raw spatioTemporalMean
         subtractBlackLevel();          % data = f(data)
-        
+        RSTABSmean = mean(data(:)); %Raw spatioTemporalMeanAfterBlackLevelsubtraction.
         if (length(synRegio) ~=0)
             extractSignals();           % synsignal = f(synRegio,data)
             signalPlot();               % f(dff(synsignal'))
@@ -2043,8 +2044,8 @@ end
       
         mASR=0; miASR=0; mstdSR=0; fps=fps; UpHalfTime=0; DownHalfTime=0; expEqUp=0; expEqDown=0; tau1 = 0; ampSS=0; nSynapses=0; error=1;AUC=0;nAUC=0;
         mswASR=0; miswASR=0;amp=0;tau1PA=0; ampPA=0; t0PA=0;
-        t =array2table([mASR mstdSR miASR  mswASR miswASR fps UpHalfTime DownHalfTime tau1 amp nSynapses AUC nAUC tau1PA ampPA t0PA error ],...
-            'VariableNames',{'peakAmp', 'mstdSR', 'miASR', 'sizeWeightedMASR', 'swmiASR', 'fps', 'UpHalfTime', 'downHalfTime', 'tau1', 'ampSS', 'nSynapses','AUC','nAUC' , 'tau1PA', 'ampPA', 't0PA' ,'error'});
+        t =array2table([mASR mstdSR miASR  mswASR miswASR fps UpHalfTime DownHalfTime tau1 amp nSynapses AUC nAUC tau1PA ampPA t0PA RSTmean RSTABSmean error ],...
+            'VariableNames',{'peakAmp', 'mstdSR', 'miASR', 'sizeWeightedMASR', 'swmiASR', 'fps', 'UpHalfTime', 'downHalfTime', 'tau1', 'ampSS', 'nSynapses','AUC','nAUC' , 'tau1PA', 'ampPA', 't0PA' , 'RSTmean', 'RSTABSmean', 'error'});
         
         %t =array2table([mASR miASR fps UpHalfTime DownHalfTime expEqUp expEqDown error],'VariableNAmes',{'mASR', 'miASR', 'fps', 'UpHalfTime', 'downHalfTime', 'expEqy0', 'upA1', 'upx0', 'upT1', 'expEqdwny0', 'dwnA1', 'dwnx0', 'dwnT1', 'invalid'});
         %t =array2table([mASR miASR fps UpHalfTime DownHalfTime expEqUp expEqDown ],'VariableNAmes',{'mASR', 'miASR', 'fps', 'UpHalfTime', 'downHalfTime', 'expEqy0', 'upA1', 'upx0', 'upT1', 'upA2', 'upT2', 'expEqdwny0', 'dwnA1', 'dwnx0', 'dwnT1', 'dwnA2', 'dwnT2'});

@@ -46,6 +46,43 @@ currentFile = 1;
 fittt=0;
 histtt=0;
 exporttt=0;
+logX=0;
+logY=0;
+
+
+logYChk = uicontrol('Style', 'checkbox', 'String','Log Y',...
+    'Position', [10 320 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
+    'CallBack',@logYToggle);
+
+
+
+logXChk = uicontrol('Style', 'checkbox', 'String','Log X',...
+    'Position', [10 300 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
+    'CallBack',@logXToggle);
+
+
+    function logXToggle(e,d,r)
+        logX=logXChk.Value;
+        if logX==1
+            dd=gca();
+            set(dd,'XSCale','Log');
+        else
+            dd=gca();
+            set(dd,'XSCale','Linear');
+        end
+    end
+
+  function logYToggle(e,d,r)
+        logY=logYChk.Value;
+        if logY==1
+            dd=gca();
+            set(dd,'YSCale','Log');
+        else
+            dd=gca();
+            set(dd,'YSCale','Linear');
+        end
+    end
+
 
 global data;
 global stimLstX stimLstY
@@ -475,6 +512,12 @@ global stimLstX stimLstY
         end
         xlabel(OKname2text(xlabelText),'FontName','Helvetica','FontSize',18);
         ylabel(OKname2text(ylabelText),'FontName','Helvetica','FontSize',18);
+        if logX==1
+          set(ca,'XSCale','Log');
+        end
+        if logY==1
+          set(ca,'YSCale','Log');
+        end
     end
 
     function fitt(f,e,g)
