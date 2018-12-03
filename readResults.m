@@ -90,9 +90,27 @@ if (well96Data)
         ylabel('peakAmp');
     end
     
-    WellNbTable = array2table(exp2wellNr(experiments+1-firstExpNb)','VariableNames',{'WellNumber'});
+    WellNbTable = array2table(exp2wellNr(experiments+1-firstExpNb)','VariableNames',{'AndorWellNumber'});
     %t=[t, NESTable, WellNbTable];
     t=[t, WellNbTable];
+    
+      plate.plateValues = reshape(1:96,12,8)';
+        plate.expwells = exp2wellNr;
+        
+        logicalWellIndex = getPlateValue(plate,experiments);
+        logicalWellIndexTable = array2table(logicalWellIndex','VariableNames',{'logicalWellIndex'});
+      t=[t, logicalWellIndexTable];
+      
+       RowIndex = floor(logicalWellIndex/12)+1;
+        RowIndexTable = array2table(RowIndex','VariableNames',{'PRow'}); % Plate Row
+      t=[t, RowIndexTable];
+      
+      
+       colIndex = mod(logicalWellIndex-1,12)+1;
+        colIndexTable = array2table(colIndex','VariableNames',{'PCol'}); % Plate Collumn
+      t=[t, colIndexTable ];
+      
+    
     fileNbTable = array2table(experiments','VariableNames',{'FileNumber'});
     %t=[t, NESTable, WellNbTable];
     t=[t, fileNbTable];

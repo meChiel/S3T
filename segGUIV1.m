@@ -2024,6 +2024,18 @@ end
             exportSynapseSignals();
             exportMask('_mask.png'); % Mask after temporal Thresholding, =default to (reuse)
             
+       synRegio(1).PixelIdxList=nan;
+       synRegio(1).PixelList=[nan,nan];
+       
+            
+            doPostProcessing(); % Partial Processing
+            % GetAmplitude
+            analyseSingSynResponse();
+            avgSynapseResponse(); % AR=f(synsignal)
+            doMultiResponseto1(); % AR=mr(AR), ASR=mr(ASR)   % Temporal Averaging          
+            analyseAvgResponse();
+       
+            
             subplot(4,4,16);
             hold off;
             plot(0,0);
