@@ -150,7 +150,7 @@ updatePlot();
         if pngOn==0
             pngOn=1;
             imageView();
-            isStarted=0;
+            isStarted=0; 
             updatePlot();
         else
             pngOn=0;
