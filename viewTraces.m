@@ -222,7 +222,7 @@ updatePlot();
         statusDisp.String='updating...';
         drawnow();
      if wellViewOn
-         [d, di]=find(logicalPosition==wellViewNumber);
+         [di]=find(logicalPosition==wellViewNumber);
          fts= di;
          spp = subplot(8,12,1:96);
          title(['Well: ' num2str(wellViewNumber) num2str(di) ' No Data' ]);
@@ -251,7 +251,18 @@ updatePlot();
                 selImType = imageTypes(stimLstY.Value);
                 pngFiles=dir([inputDir '\..\' '*' selImType{1} '.png']);
                 ims=natsort(pngFiles);
-                tempImage = imread([inputDir '\..\' ims(ii).name]);
+                %tempImage = imread([inputDir '\..\' ims(ii).name]);
+                try 
+                tempImage = imread([inputDir '\..\' dcs(ii).name(1:end-11) '.tif_' selImType{1} '.png']);
+                catch
+                    try
+                        tempImage = imread([inputDir '\..\' dcs(ii).name(1:end-11) '_' selImType{1} '.png']);
+                    catch
+                        warning('Picture not found');
+                        tempImage=0;
+                    end
+                end
+                %title(ims(ii).name);pause
                 if (~exist('ImA','var')) || (isStarted==0)                    
                     ImA(ii) = imagesc(tempImage);
                 else % Fast image update.
@@ -280,7 +291,11 @@ updatePlot();
             end
             if txtOn
                 if isStarted ==0
-                titleTxt=(dcs(ii).name(end-15:end-11));
+                    try
+                        titleTxt=(dcs(ii).name(end-15:end-11));
+                    catch
+                        titleTxt='no data';
+                    end
                 if logicalPosition(ii)<13
                     titleTxt = [num2str(logicalPosition(ii)) ':' titleTxt];
                 end

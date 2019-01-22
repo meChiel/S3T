@@ -1,4 +1,16 @@
 function val = getPlateValue(plate,experiments )
+% This function converts a fileNumber(s) to a plate quantity(s).
+% Given the plate layout: quantities and the fileNb2wellNb table.
+%
+% Plate defines: 
+% - the platevalues: The quantity of compound
+% - expWells: is a vector defining the wellNumbers sequence used to
+% generate the filenames sequenceNumber.
+%
+% Experiment: Is the filename number.
+%
+
+
         global plateIndex;
         global   firstExpNb;
         if 0
@@ -6,6 +18,7 @@ function val = getPlateValue(plate,experiments )
         %plateIndex =[1:96]; 
         warning ('plateindex hacked')
         else
+            % Typical Andor plate indexing.
         plateIndex = [  ...
             85	86	87	88	89	90	91	92	93	94	95	96;
             73	74	75	76	77	78	79	80	81	82	83	84;

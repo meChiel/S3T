@@ -46,6 +46,43 @@ currentFile = 1;
 fittt=0;
 histtt=0;
 exporttt=0;
+logX=0;
+logY=0;
+
+
+logYChk = uicontrol('Style', 'checkbox', 'String','Log Y',...
+    'Position', [10 320 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
+    'CallBack',@logYToggle);
+
+
+
+logXChk = uicontrol('Style', 'checkbox', 'String','Log X',...
+    'Position', [10 300 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
+    'CallBack',@logXToggle);
+
+
+    function logXToggle(e,d,r)
+        logX=logXChk.Value;
+        if logX==1
+            dd=gca();
+            set(dd,'XSCale','Log');
+        else
+            dd=gca();
+            set(dd,'XSCale','Linear');
+        end
+    end
+
+  function logYToggle(e,d,r)
+        logY=logYChk.Value;
+        if logY==1
+            dd=gca();
+            set(dd,'YSCale','Log');
+        else
+            dd=gca();
+            set(dd,'YSCale','Linear');
+        end
+    end
+
 
 global data;
 global stimLstX stimLstY
@@ -141,13 +178,12 @@ global stimLstX stimLstY
         LineStyle = LineStyleBtn.String{LineStyleBtn.Value};
         updatePlot();
     end
-    function seeWell(fi,synNbr)
+    function seeWell(tempFn,synNbr)
         subplot(4,4,1)
-        dd=plateFilename{fi};
-        dd=strrep(dd,'_PPsynapses','_synapses');
-        dd2 = ['..\..\' dd(1:end-13) '.tif_mask.png'];
+        tempFn=strrep(tempFn,'_PPsynapses','_synapses');
+        dd2 = ['..\..\' tempFn(1:end-13) '.tif_mask.png'];
         if ~exist([plateDir dd2],'file')
-            dd2 = ['..\' dd(1:end-13) '.tif_mask.png'];
+            dd2 = ['..\' tempFn(1:end-13) '.tif_mask.png'];
         end
      
         mask = imread([plateDir dd2]);
@@ -161,15 +197,15 @@ global stimLstX stimLstY
         axis('off');axis ('equal');colormap('hot');
         
         subplot(4,4,[9,13]);  
-         dd2 = ['..\..\' dd(1:end-13) '.tif_avg.png'];
+         dd2 = ['..\..\' tempFn(1:end-13) '.tif_avg.png'];
         if ~exist([plateDir dd2],'file')
-            dd2 = ['..\' dd(1:end-13) '.tif_avg.png'];
+            dd2 = ['..\' tempFn(1:end-13) '.tif_avg.png'];
         end
         if ~exist([plateDir dd2],'file')
-            dd2 = ['..\..\output\avg\' dd(1:end-13) '.tif_avg.png'];
+            dd2 = ['..\..\output\avg\' tempFn(1:end-13) '.tif_avg.png'];
         end
         if ~exist([plateDir dd2],'file')
-            dd2 = ['..\..\..\output\avg\' dd(1:end-13) '.tif_avg.png'];
+            dd2 = ['..\..\..\output\avg\' tempFn(1:end-13) '.tif_avg.png'];
         end
 
         wellAvg = imread([plateDir dd2]);
@@ -215,7 +251,11 @@ global stimLstX stimLstY
                 currentDataX =data{i}.(stimLstX.Value);
             end
             currentDataY =data{i}.(stimLstY.Value);
+            try 
             [m(i), mi(i)]=min(sum([(x-currentDataX)/dx (y-currentDataY)/dy].^2,2));
+            catch
+                m(i) = inf; mi(i)=inf;
+            end
         end
         [~, fi]=min(m); %fi: file index
         
@@ -234,12 +274,23 @@ global stimLstX stimLstY
             %[responseFile, responsePath]=uigetfile('*.csv');
             %responses = csvread([responsePath responseFile]);
             
-            tempFilename=plateFilename{fi};
+            tempPlateFilename = plateFilename{fi};
             %dd = ['../' dd(1:end-3) 'csv'];
-            tempFilename=strrep(tempFilename,'_PPsynapses','_synapses');
+          
+         
+if strcmp(tempPlateFilename,'AllSynapses.txt')
+         tempFilenb=data{fi}.FileNumber(tmi);
+         analysisList= dir([plateDir 'SynapseDetails\*_PPsynapses.*']);
+         fileNumbers=extractNumber({analysisList.name});
+         [a]=find(tempFilenb==fileNumbers);
+         if length(a)~=1
+             error('more files with same id number, please rename files to _e0001 numbering system');
+         end
+       tempPlateFilename=['SynapseDetails\' analysisList(a).name];
+end
+            tempFilename=strrep(tempPlateFilename,'_PPsynapses','_synapses');
             tempFilename=strrep(tempFilename,'_synapses','_synTraces');
             tempFilename = [ tempFilename(1:end-3) 'csv'];
-
             try
                 responses = table2array(readtable([plateDir tempFilename]));
             catch
@@ -259,6 +310,21 @@ global stimLstX stimLstY
             %wellNbr = data{fi}.FileNumber(tmi);
             detailFilename =plateFilename{fi};
             dd=plateFilename{fi};
+            
+                     
+if strcmp(dd,'AllWells.txt')
+         tempFilenb=data{fi}.FileNumber(tmi);
+         analysisList= dir([plateDir '*_Analysis.*']);
+         fileNumbers=extractNumber({analysisList.name});
+         [a]=find(tempFilenb==fileNumbers);
+         if length(a)~=1
+             error('more files with same id number, please rename files to _e0001 numbering system');
+         end
+       tempPlateFilename=[analysisList(a).name];
+       dd=tempPlateFilename;
+end
+            
+            
             dd = [dd(1:end-12) 'synTraces.csv'];
             try
                 responses = table2array(readtable([plateDir 'synapseDetails\'  dd]));
@@ -289,7 +355,15 @@ global stimLstX stimLstY
         xlabel('time'); ylabel('\Delta f/f')
       
             
-        seeWell(fi,syNbr);
+        if (strcmp(plateFilename{fi},'AllSynapses.txt'))
+            seeWell(tempPlateFilename(16:end),syNbr);
+        else
+            if (strcmp(plateFilename{fi},'AllWells.txt'))
+                seeWell(tempPlateFilename,syNbr);
+            else
+                seeWell(plateFilename{fi},syNbr);
+            end
+        end
         updatePlot();
         end
         set(seeTraceBtn, 'Backgroundcolor',bgc);
@@ -325,6 +399,9 @@ global stimLstX stimLstY
         end
         end
         if strcmp(plateFilename{1}(end-11:end),'AllWells.txt')
+            currentLevel='plateLevel';
+        end
+        if strcmp(plateFilename{1}(1:end),'AllSynapses.txt')
             currentLevel='plateLevel';
         end
         data=[];
@@ -408,7 +485,7 @@ global stimLstX stimLstY
             disp([num2str(sum(selectionPoints)) ' points removed']);
             data{i}(selectionPoints,:)=[];
             if isempty(data{i})
-                data{i}=[];
+            %    data{i}=[];
             end
         end
         updatePlot();
@@ -424,7 +501,7 @@ global stimLstX stimLstY
             else
                 %x{i}(:)=i + rand(length(data{i}.(stimLstY.Value)),1)*0.5;%1:size(plateFilename,2);
                 x{i}(:)=i + pseudoRandom(length(data{i}.(stimLstY.Value)));%1:size(plateFilename,2);
-                xlabelText = 'File Name';
+                xlabelText = 'File Name'; 
             end
             y{i}(:)=data{i}.(stimLstY.Value);
             barplot=0;
@@ -475,6 +552,12 @@ global stimLstX stimLstY
         end
         xlabel(OKname2text(xlabelText),'FontName','Helvetica','FontSize',18);
         ylabel(OKname2text(ylabelText),'FontName','Helvetica','FontSize',18);
+        if logX==1
+          set(ca,'XSCale','Log');
+        end
+        if logY==1
+          set(ca,'YSCale','Log');
+        end
     end
 
     function fitt(f,e,g)

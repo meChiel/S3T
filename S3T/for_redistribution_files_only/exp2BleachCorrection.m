@@ -1,4 +1,9 @@
 function [bcresponse, dff, BC, mstart]=exp2BleachCorrection(signal)
+% bcresponse: Returns Bleach corrected Response 
+% dff: delta f / f
+% BC: bleach correction
+% mstart: the samples used at the start of the exp fit.
+
 avgSampleSize=30;
 aSS = avgSampleSize;
 LM=size(signal,2);
@@ -8,7 +13,10 @@ LM=size(signal,2);
 mmend= mean(signal(:,end-aSS:end),2);
 
 x=[(1:aSS*1) (LM-(aSS*1)):LM];
-
+if isempty(signal)
+    signal=nan*ones(1,size(signal,2));
+    a=nan; b=nan; c=nan; p=nan; q=nan;
+else
 for i=1:size(signal,1)
     mstart= signal(i,1:aSS*1);
     
@@ -17,6 +25,7 @@ for i=1:size(signal,1)
     y=[mstart mend];
 
 [a(i),b(i),c(i),p(i),q(i)]=exp2fit(x,y);
+end
 end
 BC = real(a') + real(b)' .* exp(real(p)'* (1:LM))+real(c)'.*exp(real(q)'*(1:LM)); % using Matlab * expansion
 %BC=(mend(:)-mstart(:))*(1:LM)/LM; % Linear Bleach Correction.

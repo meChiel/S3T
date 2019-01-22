@@ -1,6 +1,10 @@
 function [firstPart, number, lastPart]= disassembleName(filename)
+% Decomposes analysis filename: NS_520181102152223_e0002_analysis.txt
+% into firstPart: NS_520181102152223_ 
+% number: 2
+% lastPart: _analysis.txt
 % Extract numbers:
-underscoreIndex=strfind(filename,'_');
+underscoreIndex=strfind(filename,'_'); % find all '_'
 % Use number between last 2 '_'
 u1=underscoreIndex(end-1)+1;
 u2=underscoreIndex(end)-1;

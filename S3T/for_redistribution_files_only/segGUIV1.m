@@ -1,6 +1,25 @@
 function segGUIV1(myDir)
 global Version
-Version = 'V0.73-Rel';
+Version = 'V0.81-Rel';
+%% Much better dataviewer
+% full export
+
+%% Feature requests:
+% AllSynapse file.
+% export % - explanation of the SVD components
+% Singular values?
+% Export specific collumns from export Table/csv.
+% Spontanious activity
+% Integrate plate view.
+% Go multi-plate view.
+% Allow other segmentation methods, e.g. std., correlation, clustering,
+% kalman, subtract avg first 10 frames. (Tsnee, Umap, cohonen maps, clustering, ...)
+% Fine tune mask segmentation: threshold, filters
+% Temporal filtering,	
+% - SVD components.
+% Log spatio- temporal threshold value in process file.
+% Check errors in filter-mechanism synapseDetails.
+%%
 disp(['S3T: Stimulated Synapse Segmentation Tool ' Version]);
 disp('------------------------------------------------------');
 try
@@ -50,7 +69,7 @@ global M15Data M15pathname M15fname M15dirname
 global M10Data M10pathname M10fname M10dirname                             % 10min. after drug addition
 global M20Data M20pathname M20fname M20dirname                             % 20min. after drug addition
 global M30Data M30pathname M30fname M30dirname                             % 20min. after drug addition
-global ASR mASR miASR stdSR mstdSR swASR stdswASR AR mAR miAR AR1 rAR 
+global ASR mASR miASR stdSR mstdSR swASR stdswASR AR mAR miAR AR1 rAR RSTmean RSTABSmean res
 global defaultDir
 global sliderBtn synSliderBtn
 global bgc fullVersion;
@@ -340,7 +359,8 @@ end
     function dispOptions(e,v,h)
         
         segmentCellBodiesChkButton = uicontrol('Style','checkbox','Value',0,...
-            'Position',[70 by(2)+2.5 100 15],'String','segment Cell Bodies');
+            'Position',[70 by(2)+2.5 100 15],'String','segment Cell Bodies',...
+            'Callback',@doSetCellBody);
         
 %         btn77 = uicontrol('Style', 'pushbutton', 'String', 'processDirs',...
 %             'Position', [160 by(5) 50 20],...
@@ -372,49 +392,31 @@ end
         fijimeBtn = uicontrol('Style', 'pushbutton', 'String', 'ImageJ',...
             'Position', [110 by(5) 50 20],...
             'Callback', @fijime);
-        
-        
-        
-        
-        
         thresholdBtn = uicontrol('Style', 'pushbutton', 'String', 'threshold',...
             'Position', [20 by(8) 50 20],...
             'Callback', @doThreshold);
         thresholdBtn = uicontrol('Style', 'pushbutton', 'String', '3sig',...
             'Position', [170 by(8) 50 20],...
             'Callback', @doThreeSigThreshold);
-        
-        
-        
         cleanBtn = uicontrol('Style', 'pushbutton', 'String', 'clean',...
             'Position', [70+50 by(8) 50 20],...
             'Backgroundcolor',bgc,...
             'Callback', @cleanBW);
-        
-        
         freqfilter2DBtn = uicontrol('Style', 'pushbutton', 'String', '2D freq filter',...
             'Position', [170+50 by(8) 50 20],...
             'Callback', @freqfilter2D);
-        
-        
         rmBkgrndBtn = uicontrol('Style', 'pushbutton', 'String', 'rmvBkGrnd!',...
             'Position', [20 by(9) 50 20],...
             'Callback', @rmvBkGrnd);
-        
-        
-        subtractBckgrndBtn = uicontrol('Style', 'pushbutton', 'String', 'rmvBkGrnd!',...
+        subtractBckgrndBtn = uicontrol('Style', 'pushbutton', 'String', 'Black!',...
             'Position', [70 by(9) 50 20],...
             'Callback', @subtractBlackLevel);
-        
-        
         topHatBtn = uicontrol('Style', 'pushbutton', 'String', 'Tophat',...
             'Position', [217 by(9) 50 20],...
             'Callback', @tophat);
-        
         thresholdBtn = uicontrol('Style', 'pushbutton', 'String', '2sig',...
             'Position', [170 by(9) 50 20],...
             'Callback', @doTwoSigThreshold);
-        
         detectIslandsBtn = uicontrol('Style', 'pushbutton', 'String', 'detect Islands',...
             'Position', [5 by(10) 50 20],...
             'Callback', @detectIslands);
@@ -616,7 +618,11 @@ end
         goDeep(@overviewGenerator,'\*signals.png',rootdir);
     end
     function doReadResults(s,e,h)
-        rootdir=uigetdir(defaultDir);
+        try
+            rootdir=uigetdir(defaultDir);
+        catch
+             rootdir=uigetdir();
+        end
         goDeep(@plateMetaDataConverter,'\barcode.txt',rootdir);
         pause(.5);
         goDeep(@readResults,'\*analysis.txt',rootdir);
@@ -670,11 +676,19 @@ end
         NOStxt2.String = num2str(NOS2);
     end
 
+    function doSetCellBody(h,g,f)
+        setCellBody(segmentCellBodiesChkButton.Value);
+    end
 
+    function setCellBody(a)
+        segmentCellBodies=a;
+    end
 
     function doSetFPS(s,e,h)
      setFPS(str2double(fpsTxt.String));
     end
+
+
     function setFPS(fps2)
         fps=fps2;
         dt=1/fps;
@@ -710,9 +724,13 @@ end
         imagesc(synProb);
     end
     function tophat(source,event,handles)
-        se = strel('disk',1);
+        if 0
+        laplaceFilter();
+        else
+        se = strel('disk',5);
         %synProb = imadjust(imtophat(synProb ,se));
         synProb = imsharpen(synProb,'Radius',16,'Amount',40);% ,'roberts');
+        end
         imagesc(synProb);
         pause(.5);
         
@@ -720,9 +738,9 @@ end
     function laplaceFilter(s,e,h)
         sigma=.1;
         alpha=4;
-        B =locallapfilt(synProb,sigma,alpha);
-        psnr_denoised = psnr(B, synProb);
-        synProb =B;
+        B =locallapfilt(int16(synProb),sigma,alpha,'NumIntensityLevels', 100);
+        psnr_denoised = psnr(B, int16(synProb))
+        synProb =double(B);
     end
     function go(source,event,handles)
         if exist(dirname)
@@ -805,7 +823,9 @@ end
         
         [dfftempThresSignals, thresKeepIdx] = tempThreshold(dff(synsignal')); % For synapse Traces
         synsignal = synsignal(:,thresKeepIdx); % Here synsignal is Thresholded.
-        synRegio=synRegio(thresKeepIdx); % Here the mask is adjusted.
+        if   ~isempty(synRegio) 
+            synRegio=synRegio(thresKeepIdx); % Here the mask is adjusted.
+        end
         rawTempThresSignals = synsignal'; % For Raw Synapse Traces.
         
         
@@ -839,7 +859,8 @@ end
             Nsigma = 2;
         end
         if tempSig3rb.Value
-            Nsigma = 3;
+            Nsigma = 6;
+            disp('sigma hacked to 6')
         end
        if size(a,2)<10
            warning('not enough samples to estimate temporal sigma.')
@@ -864,7 +885,7 @@ end
         
         if tempSigNoneRB.Value
         % Do nothing, just move a to b
-        th=inf;
+        th=-inf;
         end
         
         disp([num2str(numberOfSynapsesDeleted) ' Synapses removed due to not reaching temporal threshold: ' num2str(th)]);
@@ -975,7 +996,20 @@ end
             EVNtxt= (inputdlg('Which Eigen Vector to use','EigenVector',1,{'2','1'}));
             EVN=str2num(EVNtxt{1});
         end
-        synProb=reshape(U(:,EVN),[wy,wx]);
+        
+        res = zeros(16,1);
+        tic
+        for evnI = 1:16
+          res(evnI) = norm(reshape(data-reshape(U(:,1:evnI)*S(1:evnI,1:evnI)*V(:,(1:evnI))',size(data)),1, []))/norm(data(:))*100;
+        end
+        toc
+        rdata=data;
+        for evnI = 1:16
+            rdata = rdata - reshape(U(:,evnI)*S(evnI,evnI)*V(:,(evnI))',size(data)); 
+            res(evnI) = norm(reshape(rdata,1,[])) /norm(data(:))*100;
+        end
+        
+        synProb = reshape(U(:,EVN),[wy,wx]);
         % EVN=1; %Eigen vector number
        % Thresholding is done later.
         % synapseBW = reshape(((U(:,EVN))>(std(U(:,EVN))*3)),wy,wx); % Assume first frame, the synapses do no peak. V(1,2) gives direction of 2nd U(:,2).
@@ -1052,14 +1086,13 @@ end
     end
     function cleanBW(source,event,handles)
         if segmentCellBodies
-        
-        synapseBW = imerode(synapseBW,strel('disk',8));
-        synapseBW = imdilate(synapseBW,strel('disk',8));
-        warning('erode size hacked to 8')
+            synapseBW = imerode(synapseBW,strel('disk',6));
+            synapseBW = imdilate(synapseBW,strel('disk',6));
+            warning('erode size hacked to 8')
         else
-        disp('close sz 2 changed to 1 in cleanBW')
-        synapseBW = imerode(synapseBW,strel('disk',1));
-        synapseBW = imdilate(synapseBW,strel('disk',1));
+            disp('close sz 2 changed to 1 in cleanBW')
+            synapseBW = imerode(synapseBW,strel('disk',1));
+            synapseBW = imdilate(synapseBW,strel('disk',1));
         end
         imagesc(synapseBW);
         pause(.5);
@@ -1224,9 +1257,6 @@ end
             'Callback', @processExperiment);
         
         
-        
-        
-        
         %B=ordfilt2(reshape(U(:,1),512,512),9,ones(3,3)); % local max filter
         %imagesc(B)
         %find()%waar maximum zit.
@@ -1280,8 +1310,8 @@ end
             [TSpAPA , TSpAPAi] = max(mdd); %Temporal spike Averaged Pixel Amplitude
            
                
-     disp('AR1 disabled in AVGSynapseResponse ;') ; AR1=AR*0;%      AR1 = mean(dff(reshape(data,wx*wy,[]),1)); % Average over all pixels, average Response
-           rAR = mean(reshape(data,wx*wy,[]),1); % Average over all pixels, average Response
+            disp('AR1 disabled in AVGSynapseResponse ;') ; AR1=AR*0;%      AR1 = mean(dff(reshape(data,wx*wy,[]),1)); % Average over all pixels, average Response
+            rAR = mean(reshape(data,wx*wy,[]),1); % Average over all pixels, average Response
            
             stdSR = std(dff(synsignal'),1); %stdSR for all points in time
             mstdSR = max(stdSR);
@@ -1290,20 +1320,20 @@ end
             for i=1:length(synRegio)
                 synapseSize(i)=length(synRegio(i).PixelList);
             end
-          swASR = sum(repmat(synapseSize',1,size(synsignal,1)) .*  dff(synsignal'),1)/sum(synapseSize); % size weighted average over all synapses
+            
+            swASR = sum(repmat(synapseSize',1,size(synsignal,1)) .*  dff(synsignal'),1)/sum(synapseSize); % size weighted average over all synapses
       
             
         else
-            ASR=zeros(1,wt);
-            AR=zeros(1,wt);
-            stdSR = zeros(1,wt);
+            ASR=zeros(1,size(rAR,2));
+            AR=zeros(1,size(rAR,2));
+            stdSR = zeros(1,size(rAR,2));
             mstdSR = 0;
             invalidate();
         end
-        tvec=(dt*(1:size(ASR,2))');
-        r=[tvec,ASR',AR',swASR',rAR',AR1'];
-        t=array2table(r,'VariableNames',{'time','SynapseAverage','PixelAverage','SWSynapseAverage','rawAverageResponse','AverageResponse1'});
-        
+        tvec = (dt*(1:size(ASR,2))');
+        r = [tvec,ASR',AR',swASR',rAR',AR1'];
+        t = array2table(r,'VariableNames',{'time','SynapseAverage','PixelAverage','SWSynapseAverage','rawAverageResponse','AverageResponse1'});
         writetable(t,[dirname 'output\' fname(1:end-4) '_traces.csv']);
     end
     function analyseSingSynResponse(s,e,v)
@@ -1313,9 +1343,20 @@ end
     % Initialise output variables for when there are no synapses found.
     mSigA=nan; miSigA=nan; synapseSize=nan; noiseSTD=nan; aboveThreshold=nan; UpHalfTime=nan;    DownHalfTime=nan;    tau1=nan;
     amp=nan;      error=nan; xCentPos=nan; yCentPos=nan; synapseNbr=nan; bbox=[nan,nan,nan,nan]; AUC=nan; nAUC=nan;
-    
+    rawBaseFluor=nan; rawMaxFluor=nan; rawDFluor=nan; rawDFF=nan;
     dffsynsignal=dff(synsignal')';
         for i=1:size(dffsynsignal,2)
+              if isempty(synsignal)
+            	rawFoldedData=nan*ones(size(dffsynsignal)); %When no synapses
+            else
+                rawFoldedData=mean(foldData(synsignal(:,i)),2);
+            end
+            
+            rawBaseFluor(i) = mean(rawFoldedData(1:30));
+            rawMaxFluor(i)= max(rawFoldedData);
+            rawDFluor(i) = rawMaxFluor(i)-rawBaseFluor(i);
+            rawDFF(i) = rawDFluor(i)/rawBaseFluor(i);
+            
             signal = dffsynsignal(:,i);
             synapseNbr(i) = i;
             
@@ -1382,8 +1423,8 @@ end
         UpHalfTime=tau1*0; DownHalfTime=tau1*0;
         error=tau1*0;
         
-        t =     array2table([mSigA'     miSigA' synapseSize' noiseSTD' aboveThreshold' UpHalfTime'    DownHalfTime'    tau1'    amp'      error', xCentPos', yCentPos', synapseNbr', bbox(:,2), bbox(:,1), bbox(:,4), bbox(:,3), AUC', nAUC'],...
-            'VariableNames',{'maxSyn', 'miSyn', 'synapseSize', 'noiseSTD', 'aboveThreshold', 'UpHalfTime', 'downHalfTime', 'tau1', 'ampSS', 'error','xCentPos','yCentPos', 'synapseNbr', 'bboxUx','bboxUy','bboxDx','bboxDy','AUC','nAUC'});
+        t =     array2table([mSigA'     miSigA' synapseSize' noiseSTD' aboveThreshold' UpHalfTime'    DownHalfTime'    tau1'    amp'      error', xCentPos', yCentPos', synapseNbr', bbox(:,2), bbox(:,1), bbox(:,4), bbox(:,3), AUC', nAUC', rawBaseFluor', rawMaxFluor', rawDFluor', rawDFF'],...
+            'VariableNames',{'maxSyn', 'miSyn', 'synapseSize', 'noiseSTD', 'aboveThreshold', 'UpHalfTime', 'downHalfTime', 'tau1', 'ampSS', 'error','xCentPos','yCentPos', 'synapseNbr', 'bboxUx','bboxUy','bboxDx','bboxDy','AUC','nAUC', 'rawBaseFluor', 'rawMaxFluor', 'rawDFluor', 'rawDFF'});
         
         if(~isdir ([dirname 'output\']))
             mkdir ([dirname 'output\']);
@@ -1593,8 +1634,8 @@ end
         
         
        
-        t =array2table([mASR mstdSR miASR  mswASR miswASR fps UpHalfTime DownHalfTime tau1 amp nSynapses AUC nAUC tau1PA ampPA t0PA error ],...
-            'VariableNames',{'peakAmp', 'mstdSR', 'miASR', 'sizeWeightedMASR', 'swmiASR', 'fps', 'UpHalfTime', 'downHalfTime', 'tau1', 'ampSS', 'nSynapses','AUC','nAUC' , 'tau1PA', 'ampPA', 't0PA' ,'error'});
+        t =array2table([mASR mstdSR miASR  mswASR miswASR fps UpHalfTime DownHalfTime tau1 amp nSynapses AUC nAUC tau1PA ampPA t0PA RSTmean RSTABSmean error ],...
+            'VariableNames',{'peakAmp', 'mstdSR', 'miASR', 'sizeWeightedMASR', 'swmiASR', 'fps', 'UpHalfTime', 'downHalfTime', 'tau1', 'ampSS', 'nSynapses','AUC','nAUC' , 'tau1PA', 'ampPA', 't0PA' ,'RSTmean','RSTABSmean','error'});
         %t =array2table([mASR miASR fps UpHalfTime DownHalfTime expEqUp expEqDown error ],'VariableNAmes',{'mASR', 'miASR', 'fps', 'UpHalfTime', 'downHalfTime', 'expEqy0', 'upA1', 'upx0', 'upT1', 'expEqdwny0', 'dwnA1', 'dwnx0', 'dwnT1','error'});
         %t =array2table([mASR miASR fps UpHalfTime DownHalfTime expEqUp expEqDown ],'VariableNAmes',{'mASR', 'miASR', 'fps', 'UpHalfTime', 'downHalfTime', 'expEqy0', 'upA1', 'upx0', 'upT1', 'upA2', 'upT2', 'expEqdwny0', 'dwnA1', 'dwnx0', 'dwnT1', 'dwnA2', 'dwnT2'});
         if ~isdir([dirname 'output\']);
@@ -1747,7 +1788,12 @@ end
         end
     end
     function doProcessDir(s,e,h)
-        [dataDirname] = uigetdir(defaultDir,'Select dir:');
+        try
+            [dataDirname] = uigetdir(defaultDir,'Select dir:');
+        catch
+            %For when defaultDir is cleared
+            [dataDirname] = uigetdir([],'Select dir:');            
+        end
         processDirAndSubDirs(dataDirname);
     end
 
@@ -1921,7 +1967,7 @@ end
            disp(dir([dirname 'output\SynapseDetails\' ffname '*.*']));
            disp(dir([dirname 'output\' ffname '*.*']));
            disp([dirname analysisListName(1:end-4) '\output\SynapseDetails\']);
-           disp('press anu key to try again');
+           disp('press any key to try again');
            pause()
            movefile([dirname 'output\' ffname '*.*'],[dirname analysisListName(1:end-4) '\output']);
            movefile([dirname 'output\SynapseDetails\' ffname '*.*'],[dirname analysisListName(1:end-4) '\output\SynapseDetails\']);
@@ -1966,13 +2012,13 @@ end
               synRegio =  loadMask([pathname(1:end) '_mask.png']);
               setMask();
         else
-            if isfield(segmentCellBodiesChkButton,'Value')
-                segmentCellBodies=(segmentCellBodiesChkButton.Value==1);
-            else
-                segmentCellBodies=0; % Set default
-            end
-            if segmentCellBodies
+            if  segmentCellBodies
                 meanZ();
+                synProb = imsharpen(synProb,'Radius',16,'Amount',40);% ,'roberts');
+                setTvalue(mean(synProb(:))+1*std(synProb(:))); disp('sigma fixed to 1 sigma');
+                doThreshold(TValue);
+                cleanBW();
+     
                 %EVN=1; warning ('eigenvalue hacked 2->1');
                 warning('processMovie hacked for neuron body processing' )
             else
@@ -1999,8 +2045,9 @@ end
         
         % GetSignal
         synRegio = maskRegio;
+        RSTmean = mean(data(:)); %Raw spatioTemporalMean
         subtractBlackLevel();          % data = f(data)
-        
+        RSTABSmean = mean(data(:)); %Raw spatioTemporalMeanAfterBlackLevelsubtraction.
         if (length(synRegio) ~=0)
             extractSignals();           % synsignal = f(synRegio,data)
             signalPlot();               % f(dff(synsignal'))
@@ -2019,6 +2066,20 @@ end
             % Invalidate:
             extractSignals(); 
             exportSynapseSignals();
+            exportMask('_mask.png'); % Mask after temporal Thresholding, =default to (reuse)
+            
+       synRegio(1).PixelIdxList=nan;
+       synRegio(1).PixelList=[nan,nan];
+       
+            
+            doPostProcessing(); % Partial Processing
+            % GetAmplitude
+            analyseSingSynResponse();
+            avgSynapseResponse(); % AR=f(synsignal)
+            doMultiResponseto1(); % AR=mr(AR), ASR=mr(ASR)   % Temporal Averaging          
+            analyseAvgResponse();
+       
+            
             subplot(4,4,16);
             hold off;
             plot(0,0);
@@ -2039,8 +2100,8 @@ end
       
         mASR=0; miASR=0; mstdSR=0; fps=fps; UpHalfTime=0; DownHalfTime=0; expEqUp=0; expEqDown=0; tau1 = 0; ampSS=0; nSynapses=0; error=1;AUC=0;nAUC=0;
         mswASR=0; miswASR=0;amp=0;tau1PA=0; ampPA=0; t0PA=0;
-        t =array2table([mASR mstdSR miASR  mswASR miswASR fps UpHalfTime DownHalfTime tau1 amp nSynapses AUC nAUC tau1PA ampPA t0PA error ],...
-            'VariableNames',{'peakAmp', 'mstdSR', 'miASR', 'sizeWeightedMASR', 'swmiASR', 'fps', 'UpHalfTime', 'downHalfTime', 'tau1', 'ampSS', 'nSynapses','AUC','nAUC' , 'tau1PA', 'ampPA', 't0PA' ,'error'});
+        t =array2table([mASR mstdSR miASR  mswASR miswASR fps UpHalfTime DownHalfTime tau1 amp nSynapses AUC nAUC tau1PA ampPA t0PA RSTmean RSTABSmean error ],...
+            'VariableNames',{'peakAmp', 'mstdSR', 'miASR', 'sizeWeightedMASR', 'swmiASR', 'fps', 'UpHalfTime', 'downHalfTime', 'tau1', 'ampSS', 'nSynapses','AUC','nAUC' , 'tau1PA', 'ampPA', 't0PA' , 'RSTmean', 'RSTABSmean', 'error'});
         
         %t =array2table([mASR miASR fps UpHalfTime DownHalfTime expEqUp expEqDown error],'VariableNAmes',{'mASR', 'miASR', 'fps', 'UpHalfTime', 'downHalfTime', 'expEqy0', 'upA1', 'upx0', 'upT1', 'expEqdwny0', 'dwnA1', 'dwnx0', 'dwnT1', 'invalid'});
         %t =array2table([mASR miASR fps UpHalfTime DownHalfTime expEqUp expEqDown ],'VariableNAmes',{'mASR', 'miASR', 'fps', 'UpHalfTime', 'downHalfTime', 'expEqy0', 'upA1', 'upx0', 'upT1', 'upA2', 'upT2', 'expEqdwny0', 'dwnA1', 'dwnx0', 'dwnT1', 'dwnA2', 'dwnT2'});
@@ -2500,10 +2561,8 @@ end
         AR = multiResponseto1(AR);
         
     end
-    function meanData = multiResponseto1(data,exportPlot)
-        if nargin==1
-            exportPlot=1;
-        end
+
+    function part = foldData(data)
         % stimFreq = 0.125;%Hz
         % Number of Stimuli
         % NOS = 3; % Number of Stimuli
@@ -2511,21 +2570,30 @@ end
         iSP = interStimPeriod;
         dCOF=0; % DutyCycleOnFrames.  |--dCOF--|____|-----|____
         if (dCOF==0 || dCOF>iSP)
-            dCOF = floor(iSP);    
+            dCOF = floor(iSP);
         end
         
         dCOF = floor(iSP); %dutyCycleOnFrames.
         part = zeros(dCOF,NOS);
         for iii = 1:NOS
-try
-    part(:,iii)=data(OnOffset+floor((iii-1)*iSP)+(1:dCOF));
-catch e
-    disp(['size(data) = ' num2str(size(data)) ', OnOffset= ' num2str(OnOffset) ' iSP =' num2str(iSP) ', dCOF= ' num2str(dCOF) ]);
-    disp('press any to crash, or set a breakpoint to investigate')
-    pause;
-    error(e);
-end
+            try
+                part(:,iii)=data(OnOffset+floor((iii-1)*iSP)+(1:dCOF));
+            catch e
+                disp(['size(data) = ' num2str(size(data)) ', OnOffset= ' num2str(OnOffset) ', iSP =' num2str(iSP) ', dCOF= ' num2str(dCOF) ]);
+                disp('Multi Response to 1 error, press any to crash, or set a breakpoint to investigate')
+                pause;
+                error(e);
+            end
         end
+        
+    end
+    function meanData = multiResponseto1(data,exportPlot)
+        if nargin==1
+            exportPlot=1;
+        end
+        
+        part = foldData(data);
+
         %         part(:,2)=data(OnOffset+1*iSP+(1:iSP));
         %         part(:,3)=data(OnOffset+2*iSP+(1:iSP));
         %         part(:,4)=data(OnOffset+3*iSP+(1:iSP));
@@ -2552,6 +2620,52 @@ end
         
         % ASR = meanData;
     end
+
+
+    function part = foldData2(signal)    % Check if the partial interval is bigger than the interval
+        % itself.
+        if (stimFreq2<stimFreq) && (stimFreq2~=0)
+            stimFreq2=stimFreq;
+            warning(['stimFreq2 adjusted to: ' num2str(stimFreq) 'to fit interval.']);
+            warning(['Continue on your own risk by pressing a key ' ]);
+            pause();
+        end
+        
+        if stimFreq2==0
+            sFq2=stimFreq;
+        else
+            sFq2=stimFreq2;
+        end
+        interStimPeriod = floor(1/sFq2*fps);
+        iSP = interStimPeriod;
+        if NOS2==0
+            setNOS2(1);
+        end
+        part=zeros(iSP,NOS2);
+        for j = 1:NOS2
+            %part(:,j)=signal(OnOffset2+(j-1)*iSP+(1:iSP));
+            try
+                part(:,j)=signal(OnOffset2+floor((j-1)/sFq2*fps)+(1:iSP)); % Here the rounding is done after the multiplication = better
+            catch e
+                d = dialog('Position',[300 300 250 150],'Name','Wrong Numbers');
+                
+                txt = uicontrol('Parent',d,...
+                    'Style','text',...
+                    'Position',[20 80 210 40],...
+                    'String','The artificial intelligence says the partial analysis numbers are wrong.');
+                
+                btn = uicontrol('Parent',d,...
+                    'Position',[85 20 70 25],...
+                    'String','Close',...
+                    'Callback','delete(gcf)');
+            end
+        end
+        if debug
+            plot(part);
+            pause(.01);
+        end
+    end
+
     function doPostProcessing(s,e,h)
         postProcess(synsignal');%dff(synsignal')')
     end
@@ -2567,8 +2681,21 @@ end
         synapseNbr=nan; mSigA=nan;     miSigA=nan; synapseSize=nan; noiseSTD=nan; aboveThreshold=nan;
         UpHalfTime=nan;    DownHalfTime=nan;    tau1=nan;    amp=nan;      error=nan; xCentPos=nan; yCentPos=nan;
         bbox=[nan,nan,nan,nan]; AUC=nan; nAUC=nan;
+         rawDFF=nan; rawDFluor=nan; rawMaxFluor = nan; rawBaseFluor=nan;
+            rawPartDF=nan; rawPartMaxFluor= nan; rawPartMinFluor=nan;
         
         for i=1:size(dffsynsignal,2)
+            if isempty(synsignal)
+            	rawFoldedData=nan*ones(size(dffsynsignal)); %When no synapses
+            else
+                rawFoldedData=mean(foldData(synsignal(:,i)),2);
+            end
+            
+            rawBaseFluor(i) = mean(rawFoldedData(1:30));
+            rawMaxFluor(i)= max(rawFoldedData);
+            rawDFluor(i) = rawMaxFluor(i)-rawBaseFluor(i);
+            rawDFF(i) = rawDFluor(i)/rawBaseFluor(i);
+        
             signal = dffsynsignal(:,i);
             synapseNbr(i) = i;
             
@@ -2579,50 +2706,14 @@ end
             bbox(i,3:4)=min(synRegio(i).PixelList,[],1);
             
             signal = multiResponseto1(signal,0);
-            
-            % Check if the partial interval is bigger than the interval
-            % itself.
-            if (stimFreq2<stimFreq) && (stimFreq2~=0)
-                stimFreq2=stimFreq;
-                warning(['stimFreq2 adjusted to: ' num2str(stimFreq) 'to fit interval.']);
-                warning(['Continue on your own risk by pressing a key ' ]);
-                pause();
-            end
+            part = foldData2(signal); % The dff data
+            rawFolded2Part = foldData2(rawFoldedData); % The Raw Data
+            for j = 1:NOS2
+                % Partial raw Max and Min.
+                rawPartMaxFluor(i,j)= max(rawFolded2Part(:,j));
+                rawPartMinFluor(i,j) = min(rawFolded2Part(:,j));
+                rawPartDF(i,j) = rawPartMaxFluor(i,j) - rawPartMinFluor(i,j);
                 
-            if stimFreq2==0
-                sFq2=stimFreq;
-            else 
-                sFq2=stimFreq2;
-            end
-            interStimPeriod = floor(1/sFq2*fps);
-            iSP = interStimPeriod;
-            if NOS2==0
-                setNOS2(1);
-            end
-            part=zeros(iSP,NOS2);
-            for j = 1:NOS2
-                %part(:,j)=signal(OnOffset2+(j-1)*iSP+(1:iSP));
-try
-                part(:,j)=signal(OnOffset2+floor((j-1)/sFq2*fps)+(1:iSP)); % Here the rounding is done after the multiplication = better
-catch e
-     d = dialog('Position',[300 300 250 150],'Name','Wrong Numbers');
-
-    txt = uicontrol('Parent',d,...
-               'Style','text',...
-               'Position',[20 80 210 40],...
-               'String','The artificial intelligence says the partial analysis numbers are wrong.');
-
-    btn = uicontrol('Parent',d,...
-               'Position',[85 20 70 25],...
-               'String','Close',...
-               'Callback','delete(gcf)');
-end
-            end
-            if debug
-                plot(part);
-                pause(.01);
-            end
-            for j = 1:NOS2
                 pSignal = part(:,j);
                 [mSig, miSig] = max(pSignal,[],1); % Find max ampl of the Average Synaptic Response
                 mSigA(i,j)=mSig;
@@ -2676,8 +2767,6 @@ end
             end
             synapseSize(i) = length(synRegio(i).PixelList);
         end
-        
-        
             
         UpHalfTime=tau1*0; DownHalfTime=tau1*0;
         error=tau1*0;
@@ -2692,10 +2781,20 @@ end
         AUCL=labelVar('AUC_',NOS2);
         nAUCL=labelVar('nAUC_',NOS2);
         ampSSL=labelVar('ampSS_',NOS2);
+        rawPartMaxFluorL=labelVar('rawPartMaxFluor_',NOS2);
+        rawPartMinFluorL=labelVar('rawPartMinFluor_',NOS2);
+        rawPartDFFL=labelVar('rawPartDFF_',NOS2);
         errorL=labelVar('error_',NOS2);
+                
    
-        t = array2table([synapseNbr', mSigA     miSigA synapseSize' noiseSTD aboveThreshold UpHalfTime    DownHalfTime    tau1    amp      error, xCentPos', yCentPos',  bbox(:,2), bbox(:,1), bbox(:,4), bbox(:,3), AUC, nAUC],...
-            'VariableNames',[{'synapseNbr'},maxSynL, miSynL, {'synapseSize'}, noiseSTDL, aboveThresholdL, UpHalfTimeL, downHalfTimeL, tauL, ampSSL, errorL,{'xCentPos'},{'yCentPos'},  {'bboxUx'},{'bboxUy'},{'bboxDx'},{'bboxDy'},AUCL,nAUCL]);
+        t = array2table([synapseNbr', mSigA     miSigA synapseSize' noiseSTD aboveThreshold UpHalfTime    DownHalfTime    tau1    amp      error, xCentPos', yCentPos',  bbox(:,2), bbox(:,1), bbox(:,4), bbox(:,3), AUC, nAUC, rawBaseFluor', rawMaxFluor', rawDFluor', rawDFF', rawPartMaxFluor, rawPartMinFluor, rawPartDF],...
+            'VariableNames',[{'synapseNbr'},maxSynL, miSynL, {'synapseSize'}, noiseSTDL, aboveThresholdL, UpHalfTimeL, downHalfTimeL, tauL, ampSSL, errorL,{'xCentPos'},{'yCentPos'},  {'bboxUx'},{'bboxUy'},{'bboxDx'},{'bboxDy'},AUCL,nAUCL, 'rawBaseFluor', 'rawMaxFluor', 'rawDFluor', 'rawDFF', rawPartMaxFluorL , rawPartMinFluorL , rawPartDFFL ]);
+        
+        
+            
+        
+        
+            
         
         if(~isdir ([dirname 'output\']))
             mkdir ([dirname 'output\']);
@@ -2745,6 +2844,7 @@ end
         analysisCfg = xmlSettingsExtractor(stimCfgFN);
         setNOS(analysisCfg.pulseCount);
         setFPS(analysisCfg.imageFreq);
+        setCellBody(analysisCfg.cellBody);
         setOnOffset(round(analysisCfg.delayTime*analysisCfg.imageFreq/1000));
         setStimFreq(analysisCfg.stimFreq);
         EVN = analysisCfg.eigenvalueNumber;

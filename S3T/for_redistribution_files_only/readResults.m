@@ -2,21 +2,47 @@ function readResults(dirname)
 % Reads all the output files and concatenates them and adds the meta data
 % from the CSV files.
 if nargin<1
-    dirname = uigetdir('','Select output dir:');
+    try 
+        dirname = uigetdir('','Select output dir:');
+    catch
+         dirname = uigetdir('','Select output dir:');
+    end
 end
-defaultDir = dirname
+defaultDir = dirname;
 files = natsort(dir([dirname '\*_analysis.txt']));
-[firstPart, ~, lastPart]=disassembleName(files(1).name);
+[firstPart, ~, lastPart] = disassembleName(files(1).name);
 
-t=[];
+synFiles = natsort(dir([dirname '\synapseDetails\*_PPsynapses.txt']));
+
+
+aWT=[]; % all Well Table
+aST=[]; % all Synapse Table
 fnNber=[];
 for i=1:(length(files))
     files(i).name
-    t = [t; readtable([dirname '\' files(i).name])];
+    try
+        aWT = [aWT; readtable([dirname '\' files(i).name])];
+    catch
+        disp(error);
+    end
     %t = [t; readtable([dirname '\' num2fname(i)])];
     fnNber = [fnNber,  extractNumber(files(i).name)];
 end
 
+
+sfnNber=[];
+for i=1:(length(synFiles))
+    disp(synFiles(i).name)
+    try
+        SD = readtable([dirname '\synapseDetails\' synFiles(i).name]);
+        aST = [aST; SD];
+    catch
+        disp(error);
+    end
+    %t = [t; readtable([dirname '\' num2fname(i)])];
+    nEl(i) = size(SD,1);
+    sfnNber = [sfnNber, extractNumber(synFiles(i).name)];
+end
 
 well96Data=1;
 % Load Andor file to link exp. with well.
@@ -54,10 +80,9 @@ if (well96Data)
         firstExpNb=0;
     end
     
-    
     %     experiments = 0:59;
     %     experiments = 1:19; warning('experiments Hack');
-    experiments = (1:size(t,1))-1;
+    experiments = (1:size(aWT,1))-1;
     
     % Load the compound for all wells.
     tcsv = dir([dirname '\..' '\plateLayout_*.csv']);
@@ -65,51 +90,104 @@ if (well96Data)
         tcsv = dir([dirname '\..\..' '\plateLayout_*.csv']);
     end
     
-    
     subplot(4,4,[2:3, 6:7]);
-    for (i=1:length(tcsv))
+    for (i=1:length(tcsv)) % For all Plate Layout files
         
         %[plateFilename, plateDir] = uigetfile('*.csv',['Select Plate Layout File'],[defaultDir '\']);
-        plateFilename= tcsv(i).name;
+        plateLayoutFileName= tcsv(i).name;
         plateDir = tcsv(i).folder;
         
-        plateValues = csvread([plateDir '\' plateFilename]);
+        plateValues = csvread([plateDir '\' plateLayoutFileName]);
         
         plate.plateValues = plateValues;
         plate.expwells = exp2wellNr;
         
         wellQty = getPlateValue(plate,experiments);
         
-        qtyName = plateFilename(13:(end-4))
+        qtyName = plateLayoutFileName(13:(end-4));
         %NESTable = array2table(wellQty','VariableNames',{'NES'});
         qtyTable = array2table(wellQty','VariableNames',{qtyName});
-        t = [t, qtyTable];
+        aWT = [aWT, qtyTable];
+        rvec=[];
+        for ii=1:length(nEl)
+            rvec=[rvec; repmat(table2array(qtyTable(ii,1)),nEl(ii),1)];
+        end
+        aST = [aST, array2table(rvec,'VariableNames',{qtyName})];
         
-        plot(wellQty, t.peakAmp,'o-')
+        plot(wellQty, aWT.peakAmp,'o-')
         xlabel(qtyName);
         ylabel('peakAmp');
     end
     
-    WellNbTable = array2table(exp2wellNr(experiments+1-firstExpNb)','VariableNames',{'WellNumber'});
+    WellNbTable = array2table(exp2wellNr(experiments+1-firstExpNb)','VariableNames',{'AndorWellNumber'});
     %t=[t, NESTable, WellNbTable];
-    t=[t, WellNbTable];
+    aWT=[aWT, WellNbTable];
+       rvec=[];
+        for ii=1:length(nEl)
+            rvec=[rvec; repmat(table2array(WellNbTable(ii,1)),nEl(ii),1)];
+        end
+        aST = [aST, array2table(rvec,'VariableNames',{'AndorWellNumber'})];
+     
+    
+    plate.plateValues = reshape(1:96,12,8)';
+    plate.expwells = exp2wellNr;
+    
+    logicalWellIndex = getPlateValue(plate,experiments);
+    logicalWellIndexTable = array2table(logicalWellIndex','VariableNames',{'logicalWellIndex'});
+    aWT=[aWT, logicalWellIndexTable];
+      rvec=[];
+        for ii=1:length(nEl)
+            rvec=[rvec; repmat(table2array(logicalWellIndexTable(ii,1)),nEl(ii),1)];
+        end
+        aST = [aST, array2table(rvec,'VariableNames',{'logicalWellIndex'})];
+    
+    
+    RowIndex = floor(logicalWellIndex/12)+1;
+    RowIndexTable = array2table(RowIndex','VariableNames',{'PRow'}); % Plate Row
+    aWT=[aWT, RowIndexTable];
+       rvec=[];
+        for ii=1:length(nEl)
+            rvec=[rvec; repmat(table2array(RowIndexTable(ii,1)),nEl(ii),1)];
+        end
+        aST = [aST, array2table(rvec,'VariableNames',{'PRow'})];
+  
+    
+    
+    colIndex = mod(logicalWellIndex-1,12)+1;
+    colIndexTable = array2table(colIndex','VariableNames',{'PCol'}); % Plate Collumn
+    aWT=[aWT, colIndexTable ];
+          rvec=[];
+        for ii=1:length(nEl)
+            rvec=[rvec; repmat(table2array(colIndexTable(ii,1)),nEl(ii),1)];
+        end
+        aST = [aST, array2table(rvec,'VariableNames',{'PCol'})];
+  
+    
+    
     fileNbTable = array2table(experiments','VariableNames',{'FileNumber'});
     %t=[t, NESTable, WellNbTable];
-    t=[t, fileNbTable];
+    aWT=[aWT, fileNbTable];
+        rvec=[];
+        for ii=1:length(nEl)
+            rvec=[rvec; repmat(table2array(fileNbTable(ii,1)),nEl(ii),1)];
+        end
+        aST = [aST, array2table(rvec,'VariableNames',{'FileNumber'})];
+  
     
-   
+    
+    
 else %if single coverslip Data
     tcsv = dir([dirname '\..' '\MetaData*.csv']);
     if length(tcsv)==0  
         tcsv = dir([dirname '\..\..' '\MetaData*.csv']);
     end
      plateDir = tcsv(1).folder;
-    bb = readtable([plateDir '\' 'MetaData.csv']);
+    bb = readtable([plateDir '\' 'MetaData.csv'],'Delimiter',',');
     
     % Check wich fields are numeric
     cc=table2cell(bb);
     for i=1:width(bb)
-    numericEntries(i)=isnumeric(cc{1,i});
+        numericEntries(i)=isnumeric(cc{1,i});
     end
     
     metaTable=[];
@@ -128,8 +206,17 @@ else %if single coverslip Data
         end
     end
    metaTable2=  array2table(metaTable,'VariableNames',{bb.Properties.VariableNames{numericEntries}});
-   t=[t, metaTable2];
+   aWT=[aWT, metaTable2];
+   
+   %fileNb = catNumbers({bb.MovieFilename{:}},4);
+   fileNb = extractNumber({bb.MovieFilename{:}});
+   rvec=[];
+   for ii=1:length(nEl)
+       rvec=[rvec; repmat(fileNb(ii),nEl(ii),1)];
+   end
+   aST = [aST, array2table(rvec,'VariableNames',{'FileNumber'})];
 end
 
- writetable(t,[dirname '\AllWells']);
+writetable(aST,[dirname '\AllSynapses']);
+writetable(aWT,[dirname '\AllWells']);
 end
