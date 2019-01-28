@@ -240,6 +240,21 @@ else
         disp('Did not find Cell Body type, using no.')
         cellBody = 0; %1
     end
+    
+       %% Analysis
+    rr = strfind(aa,'<Name>Cell Body</Name>');
+    if length(rr)>0
+        if length(rr)>1
+            warning('did find Cell Body, chosing 1')
+        end
+        ss=strfind(aa(rr(1):end),'<Val>');
+        ss2=strfind(aa(rr(1)+(ss(1)):end),'</Val>');
+        cellBody=str2num(aa(rr(1)+ss(1)+4:rr(1)+ss(1)+ss2(1)-2));
+        
+    else
+        disp('Did not find Cell Body type, using no.')
+        cellBody = 0; %1
+    end
 end
 stimCfg.cellBody =cellBody;
 stimCfg.delayTime =delayTime;

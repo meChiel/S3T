@@ -1,4 +1,4 @@
-function segGUIV1(myDir)
+function segGUIV1(myDir,headless)
 global Version
 Version = 'V0.81-Rel';
 %% Much better dataviewer
@@ -90,7 +90,13 @@ NOS2 = 0; % Number of stimuli
 OnOffset2 = 0;
 
 %% Create a figure and axes
-startUp();
+if ~exist('headless','var')
+        startUp();
+else
+    if headless~=1
+        startUp();
+    end
+end
 %pause(5);
 if nargin>0
     processDirAndSubDirs(myDir);
@@ -101,7 +107,8 @@ end
         %bgc=[.95 .95 .95];
         f2 = figure('Visible','on','name','S3T: Stimulated Synapse Segmentation Tool',...
             'Color',bgc,...
-            'NumberTitle','off');
+            'NumberTitle','off',...
+             'KeyPressFcn', @keyPress);
         set(f2,'MenuBar', 'figure');
         %set(f2,'MenuBar', 'none');
         %set(f2, 'ToolBar', 'auto');
@@ -1215,6 +1222,9 @@ end
         imagesc(B)
         %find()%waar maximum zit.
     end
+
+
+
     function experimentLoader(source,event)
         global fNmTxt10APC fNmTxt1APC fNmTxt5M fNmTxt10M fNmTxt20M
         
@@ -1299,6 +1309,21 @@ end
             
         end
     end
+
+
+    function keyPress(src, e)
+        disp(e.Key);
+        switch e.Key
+            case 'p' 
+                disp('starting doProcessing');
+                doProcessDir();
+                
+            case 'd'
+                disp('starting doProcessing');
+                doProcessDir();
+                
+        end
+    end
     function avgSynapseResponse(source,ev)
         nSynapses = size(synsignal,2);
         hold off
@@ -1307,9 +1332,7 @@ end
             dd=mean(reshape(data,wx*wy,[]),1);
             mdd=multiResponseto1(dd,0);
             AR = dff(dd); % Average over all pixels, average Response
-            [TSpAPA , TSpAPAi] = max(mdd); %Temporal spike Averaged Pixel Amplitude
-           
-               
+            
             disp('AR1 disabled in AVGSynapseResponse ;') ; AR1=AR*0;%      AR1 = mean(dff(reshape(data,wx*wy,[]),1)); % Average over all pixels, average Response
             rAR = mean(reshape(data,wx*wy,[]),1); % Average over all pixels, average Response
            
@@ -1333,9 +1356,11 @@ end
         end
         tvec = (dt*(1:size(ASR,2))');
         r = [tvec,ASR',AR',swASR',rAR',AR1'];
-        t = array2table(r,'VariableNames',{'time','SynapseAverage','PixelAverage','SWSynapseAverage','rawAverageResponse','AverageResponse1'});
+        t = array2table(r,'VariableNames',{'time','SynapseAverage',...
+            'PixelAverage','SWSynapseAverage','rawAverageResponse','AverageResponse1'});
         writetable(t,[dirname 'output\' fname(1:end-4) '_traces.csv']);
     end
+
     function analyseSingSynResponse(s,e,v)
     %    stimulationStartTime = 1.0;
     %    stimulationStartFrame = floor(stimulationStartTime /dt);
@@ -1460,10 +1485,11 @@ end
         % Area under the curve
         AUC = sum(ASR.*(ASR>0));        
         nAUC = sum(ASR.*(ASR<0));
+        TempSynSTD = std(ASR);
         text(miASR/fps,mASR*0.7 ,{'AUC:', num2str(AUC)},'HorizontalAlignment','center');
         
         
-        % Calculate Pixel averaged kinetics
+%         Calculate Pixel averaged kinetics
 %         upframesPA = miAR-stimulationStartFrame;
 %         upResponsePA = AR(stimulationStartFrame:miAR);
 %         expdataPA.x = (0:(length(upResponsePA)-1))*dt;
@@ -1473,7 +1499,7 @@ end
         expdataPA.x = (0:(length(downResponse)-1))*dt;
         expdataPA.y = downResponse;
         
-        [tau1PA, ampPA, t0PA] = exp1fit(expdataPA.x,expdataPA.y); %Pixel Average
+        [tau1PA, ampPA, t0PA] = exp1fit(expdataPA.x,expdataPA.y); % (PA)Pixel Average
         if isempty(tau1PA)
             tau1PA=0;
             error=1;
@@ -1484,9 +1510,9 @@ end
         end
         
         
-        AUCPA = sum(AR.*(AR>0));
-        nAUCPA = sum(AR.*(AR<0));
-        
+        AUCPA = sum(AR.*(AR>0)); % Area under curve Pixel Average
+        nAUCPA = sum(AR.*(AR<0)); % negative values Area Under Curve Pixel average
+     
         
         % Calculate Synapse averaged kinetics
         upframes = miASR-stimulationStartFrame;
@@ -1596,8 +1622,6 @@ end
         plot([DownHalfTime DownHalfTime],[mASR 0],'color',0.3*[1 1 1]); % Down line
         plot([(miASR-1)/fps (miASR-1)/fps],[mASR 0],'color',0.3*[1 1 1]); % Max vert line
         plot([0 (length(ASR)-1)/fps],[0 0],'color',0.0*[1 1 1]); % X axis
-        
-        
         %% Fit exponentials:
         if 0
             % Down: Goes to 0 and take 50% point.
@@ -1629,13 +1653,36 @@ end
             text(4,ampSS ,{'( \tau_1, A_{SS} )', [ '(' num2str(tau1) 's, ' num2str(ampSS) ')' ]},'HorizontalAlignment','center','VerticalAlignment','Middle','FontSize',12,'Rotation',90);
             
         end
-        
+        %% Image Metrics
+        Tavg = mean(data,3);
+        imageMetrics(1).name = 'Spatial STD';
+        imageMetrics(1).value=  std(Tavg);
+        imageMetrics(2).name = 'Laplacian filterred Spatial STD';
+        imageMetrics(2).value= std(locallapfilt(Tavg,0.3,0.1));
+        imageMetrics(3).name = 'SpatioTemporal STD';
+        imageMetrics(3).value= std(data(:));
+        imageMetrics(4).name = 'TempSTDPA';
+        imageMetrics(4).value= std(AR);
+        imageMetrics(5).name = 'Temporal spike Averaged Pixel Amplitude';
+        [TSpAPA , TSpAPAi] = max(mdd); %Temporal spike Averaged Pixel Amplitude
+        imageMetrics(5).value= TSpAPA;
+        imageMetrics(6).name = 'Temporal spike Averaged Pixel Amplitude Index';
+        imageMetrics(6).value= TSpAPAi;
+     
+        %% Export analysis data
         savesubplot(4,4,8,[pathname '_analysis']);
-        
-        
-       
-        t =array2table([mASR mstdSR miASR  mswASR miswASR fps UpHalfTime DownHalfTime tau1 amp nSynapses AUC nAUC tau1PA ampPA t0PA RSTmean RSTABSmean error ],...
-            'VariableNames',{'peakAmp', 'mstdSR', 'miASR', 'sizeWeightedMASR', 'swmiASR', 'fps', 'UpHalfTime', 'downHalfTime', 'tau1', 'ampSS', 'nSynapses','AUC','nAUC' , 'tau1PA', 'ampPA', 't0PA' ,'RSTmean','RSTABSmean','error'});
+        t =array2table([...
+            mASR mstdSR miASR  mswASR ...
+            miswASR fps UpHalfTime DownHalfTime tau1 amp ...
+            nSynapses AUC nAUC tau1PA ampPA t0PA RSTmean ...
+            RSTABSmean error TempSynSTD ...
+            ,[imageMetrics.value] ],...
+            'VariableNames',{...
+            'peakAmp', 'mstdSR', 'miASR', 'sizeWeightedMASR', ...
+            'swmiASR', 'fps', 'UpHalfTime', 'downHalfTime', 'tau1', 'ampSS', ...
+            'nSynapses','AUC','nAUC' , 'tau1PA', 'ampPA', 't0PA' ,'RSTmean',...
+            'RSTABSmean','error','TempSynSTD',...
+             imageMetrics.name});
         %t =array2table([mASR miASR fps UpHalfTime DownHalfTime expEqUp expEqDown error ],'VariableNAmes',{'mASR', 'miASR', 'fps', 'UpHalfTime', 'downHalfTime', 'expEqy0', 'upA1', 'upx0', 'upT1', 'expEqdwny0', 'dwnA1', 'dwnx0', 'dwnT1','error'});
         %t =array2table([mASR miASR fps UpHalfTime DownHalfTime expEqUp expEqDown ],'VariableNAmes',{'mASR', 'miASR', 'fps', 'UpHalfTime', 'downHalfTime', 'expEqy0', 'upA1', 'upx0', 'upT1', 'upA2', 'upT2', 'expEqdwny0', 'dwnA1', 'dwnx0', 'dwnT1', 'dwnA2', 'dwnT2'});
         if ~isdir([dirname 'output\']);
@@ -1643,8 +1690,6 @@ end
         end
         writetable(t,[dirname 'output\' fname(1:end-4) '_analysis']);
         disp([dirname 'output\' fname(1:end-4) '_analysis.txt']);disp([ 'created']);
-        
-        
         subplot(4,4,15)
         
     end

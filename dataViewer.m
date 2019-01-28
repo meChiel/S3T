@@ -1,66 +1,186 @@
 function dataViewer()
-global plateFilename plateDir responses detailFilename defaultDir currentFile fittt histtt exporttt currentLevel STToggle seeTraceBtn
-bgc=[0.5 0.5 0.5];
-STToggle=0;
-f3 = figure('Visible','on','name','S3T: Data Viewer',...
-    'Color',bgc,...
-    'NumberTitle','off');
-openFilesBtn = uicontrol('Style', 'pushbutton', 'String', 'Open File!',...
-    'Position', [5+50 (20) 50 20],...
-    'Backgroundcolor',bgc,...
-    'Callback', @doOpenFiles);
+global plateFilename plateDir responses detailFilename defaultDir currentFile marker lineSize LineStyle;
+global fittt histtt exporttt currentLevel STToggle seeTraceBtn exportAll selectionOptions; 
+global exportAllChk openFilesBtn showButtons logX logY; 
+global bgc
+global seeWellBtn stimLstX stimLstY
+global filterFieldLst lessMoreLst filterThresholdEdt markerSelectionBtn
+global doFilterBtn HistBtn levelDownBtn levelUpBtn ExportBtn fitBtn
+global lineSizeBtn LineStyleBtn logXChk logYChk 
 
-markerSelectionBtn = uicontrol('Style', 'popup', 'String', {'.','O','+','x','d','s','p','h','none','<','>','^','v'},...
-    'Position', [5+50 900-(30) 50 20],...
-    'Backgroundcolor',bgc,...
-    'Callback', @setmarker);
+createButons();
+    function createButons()
+        bgc=[0.5 0.5 0.5];
+        STToggle=0;
+        exportAll=0;
+        f3 = figure('Visible','on','name','S3T: Data Viewer',...
+            'Color',bgc,...
+            'NumberTitle','off',...
+            'KeyPressFcn', @keyPress);
+        openFilesBtn = uicontrol('Style', 'pushbutton', 'String', '(a)Open File!',...
+            'Position', [5+50 (20) 50 20],...
+            'Backgroundcolor',bgc,...
+            'Callback', @doOpenFiles);
+        
+        markerSelectionBtn = uicontrol('Visible','off','Style', 'popup', 'String', {'.','O','+','x','d','s','p','h','none','<','>','^','v'},...
+            'Position', [5+50 900-(30) 50 20],...
+            'Backgroundcolor',bgc,...
+            'Callback', @setmarker);
+        
+        seeTraceBtn = uicontrol('Visible','off','Style', 'pushbutton', 'String', '(S)ee Trace',...
+            'Position', [5+50+50 20 50 20],...
+            'Backgroundcolor',bgc,...
+            'Callback', @seeTrace);
+        
+        lineSizeBtn = uicontrol('Visible','off','Style', 'popup', 'String', {'0.5','1','2','3','4','5','6'},...
+            'Position', [5+50 (900) 50 20],...
+            'Backgroundcolor',bgc,...
+            'Callback', @setLineSize);
+        LineStyleBtn = uicontrol('Visible','off','Style', 'popup', 'String', {'-',':','--','-.','none'},...
+            'Position', [5+50 (900-60) 50 20],...
+            'Backgroundcolor',bgc,...
+            'Callback', @setLineStyle);
+        
+        doFilterBtn=[];
+        filterThresholdEdt=[];
+        filterFieldLst=[];
+        lessMoreLst=[];
+        
+        javaFrame = get(f3,'JavaFrame');
+        javaFrame.setFigureIcon(javax.swing.ImageIcon('PlateLayout_icon.png'));
+        
+        LineStyle='-';
+        marker = '.';
+        lineSize = 1;
+        currentFile = 1;
+        fittt=0;
+        histtt=0;
+        exporttt=0;
+        logX=0;
+        logY=0;
+        
+        
+        logYChk = uicontrol('Visible','off','Style', 'checkbox', 'String','Log Y',...
+            'Position', [10 320 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
+            'CallBack',@logYToggle);
+        
+        logXChk = uicontrol('Visible','off','Style', 'checkbox', 'String','Log X',...
+            'Position', [10 300 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
+            'CallBack',@logXToggle);
+        
+%         stimLstX = uicontrol('Style', 'popup', 'String', [selectionOptions, {'fileName'}],...
+%             'Position', [10 60 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
+%             'Visible','off','CallBack',@updatePlot );      
+        stimLstX = uicontrol('Style', 'popup', 'String', [{'fileName'}],...
+            'Position', [10 60 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
+            'Visible','off','CallBack',@updatePlot );     
+        
+%         stimLstY = uicontrol('Style', 'popup', 'String', [selectionOptions , {'fileName'}],...
+%             'Position', [10 80 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
+%             'Visible','off','CallBack',@updatePlot );
+        stimLstY = uicontrol('Style', 'popup', 'String', [ {'fileName'}],...
+            'Position', [10 80 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
+            'Visible','off','CallBack',@updatePlot );
+        
+%         filterFieldLst = uicontrol('Visible','off','Style', 'popup', 'String', [selectionOptions , {'fileName'}],...
+%             'Position', [10 200 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
+%             'CallBack',@updatePlot );
+        filterFieldLst = uicontrol('Visible','off','Style', 'popup', 'String', [ {'fileName'}],...
+            'Position', [10 200 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
+            'CallBack',@updatePlot );
+        
+        
+        lessMoreLst = uicontrol('Visible','off','Style', 'popup', 'String', [{'is LESS than'} , {'is MORE than'}],...
+            'Position', [10 180 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08]);
+        
+        filterThresholdEdt = uicontrol('Visible','off','Style', 'edit', 'String', ' ',...
+            'Position', [10 160 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08]);
+        
+        doFilterBtn = uicontrol('Visible','off','Style', 'pushbutton', 'String', 'Filter',...
+            'Position', [10 140 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
+            'CallBack',@filterData);
+        
+        fitBtn = uicontrol('Visible','off','Style', 'pushbutton', 'String', 'Fit',...
+            'Position', [5+50+50+50+50 20 50 20],...
+            'Backgroundcolor',bgc,...
+            'Callback', @fitt);
+        
+        HistBtn = uicontrol('Visible','off','Style', 'pushbutton', 'String', 'Hist',...
+            'Position', [5+50+50+50+50+50 20 50 20],...
+            'Backgroundcolor',bgc,...
+            'Callback', @histt);
+        
+        ExportBtn = uicontrol('Visible','off','Style', 'pushbutton', 'String', 'Export',...
+            'Position', [5+50+50+50+50+50+50 20 50 20],...
+            'Backgroundcolor',bgc,...
+            'Callback', @export);
+        
+        exportAllChk = uicontrol('Visible','off','Style', 'checkbox', 'String','Export All',...
+            'Position', [355 20 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
+            'CallBack',@exportAllToggle);
+        
+        levelUpBtn = uicontrol('Visible','off','Style', 'pushbutton', 'String', 'Up',...
+            'Position', [5+50+50+50 20+20 50 20],...
+            'Backgroundcolor',bgc,...
+            'Callback', @levelUp);
+        levelDownBtn = uicontrol('Visible','off','Style', 'pushbutton', 'String', 'Down',...
+            'Position', [5+50+50+50 20-20 50 20],...
+            'Backgroundcolor',bgc,...
+            'Callback', @levelDown);
+        
+    end
 
-seeTraceBtn = uicontrol('Style', 'pushbutton', 'String', 'See Trace',...
-    'Position', [5+50+50 20 50 20],...
-    'Backgroundcolor',bgc,...
-    'Callback', @seeTrace);
-
-
-lineSizeBtn = uicontrol('Style', 'popup', 'String', {'0.5','1','2','3','4','5','6'},...
-    'Position', [5+50 (900) 50 20],...
-    'Backgroundcolor',bgc,...
-    'Callback', @setLineSize);
-
-LineStyleBtn = uicontrol('Style', 'popup', 'String', {'-',':','--','-.','none'},...
-    'Position', [5+50 (900-60) 50 20],...
-    'Backgroundcolor',bgc,...
-    'Callback', @setLineStyle);
-
-doFilterBtn=[];
-filterThresholdEdt=[];
-filterFieldLst=[];
-lessMoreLst=[];
-
-javaFrame = get(f3,'JavaFrame');
-javaFrame.setFigureIcon(javax.swing.ImageIcon('PlateLayout_icon.png'));
-
-LineStyle='-';
-marker = '.';
-lineSize = 1;
-currentFile = 1;
-fittt=0;
-histtt=0;
-exporttt=0;
-logX=0;
-logY=0;
-
-
-logYChk = uicontrol('Style', 'checkbox', 'String','Log Y',...
-    'Position', [10 320 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
-    'CallBack',@logYToggle);
-
-
-
-logXChk = uicontrol('Style', 'checkbox', 'String','Log X',...
-    'Position', [10 300 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
-    'CallBack',@logXToggle);
-
-
+    function keyPress(src, e)
+        %disp(e.Key);
+        switch e.Key
+            case 'escape'
+                disp('SeeTrace Disabled');
+                STToggle = 0;
+            case 's'
+                seeTrace();
+            case 'h'
+                hideButtons();
+            case 'a'
+                doOpenFiles();
+        end
+    end
+    showButtons=1;
+    function hideButtons(T)
+        if exist('T','var')
+            showButtons=T;
+        else
+            showButtons=~showButtons;
+        end
+        if showButtons
+            visTExt = 'off';
+            disp('Press h to unhide buttons.')
+        else
+             visTExt = 'on';
+        end
+        logXChk.Visible=visTExt;
+        logYChk.Visible=visTExt;
+        markerSelectionBtn.Visible=visTExt; 
+        seeTraceBtn.Visible=visTExt; 
+        lineSizeBtn.Visible=visTExt; 
+        LineStyleBtn.Visible=visTExt;
+        openFilesBtn.Visible=visTExt;
+         
+        stimLstX.Visible=visTExt; 
+        stimLstY.Visible=visTExt; 
+        filterFieldLst.Visible=visTExt; 
+        lessMoreLst.Visible=visTExt; 
+        filterThresholdEdt.Visible=visTExt; 
+        filterThresholdEdt.Visible=visTExt;
+        doFilterBtn.Visible=visTExt; 
+        HistBtn.Visible=visTExt; 
+        levelDownBtn.Visible=visTExt; 
+        levelUpBtn.Visible=visTExt; 
+        exportAllChk.Visible=visTExt;
+        ExportBtn.Visible=visTExt;  
+        fitBtn.Visible=visTExt; 
+        seeWellBtn.Visible=visTExt; 
+        
+    end
     function logXToggle(e,d,r)
         logX=logXChk.Value;
         if logX==1
@@ -85,7 +205,7 @@ logXChk = uicontrol('Style', 'checkbox', 'String','Log X',...
 
 
 global data;
-global stimLstX stimLstY
+
  function levelDown(d,f,e)
          switch currentLevel
             case 'synapseLevel'
@@ -152,9 +272,6 @@ global stimLstX stimLstY
         
     end
     function getWell(d,f,e)
-        
-        
-        
         dd=detailFilename;
         dd = [dd(1:end-12) 'synapses.txt'];
         
@@ -208,18 +325,24 @@ global stimLstX stimLstY
             dd2 = ['..\..\..\output\avg\' tempFn(1:end-13) '.tif_avg.png'];
         end
 
-        wellAvg = imread([plateDir dd2]);
+        wellAvg = 200*ones(512);
+        try
+            wellAvg = imread([plateDir dd2]);
+        catch
+            disp(['No average projection found in: ' plateDir dd2]);
+            %text(['No average projection found in: ' plateDir dd2]);
+        end
+
         imagesc(double(wellAvg)+activeSynapse*100);
         axis('off');axis ('equal');colormap('hot');
         %avgAx=gca();
         %avgAx.Position=avgAx.Position + [-.10 -0.15 .15 .15];
         
-        
-        
     end
     function seeTrace(d,f,e)
         STToggle=~STToggle;
         while (STToggle)
+            STToggle=0;
             set(seeTraceBtn, 'Backgroundcolor',bgc+[.2 -0.5 -0.5]);   
         [x, y]=ginput(1);
         tmaxx =-inf;
@@ -346,7 +469,7 @@ end
             syNbr=1;
             
             
-            getWellBtn = uicontrol('Style', 'pushbutton', 'String', 'See Well',...
+            seeWellBtn = uicontrol('Style', 'pushbutton', 'String', 'See Well',...
                 'Position', [5+50+50+50 20 50 20],...
                 'Backgroundcolor',bgc,...
                 'Callback', @getWell);
@@ -368,6 +491,8 @@ end
         end
         set(seeTraceBtn, 'Backgroundcolor',bgc);
     end
+
+
     function r=pseudoRandom(n)
         r = mod((1:n)*6.3,5)'/10;
     end
@@ -378,6 +503,7 @@ end
         [plateFilename, plateDir] = uigetfile('*.txt',['Select data File'],[defaultDir '\'],'MultiSelect','on');
         defaultDir = plateDir;
         openFiles(plateFilename,plateDir);
+        hideButtons();
     end
     function openFiles(plateFilename2,plateDir)
         currentFile = 1;
@@ -398,7 +524,7 @@ end
             currentLevel='wellLevel';
         end
         end
-        if strcmp(plateFilename{1}(end-11:end),'AllWells.txt')
+        if strcmp(plateFilename{1}(1:end),'AllWells.txt')
             currentLevel='plateLevel';
         end
         if strcmp(plateFilename{1}(1:end),'AllSynapses.txt')
@@ -421,58 +547,20 @@ end
             selectionOptions{i}=OKname2text(selectionOptions{i});
         end
         
-        
-        stimLstX = uicontrol('Style', 'popup', 'String', [selectionOptions, {'fileName'}],...
-            'Position', [10 60 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
-            'CallBack',@updatePlot );
-        
-        stimLstY = uicontrol('Style', 'popup', 'String', [selectionOptions , {'fileName'}],...
-            'Position', [10 80 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
-            'CallBack',@updatePlot );
-        
-        filterFieldLst = uicontrol('Style', 'popup', 'String', [selectionOptions , {'fileName'}],...
-            'Position', [10 200 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
-            'CallBack',@updatePlot );
-        
-        lessMoreLst = uicontrol('Style', 'popup', 'String', [{'is LESS than'} , {'is MORE than'}],...
-            'Position', [10 180 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08]);
-        
-        filterThresholdEdt = uicontrol('Style', 'edit', 'String', ' ',...
-            'Position', [10 160 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08]);
-        
-        doFilterBtn = uicontrol('Style', 'pushbutton', 'String', 'Filter',...
-            'Position', [10 140 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
-            'CallBack',@filterData);
-           fitBtn = uicontrol('Style', 'pushbutton', 'String', 'Fit',...
-                'Position', [5+50+50+50+50 20 50 20],...
-                'Backgroundcolor',bgc,...
-                'Callback', @fitt);
-            
-              HistBtn = uicontrol('Style', 'pushbutton', 'String', 'Hist',...
-                'Position', [5+50+50+50+50+50 20 50 20],...
-                'Backgroundcolor',bgc,...
-                'Callback', @histt);
-            
-           ExportBtn = uicontrol('Style', 'pushbutton', 'String', 'Export',...
-                'Position', [5+50+50+50+50+50+50 20 50 20],...
-                'Backgroundcolor',bgc,...
-                'Callback', @export);
-            
-            
-            levelUpBtn = uicontrol('Style', 'pushbutton', 'String', 'Up',...
-                'Position', [5+50+50+50 20+20 50 20],...
-                'Backgroundcolor',bgc,...
-                'Callback', @levelUp);
-            levelDownBtn = uicontrol('Style', 'pushbutton', 'String', 'Down',...
-                'Position', [5+50+50+50 20-20 50 20],...
-                'Backgroundcolor',bgc,...
-                'Callback', @levelDown);
+       
+            stimLstX.String=[selectionOptions, {'fileName'}];
+            stimLstY.String=[selectionOptions, {'fileName'}];
+            filterFieldLst.String=[selectionOptions, {'fileName'}];
     end
 
     function export(d,f,e)
         exporttt=~exporttt;
         updatePlot();
     end
+    function exportAllToggle(d,f,e)
+        exportAll = exportAllChk.Value;
+    end
+
     function filterData(d,f,e)
         filterField = filterFieldLst.String{filterFieldLst.Value};
         filterThreshold = str2num(filterThresholdEdt.String);
@@ -536,8 +624,12 @@ end
             for (i=1:size(plateFilename,2))
                t= [t;x{i}(:) y{i}(:) ones(length(y{i}(:)),1)*i];
             end
+            if (~exportAll)
                 tt = array2table(t,'VariableNames',{xlabelText{1} ylabelText{1} 'color'});
-                [filename, pathname] = uiputfile('analysis_data.csv', 'Export to file ...');
+            else
+                tt = data{i};
+            end
+            [filename, pathname] = uiputfile('analysis_data.csv', 'Export to file ...');
                 writetable(tt,[pathname filename]);
                 exporttt=0;
         end
@@ -547,7 +639,7 @@ end
             subplot(4,4,[4,8,12,16])
             cla;
             aa =gca();
-            aa.Visible='off'
+            aa.Visible='off';
             subplot(4,4,[2:3,6:7,10:11,14:15]);
         end
         xlabel(OKname2text(xlabelText),'FontName','Helvetica','FontSize',18);
@@ -557,6 +649,9 @@ end
         end
         if logY==1
           set(ca,'YSCale','Log');
+        end
+        if (ca.XLim ==[0 1])
+            ca.XLim =[-0.2 1.2];
         end
     end
 

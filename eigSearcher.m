@@ -16,38 +16,49 @@ dd(:,8,i)= csvread([csvfiles(i).folder '\' csvfiles(i).name(1:(end-5)) '8.csv'])
 end
 
 %% 
-figure(1);
+figure(11);
 for i=1:length(csvfiles)%60
     subplot(6,10,i)
-    plot(dd(:,1,i),'r','lineWidth',2);
+    plot(dd(:,6,i),'y');
+    
     hold on;  
-    plot(dd(:,2,i),'g');
-    plot(dd(:,3,i),'b');
-    plot(dd(:,4,i),'k');
+    
     plot(dd(:,5,i),'c');
-    plot(dd(:,6,i),'m');
+    plot(dd(:,4,i),'k');
+    plot(dd(:,3,i),'b');
+    plot(dd(:,2,i),'g');
+    plot(dd(:,1,i),'r','lineWidth',2);
+    
+    
     title(csvfiles(i).name(end-15:end-10));
+    axis([0 570 -.1251 0.1251])
 end
 %%
 
-figure(2);
-for i=1
+figure(22);
+for i=24
     %subplot(6,10,i)
     hold off;
-    plot(dd(:,1,i),'r','lineWidth',2);
+    plot(dd(:,6,i),'y');
     hold on;  
-    plot(dd(:,2,i),'g');
-    plot(dd(:,3,i),'b');
-    plot(dd(:,4,i),'k');
     plot(dd(:,5,i),'c');
-    plot(dd(:,6,i),'m');
+    plot(dd(:,4,i),'k');
+    plot(dd(:,3,i),'b');
+    plot(dd(:,2,i),'g');
+    plot(dd(:,1,i),'r','lineWidth',2);
+    
+    
+    
+    
+
+    
     title(csvfiles(i).name(end-15:end-10));
 end
 
 %%
 
-figure(2);
-for i=1
+figure(12);
+for i=24
     subplot(8,1,1)
     hold off;
     plot(dd(:,1,i),'k','lineWidth',3);
@@ -78,7 +89,7 @@ for i=1
     title(csvfiles(i).name(end-15:end-10));
 end
 %%
-figure(5); hold off;
+figure(15); hold off;
 plot(mean(dd,3));
 hold on;
 plot(mean(dd,3)+std(dd,[],3),'.')
