@@ -59,6 +59,7 @@ global sig2rb sig3rb sigOthRB otherSigmaValueEdit;
 global tempSig2rb tempSig3rb tempSigOtherRB tempOtherSigmaValueEdit tempSigNoneRB;
 global debug 
 global dataFrameSelectionTxt PhotoBleachingTxt reloadMovie writeSVD skipMovie;
+global TSpAPA TSpAPAi
 
 % For experiment:
 global C1Data C1pathname C1fname C1dirname                                 % Control 1AP
@@ -1333,6 +1334,14 @@ end
             mdd=multiResponseto1(dd,0);
             AR = dff(dd); % Average over all pixels, average Response
             
+            
+%                imageMetrics(5).name = 'Temporal spike Averaged Pixel Amplitude';
+        [TSpAPA , TSpAPAi] = max(mdd); %Temporal spike Averaged Pixel Amplitude
+%         imageMetrics(5).value= TSpAPA;
+%         imageMetrics(6).name = 'Temporal spike Averaged Pixel Amplitude Index';
+%         imageMetrics(6).value= TSpAPAi;
+            
+            
             disp('AR1 disabled in AVGSynapseResponse ;') ; AR1=AR*0;%      AR1 = mean(dff(reshape(data,wx*wy,[]),1)); % Average over all pixels, average Response
             rAR = mean(reshape(data,wx*wy,[]),1); % Average over all pixels, average Response
            
@@ -1653,22 +1662,10 @@ end
             text(4,ampSS ,{'( \tau_1, A_{SS} )', [ '(' num2str(tau1) 's, ' num2str(ampSS) ')' ]},'HorizontalAlignment','center','VerticalAlignment','Middle','FontSize',12,'Rotation',90);
             
         end
+        
         %% Image Metrics
-        Tavg = mean(data,3);
-        imageMetrics(1).name = 'Spatial STD';
-        imageMetrics(1).value=  std(Tavg);
-        imageMetrics(2).name = 'Laplacian filterred Spatial STD';
-        imageMetrics(2).value= std(locallapfilt(Tavg,0.3,0.1));
-        imageMetrics(3).name = 'SpatioTemporal STD';
-        imageMetrics(3).value= std(data(:));
-        imageMetrics(4).name = 'TempSTDPA';
-        imageMetrics(4).value= std(AR);
-        imageMetrics(5).name = 'Temporal spike Averaged Pixel Amplitude';
-        [TSpAPA , TSpAPAi] = max(mdd); %Temporal spike Averaged Pixel Amplitude
-        imageMetrics(5).value= TSpAPA;
-        imageMetrics(6).name = 'Temporal spike Averaged Pixel Amplitude Index';
-        imageMetrics(6).value= TSpAPAi;
-     
+        imageMetrics=calcImageMetrics(data);
+        
         %% Export analysis data
         savesubplot(4,4,8,[pathname '_analysis']);
         t =array2table([...
@@ -1676,12 +1673,14 @@ end
             miswASR fps UpHalfTime DownHalfTime tau1 amp ...
             nSynapses AUC nAUC tau1PA ampPA t0PA RSTmean ...
             RSTABSmean error TempSynSTD ...
+            TSpAPA TSpAPAi ...
             ,[imageMetrics.value] ],...
             'VariableNames',{...
             'peakAmp', 'mstdSR', 'miASR', 'sizeWeightedMASR', ...
             'swmiASR', 'fps', 'UpHalfTime', 'downHalfTime', 'tau1', 'ampSS', ...
             'nSynapses','AUC','nAUC' , 'tau1PA', 'ampPA', 't0PA' ,'RSTmean',...
             'RSTABSmean','error','TempSynSTD',...
+            'TSpAPA', 'TSpAPAi'...
              imageMetrics.name});
         %t =array2table([mASR miASR fps UpHalfTime DownHalfTime expEqUp expEqDown error ],'VariableNAmes',{'mASR', 'miASR', 'fps', 'UpHalfTime', 'downHalfTime', 'expEqy0', 'upA1', 'upx0', 'upT1', 'expEqdwny0', 'dwnA1', 'dwnx0', 'dwnT1','error'});
         %t =array2table([mASR miASR fps UpHalfTime DownHalfTime expEqUp expEqDown ],'VariableNAmes',{'mASR', 'miASR', 'fps', 'UpHalfTime', 'downHalfTime', 'expEqy0', 'upA1', 'upx0', 'upT1', 'upA2', 'upT2', 'expEqdwny0', 'dwnA1', 'dwnx0', 'dwnT1', 'dwnA2', 'dwnT2'});
@@ -1693,6 +1692,24 @@ end
         subplot(4,4,15)
         
     end
+
+
+ function imageMetrics=calcImageMetrics(data)  
+        %% Image Metrics
+        Tavg = mean(data,3);
+        imageMetrics(1).name = 'SpatSTD';
+        imageMetrics(1).value=  std(Tavg(:));
+        imageMetrics(2).name = 'LapSpatSTD';
+        lap = double(locallapfilt(uint16(Tavg),0.3,0.1));
+        imageMetrics(2).value= std(lap(:));
+        imageMetrics(3).name = 'SpatTempSTD';
+        imageMetrics(3).value= std(data(:));
+        imageMetrics(4).name = 'PATempSTD';
+        imageMetrics(4).value= std(AR);
+        
+     
+ end
+     
     function freqfilter2D(s,e)
         % Remove slow changing gradients over field of view
         % Typically a result from less lightning by the lens.
@@ -2142,11 +2159,21 @@ end
         hold off;
         plot(0);
         savesubplot(4,4,8,[pathname '_analysis']);
+      imageMetrics=calcImageMetrics(data)  ;
       
         mASR=0; miASR=0; mstdSR=0; fps=fps; UpHalfTime=0; DownHalfTime=0; expEqUp=0; expEqDown=0; tau1 = 0; ampSS=0; nSynapses=0; error=1;AUC=0;nAUC=0;
         mswASR=0; miswASR=0;amp=0;tau1PA=0; ampPA=0; t0PA=0;
-        t =array2table([mASR mstdSR miASR  mswASR miswASR fps UpHalfTime DownHalfTime tau1 amp nSynapses AUC nAUC tau1PA ampPA t0PA RSTmean RSTABSmean error ],...
-            'VariableNames',{'peakAmp', 'mstdSR', 'miASR', 'sizeWeightedMASR', 'swmiASR', 'fps', 'UpHalfTime', 'downHalfTime', 'tau1', 'ampSS', 'nSynapses','AUC','nAUC' , 'tau1PA', 'ampPA', 't0PA' , 'RSTmean', 'RSTABSmean', 'error'});
+        t =array2table([mASR mstdSR miASR  mswASR miswASR fps ...
+            UpHalfTime DownHalfTime tau1 amp...
+            nSynapses AUC nAUC tau1PA ampPA ...
+            t0PA RSTmean RSTABSmean error...
+            [imageMetrics.value]  ],...
+            'VariableNames',{...
+            'peakAmp', 'mstdSR', 'miASR', 'sizeWeightedMASR', 'swmiASR', 'fps', ...
+            'UpHalfTime', 'downHalfTime', 'tau1', 'ampSS',...
+            'nSynapses','AUC','nAUC' , 'tau1PA', 'ampPA', ...
+            't0PA' , 'RSTmean', 'RSTABSmean', 'error'...
+            imageMetrics.name});
         
         %t =array2table([mASR miASR fps UpHalfTime DownHalfTime expEqUp expEqDown error],'VariableNAmes',{'mASR', 'miASR', 'fps', 'UpHalfTime', 'downHalfTime', 'expEqy0', 'upA1', 'upx0', 'upT1', 'expEqdwny0', 'dwnA1', 'dwnx0', 'dwnT1', 'invalid'});
         %t =array2table([mASR miASR fps UpHalfTime DownHalfTime expEqUp expEqDown ],'VariableNAmes',{'mASR', 'miASR', 'fps', 'UpHalfTime', 'downHalfTime', 'expEqy0', 'upA1', 'upx0', 'upT1', 'upA2', 'upT2', 'expEqdwny0', 'dwnA1', 'dwnx0', 'dwnT1', 'dwnA2', 'dwnT2'});
