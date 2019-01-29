@@ -90,7 +90,7 @@ createButons();
             'CallBack',@updatePlot );
         
         
-        lessMoreLst = uicontrol('Visible','off','Style', 'popup', 'String', [{'is LESS than'} , {'is MORE than'}],...
+        lessMoreLst = uicontrol('Visible','off','Style', 'popup', 'String', [{'is LESS than'} , {'is MORE than'}, {'EQUALS'}, {'EQUALS NOT'} ],...
             'Position', [10 180 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08]);
         
         filterThresholdEdt = uicontrol('Visible','off','Style', 'edit', 'String', ' ',...
@@ -565,10 +565,15 @@ end
         filterField = filterFieldLst.String{filterFieldLst.Value};
         filterThreshold = str2num(filterThresholdEdt.String);
         for  i = 1:length(data)
-            if (lessMoreLst.Value==2)
+            switch lessMoreLst.Value
+                case 2
                 selectionPoints = ((data{i}.(filterField))<filterThreshold);
-            else
+                case 1
                 selectionPoints = ((data{i}.(filterField))>filterThreshold);
+                case 4  
+                selectionPoints = ((data{i}.(filterField))==filterThreshold);
+                case 3
+                selectionPoints = ((data{i}.(filterField))~=filterThreshold);
             end
             disp([num2str(sum(selectionPoints)) ' points removed']);
             data{i}(selectionPoints,:)=[];
@@ -669,8 +674,8 @@ end
         subplot(4,4,[4,8,12,16])
         %histogram(y{i},100,min(x{i})+(1:100)*dx/100,'orientation','horizontal');
         
-        histogram(hdata,100,'orientation','horizontal');
-        aa =gca();
+        histogram(hdata,100,'orientation','horizontal','BinLimits',[ca.YLim(1),ca.YLim(2)]);
+        aa = gca();
         cap = ca.Position;
         
         aa.Position(1) = cap(1)+cap(3);
