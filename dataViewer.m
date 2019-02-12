@@ -190,6 +190,7 @@ createButons();
             dd=gca();
             set(dd,'XSCale','Linear');
         end
+        updatePlot();
     end
 
   function logYToggle(e,d,r)
@@ -201,6 +202,7 @@ createButons();
             dd=gca();
             set(dd,'YSCale','Linear');
         end
+        updatePlot();
     end
 
 
@@ -601,7 +603,14 @@ end
             if barplot
                 bar(x{i},y{i});
             else
-                plot(x{i},y{i},'Marker',marker,'LineWidth',lineSize,'LineStyle', LineStyle ),hold on;
+                xnoise=0;rand(size(x{i})).*0.2;
+                plot(x{i}+xnoise,y{i},'Marker',marker,'LineWidth',lineSize,'LineStyle', LineStyle );
+                if logX
+                xnoise=rand(size(x{i}))*.2;
+                plot(x{i}.*(1+xnoise),y{i},'Marker',marker,'LineWidth',lineSize,'LineStyle', LineStyle )
+                end
+                ,hold on;
+                
               
                 if (fittt==1)
                     xcats=unique(x{i});
@@ -639,7 +648,11 @@ end
                 exporttt=0;
         end
         if histtt
-            updateHist(y{currentFile},ca);
+%             for i=1:size(y,2)
+%                 updateHist(y{i},ca,i);
+%                 hold on;
+%             end
+            updateHist(y{currentFile},ca,currentFile);
         else
             subplot(4,4,[4,8,12,16])
             cla;
@@ -670,11 +683,16 @@ end
         updatePlot();
     end
 
-    function updateHist(hdata,ca)
+    function updateHist(hdata,ca,colorsNum)
         subplot(4,4,[4,8,12,16])
-        %histogram(y{i},100,min(x{i})+(1:100)*dx/100,'orientation','horizontal');
         
-        histogram(hdata,100,'orientation','horizontal','BinLimits',[ca.YLim(1),ca.YLim(2)]);
+        %histogram(y{i},100,min(x{i})+(1:100)*dx/100,'orientation','horizontal');
+        colors = [...
+            0       0.45	0.74;...
+            0.85	0.33	0.1;...
+            0.93	0.69	0.13...
+            ];
+        histogram(hdata,100,'orientation','horizontal','BinLimits',[ca.YLim(1),ca.YLim(2)],'FaceColor',colors(colorsNum,:));
         aa = gca();
         cap = ca.Position;
         
@@ -682,6 +700,7 @@ end
         my = mean(hdata);
         stdy = std(hdata);
         hold on;
+        
         plot([0 10],[my, my] ,'k','linewidth',6);
         text(10,my,num2str(my));
         plot([0 7],[my+stdy, my+stdy] ,'r','linewidth',1);
@@ -689,7 +708,7 @@ end
         text(8,my+stdy*.9,num2str(stdy),'Rotation',-90,'Color','red');
         %plot([0, 20] ,[0 10],'k','lineWidth',6);
         aa.YLim = ca.YLim;
-        aa.Visible='off'
+        aa.Visible='off';
         subplot(4,4,[2:3,6:7,10:11,14:15]);
         
     end

@@ -60,6 +60,7 @@ global tempSig2rb tempSig3rb tempSigOtherRB tempOtherSigmaValueEdit tempSigNoneR
 global debug 
 global dataFrameSelectionTxt PhotoBleachingTxt reloadMovie writeSVD skipMovie;
 global TSpAPA TSpAPAi
+global synSTD; 
 
 % For experiment:
 global C1Data C1pathname C1fname C1dirname                                 % Control 1AP
@@ -733,7 +734,7 @@ end
     end
     function tophat(source,event,handles)
         if 0
-        laplaceFilter();
+        doLaplaceFilter();
         else
         se = strel('disk',5);
         %synProb = imadjust(imtophat(synProb ,se));
@@ -743,13 +744,25 @@ end
         pause(.5);
         
     end
-    function laplaceFilter(s,e,h)
+    function doLaplaceFilter(s,e,h)
+        synProb = laplaceFilter(synProb );
+    end
+
+    function synProb = laplaceFilter(synProb)
         sigma=.1;
         alpha=4;
-        B =locallapfilt(int16(synProb),sigma,alpha,'NumIntensityLevels', 100);
-        psnr_denoised = psnr(B, int16(synProb))
-        synProb =double(B);
+        Msp = max(synProb(:));
+        msp = min(synProb(:));
+        synProb16 = int16((synProb-msp)/(Msp-msp+1e-6));
+        
+        
+        B =locallapfilt(synProb16 ,sigma,alpha,'NumIntensityLevels', 100);
+        psnr_denoised = psnr(B, synProb16)
+        imagesc(B);
+        
+        synProb =double(B)*(Msp-msp+1e-6)+msp;
     end
+
     function go(source,event,handles)
         if exist(dirname)
             if (dirname~=0)
@@ -773,18 +786,46 @@ end
     function extractSignals(source,event,handles)
         s2=synRegio;
         synsignal=[];
+        spaceTimeSTD=zeros(1,length(s2));
+        spaceMeanTimeSTD=zeros(1,length(s2));
+        meanSpaceTimeSTD=zeros(1,length(s2));
+        synProbSTD=zeros(1,length(s2));
+        laplaceSynProbSTD=zeros(1,length(s2));
+        
+        lpsynProb = laplaceFilter(synProb);
+        rframes=reshape(data,wx*wy,[]);
+        rsynProb= reshape(synProb,wx*wy,[]);
+        rlpsynProb = reshape(lpsynProb,wx*wy,[]);
+        
         for j=1:length(s2)
             mask=zeros(wy,wx);
             % pixl=s2(j).PixelList;
-            rframes=reshape(data,wx*wy,[]);
+            
             pixlid=s2(j).PixelIdxList;
-            synsignal(:,j) = mean(rframes(pixlid,:),1);
+            ss=rframes(pixlid,:); % synapseSignals
+            synsignal(:,j) = mean(ss,1);
+            spaceTimeSTD(:,j) = std(ss(:));
+            spaceMeanTimeSTD(:,j) = std(mean(ss,2));
+            meanSpaceTimeSTD(:,j) = std(mean(ss,1));
+            synProbSTD(:,j) = std(rsynProb(pixlid));
+            laplaceSynProbSTD(:,j) = std(rlpsynProb(pixlid));
         end
         if length(s2)==0
             disp('No synapses found, combining all pixels into 1 big synapse.');
-             rframes=reshape(data,wx*wy,[]);
-            synsignal(:,1) = mean(rframes(:,:),1);
+            rframes=reshape(data,wx*wy,[]);
+            ss= rframes(:,:);
+            synsignal(:,1) = mean(ss,1);
+            spaceTimeSTD = std(ss(:));
+            spaceMeanTimeSTD = std(mean(ss,2));
+            meanSpaceTimeSTD = std(mean(ss,1));
+            synProbSTD = std(rsynProb(pixlid));
+            laplaceSynProbSTD = std(rlpsynProb(pixlid));
         end
+        synSTD.spaceTimeSTD = spaceTimeSTD;
+        synSTD.spaceMeanTimeSTD = spaceMeanTimeSTD;
+        synSTD.meanSpaceTimeSTD = meanSpaceTimeSTD;
+        synSTD.synProbSTD=synProbSTD;
+        synSTD.laplaceSynProbSTD=laplaceSynProbSTD;
     end
     function synSlider(s,e)
         % Should be a slider to browse trough different synapse scahpe and
@@ -831,6 +872,12 @@ end
         
         [dfftempThresSignals, thresKeepIdx] = tempThreshold(dff(synsignal')); % For synapse Traces
         synsignal = synsignal(:,thresKeepIdx); % Here synsignal is Thresholded.
+        synSTD.laplaceSynProbSTD=synSTD.laplaceSynProbSTD(thresKeepIdx);
+        synSTD.meanSpaceTimeSTD=synSTD.meanSpaceTimeSTD(thresKeepIdx);
+        synSTD.spaceMeanTimeSTD=synSTD.spaceMeanTimeSTD(thresKeepIdx);
+        synSTD.spaceTimeSTD=synSTD.spaceTimeSTD(thresKeepIdx);
+        synSTD.synProbSTD=synSTD.synProbSTD(thresKeepIdx);
+        
         if   ~isempty(synRegio) 
             synRegio=synRegio(thresKeepIdx); % Here the mask is adjusted.
         end
@@ -1169,7 +1216,7 @@ end
         title('loading')
         if (fastLoadChkButton.Value)
             [data, pathname, fname, dirname, U, S, V] = loadTiff([],fastLoadChkButton.Value);
-            imageEigen(U,S,V);
+            imageEigen(U,S,V); % Display Eigenvectors
         else
             [data, pathname, fname, dirname] = loadTiff([],fastLoadChkButton.Value);
         end
@@ -1378,9 +1425,10 @@ end
     mSigA=nan; miSigA=nan; synapseSize=nan; noiseSTD=nan; aboveThreshold=nan; UpHalfTime=nan;    DownHalfTime=nan;    tau1=nan;
     amp=nan;      error=nan; xCentPos=nan; yCentPos=nan; synapseNbr=nan; bbox=[nan,nan,nan,nan]; AUC=nan; nAUC=nan;
     rawBaseFluor=nan; rawMaxFluor=nan; rawDFluor=nan; rawDFF=nan;
+    
     dffsynsignal=dff(synsignal')';
         for i=1:size(dffsynsignal,2)
-              if isempty(synsignal)
+            if isempty(synsignal)
             	rawFoldedData=nan*ones(size(dffsynsignal)); %When no synapses
             else
                 rawFoldedData=mean(foldData(synsignal(:,i)),2);
@@ -1457,8 +1505,17 @@ end
         UpHalfTime=tau1*0; DownHalfTime=tau1*0;
         error=tau1*0;
         
-        t =     array2table([mSigA'     miSigA' synapseSize' noiseSTD' aboveThreshold' UpHalfTime'    DownHalfTime'    tau1'    amp'      error', xCentPos', yCentPos', synapseNbr', bbox(:,2), bbox(:,1), bbox(:,4), bbox(:,3), AUC', nAUC', rawBaseFluor', rawMaxFluor', rawDFluor', rawDFF'],...
-            'VariableNames',{'maxSyn', 'miSyn', 'synapseSize', 'noiseSTD', 'aboveThreshold', 'UpHalfTime', 'downHalfTime', 'tau1', 'ampSS', 'error','xCentPos','yCentPos', 'synapseNbr', 'bboxUx','bboxUy','bboxDx','bboxDy','AUC','nAUC', 'rawBaseFluor', 'rawMaxFluor', 'rawDFluor', 'rawDFF'});
+        t =     array2table([...
+            mSigA'     miSigA' synapseSize' noiseSTD' aboveThreshold' ...
+            UpHalfTime'    DownHalfTime'    tau1'    amp'      error',...
+            xCentPos', yCentPos', synapseNbr', bbox(:,2), bbox(:,1),...
+            bbox(:,4), bbox(:,3), AUC', nAUC', rawBaseFluor',...
+            rawMaxFluor', rawDFluor', rawDFF',...
+        synSTD.spaceTimeSTD'  synSTD.spaceMeanTimeSTD' synSTD.meanSpaceTimeSTD' ...
+         synSTD.synProbSTD'  synSTD.laplaceSynProbSTD'  ...
+         ],...
+            'VariableNames',{'maxSyn', 'miSyn', 'synapseSize', 'noiseSTD', 'aboveThreshold', 'UpHalfTime', 'downHalfTime', 'tau1', 'ampSS', 'error','xCentPos','yCentPos', 'synapseNbr', 'bboxUx','bboxUy','bboxDx','bboxDy','AUC','nAUC', 'rawBaseFluor', 'rawMaxFluor', 'rawDFluor', 'rawDFF'...
+             'spaceTimeSTD',  'spaceMeanTimeSTD', 'meanSpaceTimeSTD', 'synProbSTD', 'laplaceSynProbSTD'});
         
         if(~isdir ([dirname 'output\']))
             mkdir ([dirname 'output\']);
@@ -1942,6 +1999,7 @@ end
                 if fastLoadChkButton.Value
                     [data, pathname, fname, dirname,U,S,V] = loadTiff([expnm{EID}.folder '\' expnm{EID}.name],fastLoadChkButton.Value );
                     imageEigen(U,S,V);
+                    synProb = reshape(U(:,EVN),[wy,wx]);
                 else
                     [data, pathname, fname, dirname] = loadTiff([expnm{EID}.folder '\' expnm{EID}.name],fastLoadChkButton.Value );
                 end
@@ -2859,14 +2917,24 @@ end
         errorL=labelVar('error_',NOS2);
                 
    
-        t = array2table([synapseNbr', mSigA     miSigA synapseSize' noiseSTD aboveThreshold UpHalfTime    DownHalfTime    tau1    amp      error, xCentPos', yCentPos',  bbox(:,2), bbox(:,1), bbox(:,4), bbox(:,3), AUC, nAUC, rawBaseFluor', rawMaxFluor', rawDFluor', rawDFF', rawPartMaxFluor, rawPartMinFluor, rawPartDF],...
-            'VariableNames',[{'synapseNbr'},maxSynL, miSynL, {'synapseSize'}, noiseSTDL, aboveThresholdL, UpHalfTimeL, downHalfTimeL, tauL, ampSSL, errorL,{'xCentPos'},{'yCentPos'},  {'bboxUx'},{'bboxUy'},{'bboxDx'},{'bboxDy'},AUCL,nAUCL, 'rawBaseFluor', 'rawMaxFluor', 'rawDFluor', 'rawDFF', rawPartMaxFluorL , rawPartMinFluorL , rawPartDFFL ]);
-        
-        
-            
-        
-        
-            
+        t = array2table([...
+            synapseNbr', mSigA     miSigA synapseSize' noiseSTD ...
+            aboveThreshold UpHalfTime    DownHalfTime    tau1    amp      ...
+            error, xCentPos', yCentPos',  bbox(:,2), bbox(:,1), bbox(:,4), ...
+            bbox(:,3), AUC, nAUC, rawBaseFluor', rawMaxFluor', rawDFluor', ...
+            rawDFF', rawPartMaxFluor, rawPartMinFluor, rawPartDF...
+            synSTD.spaceTimeSTD'  synSTD.spaceMeanTimeSTD' synSTD.meanSpaceTimeSTD' ...
+         synSTD.synProbSTD'  synSTD.laplaceSynProbSTD'   ...
+        ],...
+            'VariableNames',...
+            [{'synapseNbr'},maxSynL, miSynL, {'synapseSize'}, ...
+            noiseSTDL, aboveThresholdL, UpHalfTimeL, downHalfTimeL, tauL, ampSSL, ...
+            errorL,{'xCentPos'},{'yCentPos'},  {'bboxUx'},{'bboxUy'},...
+            {'bboxDx'},{'bboxDy'},AUCL,nAUCL, 'rawBaseFluor', 'rawMaxFluor'...
+            , 'rawDFluor', 'rawDFF', rawPartMaxFluorL , rawPartMinFluorL...
+            , rawPartDFFL,...
+            'spaceTimeSTD', 'spaceMeanTimeSTD' 'meanSpaceTimeSTD', ...
+            'synProbSTD', 'laplaceSynProbSTD']);
         
         if(~isdir ([dirname 'output\']))
             mkdir ([dirname 'output\']);
