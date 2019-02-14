@@ -751,9 +751,13 @@ end
     function synProb = laplaceFilter(synProb)
         sigma=.1;
         alpha=4;
+        % Geen goed idee, scaling depnds on range, 
         Msp = max(synProb(:));
         msp = min(synProb(:));
-        synProb16 = int16((synProb-msp)/(Msp-msp+1e-6));
+        Msp = 
+        msp = min(synProb(:));
+        
+        synProb16 = int16((synProb-msp)/(Msp-msp+1e-6)*2^15);
         
         
         B =locallapfilt(synProb16 ,sigma,alpha,'NumIntensityLevels', 100);
@@ -1757,6 +1761,7 @@ end
         imageMetrics(1).name = 'SpatSTD';
         imageMetrics(1).value=  std(Tavg(:));
         imageMetrics(2).name = 'LapSpatSTD';
+        kkk
         lap = double(locallapfilt(uint16(Tavg),0.3,0.1));
         imageMetrics(2).value= std(lap(:));
         imageMetrics(3).name = 'SpatTempSTD';
@@ -2078,6 +2083,9 @@ end
         movefile([dirname ffname '*.png'],[dirname analysisListName(1:end-4) '\']);
         movefile([dirname fname '*.pdf'],[dirname analysisListName(1:end-4) '\']);
         movefile([dirname ffname '*.pdf'],[dirname analysisListName(1:end-4) '\']);
+        movefile([dirname fname '*.emf'],[dirname analysisListName(1:end-4) '\']);
+        movefile([dirname ffname '*.emf'],[dirname analysisListName(1:end-4) '\']);
+      
         ffname = fname(1:end-4);
         try
            movefile([dirname 'output\' ffname '*.*'],[dirname analysisListName(1:end-4) '\output']);
