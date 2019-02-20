@@ -85,6 +85,9 @@ fps = 33;
 dt = 1/fps;
 debug = 0;
 
+setPhotoBleachingTxt('linInt');
+setwriteSVD(1);
+ 
 %% For post-processing
 %% Set default values on load
 stimFreq2 = 0;
@@ -754,8 +757,8 @@ end
         % Geen goed idee, scaling depnds on range, 
         Msp = max(synProb(:));
         msp = min(synProb(:));
-        Msp = 
-        msp = min(synProb(:));
+        Msp = 1;
+        msp = -1;
         
         synProb16 = int16((synProb-msp)/(Msp-msp+1e-6)*2^15);
         
@@ -764,7 +767,7 @@ end
         psnr_denoised = psnr(B, synProb16)
         imagesc(B);
         
-        synProb =double(B)*(Msp-msp+1e-6)+msp;
+        synProb =double(B)*((Msp-msp+1e-6)+msp)/2^15;
     end
 
     function go(source,event,handles)
@@ -822,8 +825,8 @@ end
             spaceTimeSTD = std(ss(:));
             spaceMeanTimeSTD = std(mean(ss,2));
             meanSpaceTimeSTD = std(mean(ss,1));
-            synProbSTD = std(rsynProb(pixlid));
-            laplaceSynProbSTD = std(rlpsynProb(pixlid));
+            synProbSTD = std(rsynProb(:));
+            laplaceSynProbSTD = std(rlpsynProb(:));
         end
         synSTD.spaceTimeSTD = spaceTimeSTD;
         synSTD.spaceMeanTimeSTD = spaceMeanTimeSTD;
@@ -1172,17 +1175,17 @@ end
     function imageEigen(U,S,V)
         subplot(4,4,[2:3, 6:7]);
         imagesc(reshape(U(:,2),size(data,1),size(data,2)));colormap('gray');
-        subplot(4,4,10);
+        subplot(4,4,3);
         imagesc(reshape(U(:,1),size(data,1),size(data,2)));colormap('gray');
         title('eig 1')
-        subplot(4,4,11);
+        subplot(4,4,7);
         imagesc(reshape(U(:,2),size(data,1),size(data,2)));colormap('gray');
         title('eig 2')
-        subplot(4,4,14);
+        subplot(4,4,11);
         imagesc(reshape(U(:,3),size(data,1),size(data,2)));colormap('gray');
         title('eig 3')
         subplot(4,4,15);
-        imagesc(reshape(U(:,3),size(data,1),size(data,2)));colormap('gray');
+        imagesc(reshape(U(:,4),size(data,1),size(data,2)));colormap('gray');
         title('eig 4')
         
         subplot(4,4,4);
@@ -1761,7 +1764,6 @@ end
         imageMetrics(1).name = 'SpatSTD';
         imageMetrics(1).value=  std(Tavg(:));
         imageMetrics(2).name = 'LapSpatSTD';
-        kkk
         lap = double(locallapfilt(uint16(Tavg),0.3,0.1));
         imageMetrics(2).value= std(lap(:));
         imageMetrics(3).name = 'SpatTempSTD';
@@ -1769,7 +1771,46 @@ end
         imageMetrics(4).name = 'PATempSTD';
         imageMetrics(4).value= std(AR);
         
-     
+        % Focus measures:
+        
+        
+        
+        fmeasureMethods={...
+'ACMO'... %: Absolute central moment (Shirvaikar2004)
+'BREN'... %: Brenner's focus measure (Santos97)
+'CONT'... %: Image contrast (Nanda2001)
+'CURV'... %: Image curvature (Helmli2001)
+'DCTE'... %: DCT Energy measure (Shen2006)
+'DCTR'... %: DCT Energy ratio (Lee2009)
+'GDER'... %: Gaussian derivative (Geusebroek2000)
+'GLVA'... %: Gray-level variance (Krotkov86)
+'GLLV'... %: Gray-level local variance (Pech2000)
+'GLVN'... %: Gray-level variance normalized (Santos97)
+'GRAE'... %: Energy of gradient (Subbarao92)
+'GRAT'... %: Thresholded gradient (Santos97)
+'GRAS'... %: Squared gradient (Eskicioglu95)
+'HELM'... %: Helmli's measure (Helmli2001)
+'HISE'... %: Histogram entropy (Krotkov86)
+'HISR'... %: Histogram range (Firestone91)
+'LAPE'... %: Energy of Laplacian (Subbarao92)
+'LAPM'... %: Modified laplacian (Nayar89)
+'LAPV'... %: Variance of laplacian (Pech2000)
+'LAPD'... %: Diagonal Laplacian (Thelen2009)
+'SFIL'... %: Steerable filters-based (Minhas2009)
+'SFRQ'... %: Spatial frequency (Eskicioglu95)
+'TENG'... %: Tenegrad (Krotkov86)
+'TENV'... %: Tenengrad variance (Pech2000)
+'VOLA'... %: Vollat's correlation-based (Santos97)
+...%'WAVS'... %: Wavelet sum (Yang2003)
+...%'WAVV'... %: Wavelet variance (Yang2003)
+...%'WAVR'... %: Wavelet ratio (Xie2006)
+            };
+        
+        for i=1:length(fmeasureMethods)
+        imageMetrics(4+i).name = ['FM_' fmeasureMethods{i}];
+        imageMetrics(4+i).value= fmeasure(Tavg,fmeasureMethods{i})
+        end
+        
  end
      
     function freqfilter2D(s,e)
@@ -1856,61 +1897,7 @@ end
 %         end
 %     end
 %%
-    function goDeep(func,filterOptions,rootDir)
-        % GoDeep will evaluate the function func on specific files in
-        % current directory or subdirectory. 
-        % It wil look in subdirectories up to 6 deep to find files of a
-        % particular type. If the file is found than, the function
-        % is evaluated on that directory.
-        % The type can be specified with filterOptions.
-        % If these particular files are found, than the subsequent
-        % subdirectories of that folder are NOT looked into. 
-        if nargin<3  
-            [dataDirname] = uigetdir(defaultDir,'Select dir:');
-            defaultDir =  [dataDirname '\..'];
-        else
-            dataDirname=rootDir;  
-        end
-        if nargin<2
-            filterOptions='\*.tif';
-        end
-        if isempty(dir([dataDirname filterOptions]))
-            d2= dir([dataDirname '\*.*']);
-            d2(~[d2.isdir])=[]; % remove files, keep subdirs
-            for  i=1:(length(d2)-2) % remove . and ..
-                if isempty(dir([dataDirname '\' d2(i+2).name filterOptions]))
-                    d3= dir([dataDirname '\' d2(i+2).name '\*.*']);
-                    d3(~[d3.isdir])=[]; % remove files, keep subdirs
-                    for  ii=1:(length(d3)-2) % remove . and ..
-                        if isempty(dir([dataDirname '\' d2(i+2).name '\' d3(ii+2).name filterOptions]))
-                            d4= dir([dataDirname '\' d2(i+2).name '\' d3(ii+2).name '\*.*']);
-                            d4(~[d4.isdir])=[]; % remove files, keep subdirs
-                            for  iii=1:(length(d4)-2) % remove . and ..
-                                if isempty(dir([dataDirname '\' d2(i+2).name '\' d3(ii+2).name '\' d4(iii+2).name filterOptions]))
-                                    d5= dir([dataDirname '\' d2(i+2).name '\' d3(ii+2).name '\' d4(iii+2).name '\*.*']);
-                                    d5(~[d5.isdir])=[]; % remove files, keep subdirs
-                                    for  iiii=1:(length(d5)-2) % remove . and ..
-                                        if isempty(dir([dataDirname '\' d2(i+2).name '\' d3(ii+2).name '\' d4(iii+2).name '\' d5(iiii+2).name filterOptions]))
-                                        else
-                                            func([dataDirname '\' d2(i+2).name '\' d3(ii+2).name '\' d4(iii+2).name '\' d5(iiii+2).name]);
-                                        end
-                                    end
-                                else
-                                    func([dataDirname '\' d2(i+2).name '\' d3(ii+2).name '\' d4(iii+2).name]);
-                                end
-                            end
-                        else
-                            func([dataDirname '\' d2(i+2).name '\' d3(ii+2).name]);
-                        end
-                    end
-                else
-                    func([dataDirname '\' d2(i+2).name]);
-                end
-            end
-        else
-            func(dataDirname);
-        end
-    end
+   
     function doProcessDir(s,e,h)
         try
             [dataDirname] = uigetdir(defaultDir,'Select dir:');
@@ -2924,6 +2911,19 @@ end
         rawPartDFFL=labelVar('rawPartDFF_',NOS2);
         errorL=labelVar('error_',NOS2);
                 
+        
+        if  isempty(synSTD.spaceTimeSTD) % If all synapses are removed for not reaching temporal threshold.
+        synSTD.spaceTimeSTD=nan;
+        synSTD.spaceMeanTimeSTD=nan;
+        synSTD.meanSpaceTimeSTD=nan;
+        synSTD.laplaceSynProbSTD=nan;
+        synSTD.synProbSTD=nan;
+        end
+        
+        
+        
+        
+        
    
         t = array2table([...
             synapseNbr', mSigA     miSigA synapseSize' noiseSTD ...

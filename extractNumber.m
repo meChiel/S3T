@@ -24,6 +24,7 @@
         number=str2num(filename(eidx+2:eidx+Nendidx-1));
     else
         number = catNumbers(filename,4);
-        disp('Did not find file "_e" in filenames, creating id from last 4 numbers in filename. PLease use  _e0001_as in file for generting unique ids.')
+        disp('Did not find file "_e" in filenames, creating id from last 4 numbers in filename. PLease use  _e0001_as in file for generting unique ids.');
+        disp(['Number used == ' num2str(number)]);
     end
     end

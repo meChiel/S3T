@@ -199,20 +199,25 @@ else %if single coverslip Data
             metaData = bb.MovieFilename{j};
             if (strcmp(microData(1:end-length('_analysis.txt')),metaData(1:end-length('.tif'))))
                 fname{k}=microData(1:end-length('_analysis.txt'));
-                i, j, k
+                disp([num2str(i) ',' num2str(j) ',' num2str(k) ]);
                 metaTable(k,:)=bb{j,numericEntries};
                 k=k+1;
             end
         end
     end
-   metaTable2=  array2table(metaTable,'VariableNames',{bb.Properties.VariableNames{numericEntries}});
+   try
+        metaTable2=  array2table(metaTable,'VariableNames',{bb.Properties.VariableNames{numericEntries}});
+   catch e
+       disp(['Problems in: ' dirname])
+       error(e.message);       
+   end
    aWT=[aWT, metaTable2];
    
    %fileNb = catNumbers({bb.MovieFilename{:}},4);
-   fileNb = extractNumber({bb.MovieFilename{:}});
+ 
    rvec=[];
    for ii=1:length(nEl)
-       rvec=[rvec; repmat(fileNb(ii),nEl(ii),1)];
+       rvec=[rvec; repmat(sfnNber(ii),nEl(ii),1)];
    end
    aST = [aST, array2table(rvec,'VariableNames',{'FileNumber'})];
 end

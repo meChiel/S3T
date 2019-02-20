@@ -409,7 +409,9 @@ if strcmp(tempPlateFilename,'AllSynapses.txt')
          fileNumbers=extractNumber({analysisList.name});
          [a]=find(tempFilenb==fileNumbers);
          if length(a)~=1
-             error('more files with same id number, please rename files to _e0001 numbering system');
+             disp(['problem tempFilenb: ' num2str(tempFilenb)]);
+             error('more or no files with same id number, please rename files to _e0001 numbering system');
+             
          end
        tempPlateFilename=['SynapseDetails\' analysisList(a).name];
 end

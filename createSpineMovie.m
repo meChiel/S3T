@@ -14,24 +14,24 @@ plateOnOff = [...
     0 0 0 0 0 0 0 0 0 0 0 0;
     ];
 %%
-% 
-% plateOnOff = [...
-%     0 0 0 0 0 0 0 0 0 0 0 0;
-%     0 0 1 1 1 1 1 1 1 1 1 0;
-%     0 0 0 0 0 0 0 0 0 0 0 0;
-%     0 0 0 0 0 0 0 0 0 0 0 0;
-%     0 0 0 0 0 0 0 0 0 0 0 0;
-%     0 0 0 0 0 0 0 0 0 0 0 0;
-%     0 0 0 0 0 0 0 0 0 0 0 0;
-%     0 0 0 0 0 0 0 0 0 0 0 0;
-%     ]; % Transpose to make the serialisation from left to right is done
-%     later with rot90.
+
+plateOnOff = [...
+    0 0 0 0 0 0 0 0 0 0 0 0;
+    0 1 0 0 0 0 0 0 0 0 0 0;
+    0 0 0 0 0 0 0 0 0 0 0 0;
+    0 0 0 0 0 0 0 0 0 0 0 0;
+    0 0 0 0 0 0 0 0 0 0 0 0;
+    0 0 0 0 0 0 0 0 0 0 0 0;
+    0 0 0 0 0 0 0 0 0 0 0 0;
+    0 0 0 0 0 0 0 0 0 0 0 0;
+    ]; % Transpose to make the serialisation from left to right is done
+    %later with rot90.
  
 %%
 
 plateNoise = [...
     0 0 0 0 0 0 0 0 0 0 0 0;
-    0 0 0.01 .1 .1 .1 1 1 1 10 10 0;
+    0 2.8 0.01 .1 .1 .1 1 1 1 10 10 0;
     0 0 0.01 .1 .1 .1 1 1 1 10 10 0;
     0 0 0.01 .1 .1 .1 1 1 1 10 10 0;
     0 0 0.01 .1 .1 .1 1 1 1 10 10 0;
@@ -43,7 +43,7 @@ plateNoise = [...
 %% Plate Photo Bleaching Amplitude
 platePBA = [...
     0, 0 	0 		0 		0 		0 		0 		0 		0 		0 		0 		0 ;		
-    0, 0 	0 		0 		0 		0 		0 		0 		0 		0 		0 		0 ;		
+    0, 0.4 	0 		0 		0 		0 		0 		0 		0 		0 		0 		0 ;		
     0, 0.01 0.01 	0.01 	0.01 	0.01 	0.01 	0.01 	0.01 	0.01 	0.01 	0 ;
     0, .1 	.1 		.1 		.1 		.1 		.1 		.1 		.1 		.1 		.1 		0 ;		
     0, 1 	1 		1 		1 		1 		1 		1 		1 		1 		1 		0 ;		
@@ -52,6 +52,7 @@ platePBA = [...
     0, 0 	0 		0 		0 		0 		0 		0 		0 		0 		0 		0 ;		
     ];
 
+%%
 
 %%
 
@@ -87,9 +88,9 @@ for jj=0:(numOfWells-1)
     bgF=100*ones(Nspines,1); % Background Fluorescence active spines
     bgF2=100*ones(Nspines2,1); % Background Fluorescence non-active spines
     pos2=ceil(512*rand(Nspines2,2)); % Postion of non-active spines
-    spiketimes = 1.2*ones(Nspines,1)+0.03*randn(Nspines,1); % SpikeTime + random delay
-    spiketimes2 = 6.2*ones(Nspines,1)+0.03*randn(Nspines,1); % SpikeTime + random delay
-    spiketimes3 = 11.2*ones(Nspines,1)+0.03*randn(Nspines,1); % SpikeTime + random delay
+    spiketimes = 1.2*ones(Nspines,1)+0.00*randn(Nspines,1); % SpikeTime + random delay
+    spiketimes2 = 6.2*ones(Nspines,1)+0.00*randn(Nspines,1); % SpikeTime + random delay
+    spiketimes3 = 11.2*ones(Nspines,1)+0.00*randn(Nspines,1); % SpikeTime + random delay
     %spiketimes3 = 0*ones(Nspines,1)+0.00*randn(Nspines,1); % SpikeTime + random delay
     
     
@@ -97,8 +98,8 @@ for jj=0:(numOfWells-1)
     spikeAmplitude = 500*ones(Nspines,1); % The same amplitude
     spikeAmplitude2 = 500*ones(Nspines,1); % The same amplitude
     spikeAmplitude3 = 1500*ones(Nspines,1); % The same amplitude
-    decaytime= 0.75*ones(Nspines,1)-.003*rand(Nspines,1); % Almost all the same decay time
-    decaytime2= 0.96*ones(Nspines,1)-.003*rand(Nspines,1); % Photo - bleach decay time.
+    decaytime= 0.75*ones(Nspines,1)-.000*rand(Nspines,1); % Almost all the same decay time
+    decaytime2= 0.96*ones(Nspines,1)-.000*rand(Nspines,1); % Photo - bleach decay time.
     %dy=-0.05*y=> exp(-0.5*t/pi)
     backSeed=rand(516,516);
     
@@ -119,6 +120,8 @@ for jj=0:(numOfWells-1)
     [X,Y]=meshgrid(1:sX,1:sY);
     sc=1;
     background=.000005*(((X.*X*0.01*sc-200).*(X*sc-200)+Y*sc.*X.*Y*sc));%+(X*sc-20).*Y));
+    background= 500*double(background>100)+background;
+    %background=.000000*(((X.*X*0.01*sc-200).*(X*sc-200)+Y*sc.*X.*Y*sc));%+(X*sc-20).*Y));
     
     tFrame=1/fs;
     totFrames=floor(totalTime/tFrame);
@@ -144,7 +147,7 @@ for jj=0:(numOfWells-1)
        % image2(:,:,f) = image2(:,:,f)+plateNoise(idx(jj+1))*100*0.5*randn(size(image2(:,:,f)));
         image2(:,:,f) = conv2(spineshape,images);     
         image2(:,:,f) = image2(:,:,f)+background+1*pba*background*PB(i); % PB(i) is buffer going exp from 1 to 0 ;
-        image2(:,:,f) = image2(:,:,f)+noiseLevel*50*randn(size(image2(:,:,f)));
+        image2(:,:,f) = image2(:,:,f)*(1+noiseLevel*50*randn(size(image2(:,:,f))));
         image3(:,:,f) = image2(1:512,1:512,f);
     end
 %    figure(1);colormap gray;
