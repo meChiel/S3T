@@ -6,7 +6,7 @@ global bgc
 global seeWellBtn stimLstX stimLstY
 global filterFieldLst lessMoreLst filterThresholdEdt markerSelectionBtn
 global doFilterBtn HistBtn levelDownBtn levelUpBtn ExportBtn fitBtn
-global lineSizeBtn LineStyleBtn logXChk logYChk 
+global lineSizeBtn LineStyleBtn logXChk logYChk wowChkBtn wow
 
 createButons();
     function createButons()
@@ -41,6 +41,7 @@ createButons();
             'Backgroundcolor',bgc,...
             'Callback', @setLineStyle);
         
+        
         doFilterBtn=[];
         filterThresholdEdt=[];
         filterFieldLst=[];
@@ -58,7 +59,9 @@ createButons();
         exporttt=0;
         logX=0;
         logY=0;
-        
+        wow=0;
+       
+          
         
         logYChk = uicontrol('Visible','off','Style', 'checkbox', 'String','Log Y',...
             'Position', [10 320 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
@@ -67,6 +70,10 @@ createButons();
         logXChk = uicontrol('Visible','off','Style', 'checkbox', 'String','Log X',...
             'Position', [10 300 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
             'CallBack',@logXToggle);
+        
+        wowChkBtn = uicontrol('Visible','off','Style', 'checkbox', 'String','WOW',...
+            'Position', [10 280 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
+            'CallBack',@wowToggle);
         
 %         stimLstX = uicontrol('Style', 'popup', 'String', [selectionOptions, {'fileName'}],...
 %             'Position', [10 60 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
@@ -179,7 +186,11 @@ createButons();
         ExportBtn.Visible=visTExt;  
         fitBtn.Visible=visTExt; 
         seeWellBtn.Visible=visTExt; 
+        wowChkBtn.Visible=visTExt;
         
+    end
+    function wowToggle(e,d,r)
+        wow=wowChkBtn.Value;
     end
     function logXToggle(e,d,r)
         logX=logXChk.Value;
@@ -587,25 +598,58 @@ end
         end
         updatePlot();
     end
+global x y;
     function updatePlot(e,g,h)
         subplot(4,4,[2:3,6:7,10:11,14:15])
+        if wow
+        animationNumber=50;
+        animValue=[1:50]/animationNumber;
+        animValue=[(tanh(linspace(-pi,pi,animationNumber))+1)/2];
+        animValue=1-animValue;
+        oab=axis();
+        else
+            animationNumber=1;
+            animValue=0;
+        end
+        for af=1:animationNumber
         hold off;
         
         for (i=1:size(plateFilename,2))
-            if ~strcmp(stimLstX.String(stimLstX.Value),'fileName')
-                x{i}(:)=data{i}.(stimLstX.Value);
+            if ~strcmp(stimLstX.String(stimLstX.Value),'fileName') 
+                % Normal case
+                if ~wow
+                    x{i}(:)=data{i}.(stimLstX.Value);
+                else
+                    tempX=data{i}.(stimLstX.Value);
+                    if exist('x','var')
+                        x{i}(:)=tempX+animValue(af)*(x{i}(:)-tempX);
+                    else
+                        x{i}(:)=tempX;
+                    end
+                end
                 xlabelText = stimLstX.String(stimLstX.Value);
-            else
+            else %Special fileName Case
                 %x{i}(:)=i + rand(length(data{i}.(stimLstY.Value)),1)*0.5;%1:size(plateFilename,2);
                 x{i}(:)=i + pseudoRandom(length(data{i}.(stimLstY.Value)));%1:size(plateFilename,2);
                 xlabelText = 'File Name'; 
             end
-            y{i}(:)=data{i}.(stimLstY.Value);
+            if ~wow
+                y{i}(:)=data{i}.(stimLstY.Value);
+            else
+                tempY=data{i}.(stimLstY.Value);
+                if exist('y','var')
+                    y{i}(:)=tempY+animValue(af)*(y{i}(:)-tempY);
+                else
+                    y{i}(:)=tempY;
+                end
+            end
+            
             barplot=0;
             if barplot
                 bar(x{i},y{i});
             else
                 xnoise=0;rand(size(x{i})).*0.2;
+                
                 plot(x{i}+xnoise,y{i},'Marker',marker,'LineWidth',lineSize,'LineStyle', LineStyle );
                 if logX
                 xnoise=rand(size(x{i}))*.2;
@@ -614,7 +658,7 @@ end
                 ,hold on;
                 
               
-                if (fittt==1)
+                if (fittt==1) % Plot a piecewise fit
                     xcats=unique(x{i});
                     yy=y{i};
                     xx=x{i};
@@ -629,6 +673,7 @@ end
                     plot(xcats,msell,'k','LineWidth',lineSize);            
                     %dx=max(x{i})-min(x{i});
                 end
+                
             end
         end
         
@@ -672,6 +717,13 @@ end
         end
         if (ca.XLim ==[0 1])
             ca.XLim =[-0.2 1.2];
+        end
+        if wow
+        axis(oab); %
+        drawnow();
+        %disp(af);
+        pause(.05);
+        end
         end
     end
 
