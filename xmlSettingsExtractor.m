@@ -155,6 +155,21 @@ else
         disp('Did not find Write SVD, writeSVD set to 1. ')
         writeSVD = 1;
     end
+    
+        %% dutyCycle
+    rr = strfind(aa,'<Name>duty Cycle</Name>');
+    if length(rr)>0
+        if length(rr)>1
+            warning('did find multiple duty Cycles, chosing 1')
+        end
+        ss=strfind(aa(rr(1):end),'<Val>');
+        ss2=strfind(aa(rr(1)+(ss(1)):end),'</Val>');
+        dutyCycle=str2num((aa(rr(1)+ss(1)+4:rr(1)+ss(1)+ss2(1)-2)));
+        
+    else
+        disp('Did not find dutyCycle, dutyCycle set to 0. ')
+        dutyCycle = 0;
+    end
     %%  skipMovie
    rr = strfind(aa,'<Name>Skip Movie</Name>');
     if length(rr)>0
@@ -272,6 +287,7 @@ stimCfg.writeSVD = writeSVD;
 stimCfg.fastLoad = fastLoad;
 stimCfg.eigenvalueNumber = eigenvalueNumber;
 stimCfg.skipMovie = skipMovie;
+stimCfg.dutyCycle = dutyCycle;
 
 
 end

@@ -1,4 +1,4 @@
-function renameStuff(dirNm)    
+function renameStuff(dirNm)   
 if exist('dirNm','var')
     if dirNm~=0
         dirNm = (dirNm);
@@ -12,7 +12,7 @@ end
 dirctnt = dir(dirNm);
 
 for i=3:length(dirctnt)
-   newname = strrep(dirctnt(i).name,'_e000Nachiket_','_Nachiket_e000');
+   newname = strrep(dirctnt(i).name,'PSD_','PSD_e000');
    if ~strcmp( newname,dirctnt(i).name)
     movefile([dirctnt(i).folder '\' dirctnt(i).name],[dirctnt(i).folder '\' newname])
    end

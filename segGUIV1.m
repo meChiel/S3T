@@ -84,6 +84,7 @@ EVN = 2; % Eigen Value Number
 fps = 33;
 dt = 1/fps;
 debug = 0;
+dutyCycleOnFrames = 0;
 
 setPhotoBleachingTxt('linInt');
 setwriteSVD(1);
@@ -93,6 +94,7 @@ setwriteSVD(1);
 stimFreq2 = 0;
 NOS2 = 0; % Number of stimuli
 OnOffset2 = 0;
+
 
 %% Create a figure and axes
 if ~exist('headless','var')
@@ -687,6 +689,13 @@ end
         NOS2 = NOSTemp;
         NOStxt2.String = num2str(NOS2);
     end
+
+
+    
+    function setDutyCycleOnFrames(a)
+        dutyCycleOnFrames=a;
+    end
+
 
     function doSetCellBody(h,g,f)
         setCellBody(segmentCellBodiesChkButton.Value);
@@ -2068,8 +2077,16 @@ end
         ffname = fname(1:end-4);
         movefile([dirname fname '*.png'],[dirname analysisListName(1:end-4) '\']);
         movefile([dirname ffname '*.png'],[dirname analysisListName(1:end-4) '\']);
-        movefile([dirname fname '*.pdf'],[dirname analysisListName(1:end-4) '\']);
-        movefile([dirname ffname '*.pdf'],[dirname analysisListName(1:end-4) '\']);
+        try
+            movefile([dirname fname '*.pdf'],[dirname analysisListName(1:end-4) '\']);
+        catch
+            disp('No pdf files found.')
+        end
+        try
+            movefile([dirname ffname '*.pdf'],[dirname analysisListName(1:end-4) '\']);
+        catch
+            disp('no pdf found');
+        end
         movefile([dirname fname '*.emf'],[dirname analysisListName(1:end-4) '\']);
         movefile([dirname ffname '*.emf'],[dirname analysisListName(1:end-4) '\']);
       
@@ -2693,12 +2710,12 @@ end
         % NOS = 3; % Number of Stimuli
         interStimPeriod = 1/stimFreq*fps; %Do not floor here but only after multiplication.
         iSP = interStimPeriod;
-        dCOF=0; % DutyCycleOnFrames.  |--dCOF--|____|-----|____
+        dCOF=dutyCycleOnFrames; % DutyCycleOnFrames.  |--dCOF--|____|-----|____
         if (dCOF==0 || dCOF>iSP)
             dCOF = floor(iSP);
         end
         
-        dCOF = floor(iSP); %dutyCycleOnFrames.
+        %dCOF = floor(iSP); %dutyCycleOnFrames.
         part = zeros(dCOF,NOS);
         for iii = 1:NOS
             try
@@ -3011,6 +3028,7 @@ end
        disp('fast load xml setting disabled');%setFastLoad(analysisCfg.fastLoad);
         setFrameSelectionTxt(analysisCfg.FrameSelectionTxt);
         setPhotoBleachingTxt(analysisCfg.PhotoBleachingTxt);
+        setDutyCycleOnFrames(analysisCfg.dutyCycle);
 
 % if exist('eigTxt')
 %     eigTxt.String = EVN; 
