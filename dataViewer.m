@@ -372,157 +372,158 @@ global wellAvg mask
         %avgAx.Position=avgAx.Position + [-.10 -0.15 .15 .15];
         
     end
+
     function seeTrace(d,f,e)
         STToggle=~STToggle;
         while (STToggle)
             STToggle=0;
-            set(seeTraceBtn, 'Backgroundcolor',bgc+[.2 -0.5 -0.5]);   
-        [x, y]=ginput(1);
-        tmaxx =-inf;
-        tminx=inf;
-        
-        tmaxy =-inf;
-        tminy=inf;
-        for (i=1:size(plateFilename,2))
-            if strcmp(stimLstX.String(stimLstX.Value),'fileName')
-                currentDataX =i + pseudoRandom(length(data{i}.(stimLstY.Value)));%1:size(plateFilename,2);
-            else
-                currentDataX =data{i}.(stimLstX.Value);
+            set(seeTraceBtn, 'Backgroundcolor',[.65 0.15 0.15]);
+            [x, y]=ginput(1);
+            tmaxx =-inf;
+            tminx=inf;
+            
+            tmaxy =-inf;
+            tminy=inf;
+            for (i=1:size(plateFilename,2))
+                if strcmp(stimLstX.String(stimLstX.Value),'fileName')
+                    currentDataX =i + pseudoRandom(length(data{i}.(stimLstY.Value)));%1:size(plateFilename,2);
+                else
+                    currentDataX =data{i}.(stimLstX.Value);
+                end
+                currentDataY =data{i}.(stimLstY.Value);
+                tmaxx = max([tmaxx max(currentDataX)]);
+                tminx = min([tminx min(currentDataX)]);
+                
+                tmaxy = max([tmaxy max(currentDataY)]);
+                tminy = min([tminy min(currentDataY)]);
             end
-            currentDataY =data{i}.(stimLstY.Value);
-            tmaxx = max([tmaxx max(currentDataX)]);
-            tminx = min([tminx min(currentDataX)]);
             
-            tmaxy = max([tmaxy max(currentDataY)]);
-            tminy = min([tminy min(currentDataY)]);
-        end
-        
-        dx=tmaxx-tminx;
-        dy=tmaxy-tminy;
-        
-        for (i=1:size(plateFilename,2))
-            if strcmp(stimLstX.String(stimLstX.Value),'fileName')
-                currentDataX =i + pseudoRandom(length(data{i}.(stimLstY.Value)));%1:size(plateFilename,2);
-            else
-                currentDataX =data{i}.(stimLstX.Value);
-            end
-            currentDataY =data{i}.(stimLstY.Value);
-            try 
-            [m(i), mi(i)]=min(sum([(x-currentDataX)/dx (y-currentDataY)/dy].^2,2));
-            catch
-                m(i) = inf; mi(i)=inf;
-            end
-        end
-        [~, fi]=min(m); %fi: file index
-        
-        currentFile = fi;
-        tmi =mi(fi); %tmi: total minima index
-        if any(strcmp('synapseNbr',fieldnames(data{fi}))) % check if well or plate level
-            syNbr = data{fi}.synapseNbr(tmi);
-            if strcmp(stimLstX.String(stimLstX.Value),'fileName')
-                currentDataX =fi + pseudoRandom(length(data{fi}.(stimLstY.Value)));%1:size(plateFilename,2);
-            else
-                currentDataX =data{fi}.(stimLstX.Value);
-            end
-            %           currentDataX =data{fi}.(stimLstX.Value);
-            currentDataY =data{fi}.(stimLstY.Value);
+            dx=tmaxx-tminx;
+            dy=tmaxy-tminy;
             
-            %[responseFile, responsePath]=uigetfile('*.csv');
-            %responses = csvread([responsePath responseFile]);
-            
-            tempPlateFilename = plateFilename{fi};
-            %dd = ['../' dd(1:end-3) 'csv'];
-          
-         
-if strcmp(tempPlateFilename,'AllSynapses.txt')
-         tempFilenb=data{fi}.FileNumber(tmi);
-         analysisList= dir([plateDir 'SynapseDetails\*_PPsynapses.*']);
-         fileNumbers=extractNumber({analysisList.name});
-         [a]=find(tempFilenb==fileNumbers);
-         if length(a)~=1
-             disp(['problem tempFilenb: ' num2str(tempFilenb)]);
-             error('more or no files with same id number, please rename files to _e0001 numbering system');
-             
-         end
-       tempPlateFilename=['SynapseDetails\' analysisList(a).name];
-end
-            tempFilename=strrep(tempPlateFilename,'_PPsynapses','_synapses');
-            tempFilename=strrep(tempFilename,'_synapses','_synTraces');
-            tempFilename = [ tempFilename(1:end-3) 'csv'];
-            try
-                responses = table2array(readtable([plateDir tempFilename]));
-            catch
-                warning('using _synapses.csv files is old file naming, please rename files to _synTraces.csv');
-                tempFilename = [tempFilename(1:end-13) 'synapses.csv'];
-                responses = table2array(readtable([plateDir tempFilename]));
-            end
-            time=responses (:,1);
-            responses =responses (:,2:end)';
-            
-            hold on; plot(currentDataX(tmi),currentDataY(tmi),'*r')
-            subplot(4,4,5)
-            hold off;
-            plot(time,responses (syNbr,:))
-            
-        else % We are at well level.
-            %wellNbr = data{fi}.FileNumber(tmi);
-            detailFilename =plateFilename{fi};
-            dd=plateFilename{fi};
-            
-                     
-if strcmp(dd,'AllWells.txt')
-         tempFilenb=data{fi}.FileNumber(tmi);
-         analysisList= dir([plateDir '*_Analysis.*']);
-         fileNumbers=extractNumber({analysisList.name});
-         [a]=find(tempFilenb==fileNumbers);
-         if length(a)~=1
-             error('more files with same id number, please rename files to _e0001 numbering system');
-         end
-       tempPlateFilename=[analysisList(a).name];
-       dd=tempPlateFilename;
-end
-            
-            
-            dd = [dd(1:end-12) 'synTraces.csv'];
-            try
-                responses = table2array(readtable([plateDir 'synapseDetails\'  dd]));
-            catch
-                warning('No synTraces.csv file found, trying _synapses.csv.');
-                warning('using _synapses.csv files is old file naming, please rename files to _synTraces.csv');
-                dd = [dd(1:end-13) 'synapses.csv'];
-                responses = table2array(readtable([plateDir 'synapseDetails\'  dd]));
-            end
-            time=responses (:,1);
-            responses =responses (:,2:end)';
-        
-        %    responses = csvread([plateDir dd]);
-            subplot(4,4,5)
-            hold off;
-            plot(time,responses (:,:)','Color',[0.5 0.5 0.5]);
-            hold on;
-            plot(time,mean(responses (:,:)),'k','LineWidth',4);
-            syNbr=1;
-            
-       
-        end
-        xlabel('time'); ylabel('\Delta f/f')
-      
-            
-        if (strcmp(plateFilename{fi},'AllSynapses.txt'))
-            seeWell(tempPlateFilename(16:end),syNbr);
-        else
-            if (strcmp(plateFilename{fi},'AllWells.txt'))
-                seeWell(tempPlateFilename,syNbr);
-            else
+            for (i=1:size(plateFilename,2))
+                if strcmp(stimLstX.String(stimLstX.Value),'fileName')
+                    currentDataX =i + pseudoRandom(length(data{i}.(stimLstY.Value)));%1:size(plateFilename,2);
+                else
+                    currentDataX =data{i}.(stimLstX.Value);
+                end
+                currentDataY =data{i}.(stimLstY.Value);
                 try
-                seeWell(plateFilename{fi},syNbr);
+                    [m(i), mi(i)]=min(sum([(x-currentDataX)/dx (y-currentDataY)/dy].^2,2));
                 catch
-                    disp(['problem with ' plateFilename{fi}]);
-                    seeWell(plateFilename{fi},syNbr);
+                    m(i) = inf; mi(i)=inf;
                 end
             end
-        end
-        updatePlot();
+            [~, fi]=min(m); %fi: file index
+            
+            currentFile = fi;
+            tmi =mi(fi); %tmi: total minima index
+            if any(strcmp('synapseNbr',fieldnames(data{fi}))) % check if well or plate level
+                syNbr = data{fi}.synapseNbr(tmi);
+                if strcmp(stimLstX.String(stimLstX.Value),'fileName')
+                    currentDataX =fi + pseudoRandom(length(data{fi}.(stimLstY.Value)));%1:size(plateFilename,2);
+                else
+                    currentDataX =data{fi}.(stimLstX.Value);
+                end
+                %           currentDataX =data{fi}.(stimLstX.Value);
+                currentDataY =data{fi}.(stimLstY.Value);
+                
+                %[responseFile, responsePath]=uigetfile('*.csv');
+                %responses = csvread([responsePath responseFile]);
+                
+                tempPlateFilename = plateFilename{fi};
+                %dd = ['../' dd(1:end-3) 'csv'];
+                
+                
+                if strcmp(tempPlateFilename,'AllSynapses.txt')
+                    tempFilenb=data{fi}.FileNumber(tmi);
+                    analysisList= dir([plateDir 'SynapseDetails\*_PPsynapses.*']);
+                    fileNumbers=extractNumber({analysisList.name});
+                    [a]=find(tempFilenb==fileNumbers);
+                    if length(a)~=1
+                        disp(['problem tempFilenb: ' num2str(tempFilenb)]);
+                        error('more or no files with same id number, please rename files to _e0001 numbering system');
+                        
+                    end
+                    tempPlateFilename=['SynapseDetails\' analysisList(a).name];
+                end
+                tempFilename=strrep(tempPlateFilename,'_PPsynapses','_synapses');
+                tempFilename=strrep(tempFilename,'_synapses','_synTraces');
+                tempFilename = [ tempFilename(1:end-3) 'csv'];
+                try
+                    responses = table2array(readtable([plateDir tempFilename]));
+                catch
+                    warning('using _synapses.csv files is old file naming, please rename files to _synTraces.csv');
+                    tempFilename = [tempFilename(1:end-13) 'synapses.csv'];
+                    responses = table2array(readtable([plateDir tempFilename]));
+                end
+                time=responses (:,1);
+                responses =responses (:,2:end)';
+                
+                hold on; plot(currentDataX(tmi),currentDataY(tmi),'*r')
+                subplot(4,4,5)
+                hold off;
+                plot(time,responses (syNbr,:))
+                
+            else % We are at well level.
+                %wellNbr = data{fi}.FileNumber(tmi);
+                detailFilename =plateFilename{fi};
+                dd=plateFilename{fi};
+                
+                
+                if strcmp(dd,'AllWells.txt')
+                    tempFilenb=data{fi}.FileNumber(tmi);
+                    analysisList= dir([plateDir '*_Analysis.*']);
+                    fileNumbers=extractNumber({analysisList.name});
+                    [a]=find(tempFilenb==fileNumbers);
+                    if length(a)~=1
+                        error('more files with same id number, please rename files to _e0001 numbering system');
+                    end
+                    tempPlateFilename=[analysisList(a).name];
+                    dd=tempPlateFilename;
+                end
+                
+                
+                dd = [dd(1:end-12) 'synTraces.csv'];
+                try
+                    responses = table2array(readtable([plateDir 'synapseDetails\'  dd]));
+                catch
+                    warning('No synTraces.csv file found, trying _synapses.csv.');
+                    warning('using _synapses.csv files is old file naming, please rename files to _synTraces.csv');
+                    dd = [dd(1:end-13) 'synapses.csv'];
+                    responses = table2array(readtable([plateDir 'synapseDetails\'  dd]));
+                end
+                time=responses (:,1);
+                responses =responses (:,2:end)';
+                
+                %    responses = csvread([plateDir dd]);
+                subplot(4,4,5)
+                hold off;
+                plot(time,responses (:,:)','Color',[0.5 0.5 0.5]);
+                hold on;
+                plot(time,mean(responses (:,:)),'k','LineWidth',4);
+                syNbr=1;
+                
+                
+            end
+            xlabel('time'); ylabel('\Delta f/f')
+            
+            
+            if (strcmp(plateFilename{fi},'AllSynapses.txt'))
+                seeWell(tempPlateFilename(16:end),syNbr);
+            else
+                if (strcmp(plateFilename{fi},'AllWells.txt'))
+                    seeWell(tempPlateFilename,syNbr);
+                else
+                    try
+                        seeWell(plateFilename{fi},syNbr);
+                    catch
+                        disp(['problem with ' plateFilename{fi}]);
+                        seeWell(plateFilename{fi},syNbr);
+                    end
+                end
+            end
+            updatePlot();
         end
         set(seeTraceBtn, 'Backgroundcolor',bgc);
     end
@@ -643,11 +644,13 @@ global x y;
                 hold on;
         end
         
+        if ~wow
+             x=[];y=[];
+        end
         for (i=1:size(plateFilename,2))
             if ~strcmp(stimLstX.String(stimLstX.Value),'fileName') 
                 % Normal case
                 if ~wow
-                    x=[];
                     x{i}(:)=data{i}.(stimLstX.Value);
                 else
                     tempX=data{i}.(stimLstX.Value);
@@ -655,6 +658,13 @@ global x y;
                         try
                             x{i}(:)=tempX+animValue(af)*(x{i}(:)-tempX);
                         catch
+                             
+                             try
+                                 x{i}=zeros(size(tempX));
+                             catch
+                                 x=[];
+                                 warning('error in animation!');
+                             end
                             x{i}(:)=tempX;
                         end
                     else
@@ -669,15 +679,22 @@ global x y;
                 xlabelText = 'File Name'; 
             end
             if ~wow
-                y=[];
+               
                 y{i}(:)=data{i}.(stimLstY.Value);
             else
                 tempY=data{i}.(stimLstY.Value);
                 if exist('y','var')
                     try
                     y{i}(:)=tempY+animValue(af)*(y{i}(:)-tempY);
-                    catch
-                        y=[];
+                    catch e
+                        
+                        try
+                            y{i}=zeros(size(tempY));
+                        catch
+                            y=[];
+                            warning('error in animation!');
+                        end
+                        warning(e.message);
                         y{i}(:)=tempY;
                     end
                 else
