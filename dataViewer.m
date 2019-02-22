@@ -6,7 +6,7 @@ global bgc
 global seeWellBtn stimLstX stimLstY
 global filterFieldLst lessMoreLst filterThresholdEdt markerSelectionBtn
 global doFilterBtn HistBtn levelDownBtn levelUpBtn ExportBtn fitBtn
-global lineSizeBtn LineStyleBtn logXChk logYChk wowChkBtn wow
+global lineSizeBtn LineStyleBtn logXChk logYChk wowChkBtn wow backgroundImageBtn backgroundImageSelection 
 
 createButons();
     function createButons()
@@ -41,6 +41,10 @@ createButons();
             'Backgroundcolor',bgc,...
             'Callback', @setLineStyle);
         
+        backgroundImageBtn = uicontrol('Visible','off','Style', 'popup', 'String', {'none','avg','mask'},...
+            'Position', [5+50 (900-90) 50 20],...
+            'Backgroundcolor',bgc,...
+            'Callback', @setBackgroundImage);
         
         doFilterBtn=[];
         filterThresholdEdt=[];
@@ -135,6 +139,12 @@ createButons();
             'Backgroundcolor',bgc,...
             'Callback', @levelDown);
         
+        seeWellBtn = uicontrol('Visible','off','Style', 'pushbutton', 'String', 'See Well',...
+            'Position', [5+50+50+50 20 50 20],...
+            'Backgroundcolor',bgc,...
+            'Callback', @getWell);
+        
+        
     end
 
     function keyPress(src, e)
@@ -151,6 +161,13 @@ createButons();
                 doOpenFiles();
         end
     end
+
+    function setBackgroundImage(src, e)
+        backgroundImageSelection = backgroundImageBtn.String{...
+            backgroundImageBtn.Value};
+        updatePlot(); 
+    end
+
     showButtons=1;
     function hideButtons(T)
         if exist('T','var')
@@ -170,6 +187,8 @@ createButons();
         seeTraceBtn.Visible=visTExt; 
         lineSizeBtn.Visible=visTExt; 
         LineStyleBtn.Visible=visTExt;
+        backgroundImageBtn.Visible=visTExt;
+        
         openFilesBtn.Visible=visTExt;
          
         stimLstX.Visible=visTExt; 
@@ -308,6 +327,7 @@ global data;
         LineStyle = LineStyleBtn.String{LineStyleBtn.Value};
         updatePlot();
     end
+global wellAvg mask
     function seeWell(tempFn,synNbr)
         subplot(4,4,1)
         tempFn=strrep(tempFn,'_PPsynapses','_synapses');
@@ -315,7 +335,7 @@ global data;
         if ~exist([plateDir dd2],'file')
             dd2 = ['..\' tempFn(1:end-13) '.tif_mask.png'];
         end
-     
+        
         mask = imread([plateDir dd2]);
         [wy, wx] = size(mask);
         synregio = loadMask([plateDir dd2]);
@@ -323,7 +343,7 @@ global data;
         activeSynapse(synregio(synNbr).PixelIdxList)=1;
         mask=double(mask)+activeSynapse*100000;
         imagesc(mask);
-        title(dd2)
+        title(dd2,'Interpreter','none')
         axis('off');axis ('equal');colormap('hot');
         
         subplot(4,4,[9,13]);  
@@ -342,7 +362,7 @@ global data;
         try
             wellAvg = imread([plateDir dd2]);
         catch
-            disp(['No average projection found in: ' plateDir dd2]);
+            warning(['No average projection found in: ' plateDir dd2]);
             %text(['No average projection found in: ' plateDir dd2]);
         end
 
@@ -483,12 +503,7 @@ end
             plot(time,mean(responses (:,:)),'k','LineWidth',4);
             syNbr=1;
             
-            
-            seeWellBtn = uicontrol('Style', 'pushbutton', 'String', 'See Well',...
-                'Position', [5+50+50+50 20 50 20],...
-                'Backgroundcolor',bgc,...
-                'Callback', @getWell);
-             
+       
         end
         xlabel('time'); ylabel('\Delta f/f')
       
@@ -499,7 +514,12 @@ end
             if (strcmp(plateFilename{fi},'AllWells.txt'))
                 seeWell(tempPlateFilename,syNbr);
             else
+                try
                 seeWell(plateFilename{fi},syNbr);
+                catch
+                    disp(['problem with ' plateFilename{fi}]);
+                    seeWell(plateFilename{fi},syNbr);
+                end
             end
         end
         updatePlot();
@@ -613,16 +633,30 @@ global x y;
         end
         for af=1:animationNumber
         hold off;
+        switch backgroundImageSelection
+            case 'none'
+            case 'avg'
+                imagesc(wellAvg);colormap('gray');
+                hold on;
+            case 'mask'
+                imagesc(mask);colormap('gray');
+                hold on;
+        end
         
         for (i=1:size(plateFilename,2))
             if ~strcmp(stimLstX.String(stimLstX.Value),'fileName') 
                 % Normal case
                 if ~wow
+                    x=[];
                     x{i}(:)=data{i}.(stimLstX.Value);
                 else
                     tempX=data{i}.(stimLstX.Value);
                     if exist('x','var')
-                        x{i}(:)=tempX+animValue(af)*(x{i}(:)-tempX);
+                        try
+                            x{i}(:)=tempX+animValue(af)*(x{i}(:)-tempX);
+                        catch
+                            x{i}(:)=tempX;
+                        end
                     else
                         x{i}(:)=tempX;
                     end
@@ -630,15 +664,22 @@ global x y;
                 xlabelText = stimLstX.String(stimLstX.Value);
             else %Special fileName Case
                 %x{i}(:)=i + rand(length(data{i}.(stimLstY.Value)),1)*0.5;%1:size(plateFilename,2);
+                 x=[];
                 x{i}(:)=i + pseudoRandom(length(data{i}.(stimLstY.Value)));%1:size(plateFilename,2);
                 xlabelText = 'File Name'; 
             end
             if ~wow
+                y=[];
                 y{i}(:)=data{i}.(stimLstY.Value);
             else
                 tempY=data{i}.(stimLstY.Value);
                 if exist('y','var')
+                    try
                     y{i}(:)=tempY+animValue(af)*(y{i}(:)-tempY);
+                    catch
+                        y=[];
+                        y{i}(:)=tempY;
+                    end
                 else
                     y{i}(:)=tempY;
                 end
@@ -676,7 +717,7 @@ global x y;
                 
             end
         end
-        
+      
         ca=gca();
         
         ylabelText = stimLstY.String(stimLstY.Value);
