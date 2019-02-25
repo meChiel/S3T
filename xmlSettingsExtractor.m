@@ -15,24 +15,55 @@ if (length(aa)==0)
     imageFreq=0;
     
 else
-    %% Frequency (Hz)
-    rr = strfind(aa,'<Name>Frequency (Hz)</Name>');
+   %% Stimulation Frequency (Hz)
+   rr = strfind(aa,'<Name>Stimulation Frequency (Hz)</Name>');
    if length(rr)<1
-        warning('did not find Frequency, setting Frequency = 0')
-        stimFreq=0;
+       warning('did not find Stimulation Frequency, looking for Frequency')
+       rr = strfind(aa,'<Name>Frequency (Hz)</Name>');
+       if length(rr)<1
+           warning('did not find Frequency, setting Frequency = 0')
+           stimFreq=0;
+       else
+           if length(rr)>1
+               warning('did find multiple frequencies, chosing freq 1')
+           end
+           warning(['Frequency field found, this is the old convention,'...
+               '                                                       '...
+           'please update Analysis to new format: <Name>Stimulation Frequency (Hz)</Name> '])
+           ss=strfind(aa(rr(1):end),'<Val>');
+           ss2=strfind(aa(rr(1)+(ss(1)):end),'</Val>');
+           stimFreq=str2num(aa(rr(1)+ss(1)+4:rr(1)+ss(1)+ss2(1)-2));
+       end
    else
     if length(rr)>1
-        warning('did find multiple frequencies, chosing freq 1')
+        warning('did find multiple Stimulation frequencies, chosing freq 1')
     end
     ss=strfind(aa(rr(1):end),'<Val>');
     ss2=strfind(aa(rr(1)+(ss(1)):end),'</Val>');
     stimFreq=str2num(aa(rr(1)+ss(1)+4:rr(1)+ss(1)+ss2(1)-2));
    end
-    %% Partial Frequency (Hz)
-    rr = strfind(aa,'<Name>Partial Frequency (Hz)</Name>');
+    
+    
+   
+    %% Partial Stimulation Frequency (Hz)
+    rr = strfind(aa,'<Name>Partial Stimulation Frequency (Hz)</Name>');
     if length(rr)<1
-        warning('did not find Partial frequencies, setting Partial freq = 0')
-        stimFreq2=0;
+        warning('did not find Partial Stimulation Frequency (Hz), looking for Partial Frequency (Hz)')
+        
+        rr = strfind(aa,'<Name>Partial Frequency (Hz)</Name>');
+        if length(rr)<1
+            warning('did not find Partial frequencies, setting Partial freq = 0')
+            stimFreq2=0;
+        else
+            if length(rr)>1
+                warning('did find multiple Partial frequencies, chosing first Partial freq 1')
+            end
+            warning('Please upgrade analysis file: Partial Frequency (Hz) to Partial Stimulation Frequency (Hz)')
+            ss=strfind(aa(rr(1):end),'<Val>');
+            ss2=strfind(aa(rr(1)+(ss(1)):end),'</Val>');
+            stimFreq2=str2num(aa(rr(1)+ss(1)+4:rr(1)+ss(1)+ss2(1)-2));
+        end
+        
     else
         if length(rr)>1
             warning('did find multiple Partial frequencies, chosing first Partial freq 1')
@@ -41,6 +72,8 @@ else
         ss2=strfind(aa(rr(1)+(ss(1)):end),'</Val>');
         stimFreq2=str2num(aa(rr(1)+ss(1)+4:rr(1)+ss(1)+ss2(1)-2));
     end
+    
+    
     %% Delay Time (ms)
     rr = strfind(aa,'<Name>Delay Time (ms)</Name>');
     if length(rr)<1
@@ -270,6 +303,25 @@ else
         disp('Did not find Analysis type, using no.')
         analysisType = 0; %1
     end
+%%     Mask Creation Time Projection
+rr = strfind(aa,'<Name>Mask Creation Time Projection</Name>');
+    if length(rr)>0
+        if length(rr)>1
+            warning('did find multiple Mask Creation Time Projection, chosing 1')
+        end
+        ss=strfind(aa(rr(1):end),'<Val>');
+        ss2=strfind(aa(rr(1)+(ss(1)):end),'</Val>');
+        maskTimeProjection=(aa(rr(1)+ss(1)+4:rr(1)+ss(1)+ss2(1)-2));
+        mTP = maskTimeProjection;
+        if (strcmp(mTP,'SVD') || strcmp(mTP,'STD') || strcmp(mTP,'SVM') || strcmp(mTP,'NN') || strcmp(mTP,'NMF'))
+        else
+            error (['Mask Creation Time Projection: ' mTP ' does not exist. Solve problem in Analysis.xml conf. file.!']);
+        end
+    else
+        disp('Did not find Mask Creation Time Projection, using SVD.')
+        maskTimeProjection = 'SVD';
+    end    
+
 end
 stimCfg.cellBody =cellBody;
 stimCfg.delayTime =delayTime;

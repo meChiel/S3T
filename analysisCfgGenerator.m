@@ -1,7 +1,8 @@
 function analysisCfgGenerator  ()
 global ptitle3 NOStxt3 stimFreqtxt3 OnOffsettxt3 fpsTxt3 DCOFtxt3 DCOF2txt NOS2txt  stimFreq2txt data trace ...
     OnOffsettxt2;
-global frameSelectionTxt frameSelection;
+global frameSelectionTxt frameSelection maskTimeProjLst SVDLst SVDtxt PhotoBleachLst PhotoBleach ...
+    ReuseMaskChkBx ReloadMovieChkBx FastLoadChkBx;
 
 NOS3=1;
 NOS2=1;
@@ -12,6 +13,11 @@ OnOffset2=0;
 fps3=33;
 dutyCycleOnFrames3=0;
 dutyCycleOnFrames2=0;
+SVDNumber = 2;
+maskTimeProj='SVD';
+PhotoBleach='linInt'; %linInt or 2expInt
+FastLoad=0;ReloadMovie=1;ReuseMask=0;
+
 
 bgc=[.35 .35 .38];
 %bgc=[.95 .95 .95];
@@ -83,6 +89,42 @@ createInputFields();
             'Position', [20+50 by(-7) 150 20],...
             'Callback', @doSetFPS);
         
+        maskTimeProjLst = uicontrol('Style', 'popup', 'String', {'SVD','STD','SVM','NN','NMF'},...
+            'Position', [20 by(3) 50 20],...
+            'Callback', @doSetMaskTimeProj);
+        
+        uicontrol('Style', 'text', 'String', 'Mask creation Time Projection method',...
+            'Position', [20+50 by(3) 200 20]);
+        
+        SVDLst = uicontrol('Style', 'popup', 'String', {'1','2','3','4','Pop-up'},...
+            'Position', [20 by(4) 50 20],...
+            'Callback', @doSetSVDNumber);
+        SVDtxt = uicontrol('Style', 'text', 'String', 'Set the SVD number',...
+            'Position', [20+50 by(4) 200 20]);
+        
+        
+         PhotoBleachLst = uicontrol('Style', 'popup', 'String', {'linInt','2exp'},...
+            'Position', [20 by(5) 50 20],...
+            'Callback', @doSetPhotoBleach);
+        PhotoBleachtxt = uicontrol('Style', 'text', 'String', 'Photo Bleaching correction Method',...
+            'Position', [20+50 by(5) 200 20]);
+        
+        
+        FastLoadChkBx = uicontrol('Style', 'CheckBox', 'String', 'Fast Load',...
+            'Position', [20 by(7) 150 20],...
+            'Callback', @doSetFastLoad);
+       ReloadMovieChkBx = uicontrol('Style', 'CheckBox', 'String', 'Reload Movie',...
+            'Position', [20 by(8) 150 20],...
+            'Callback', @doSetReloadMovie);
+        ReuseMaskChkBx = uicontrol('Style', 'CheckBox', 'String', 'ReuseMask',...
+            'Position', [20 by(9) 150 20],...
+            'Callback', @doSetReuseMask);
+        
+        setFastLoad(FastLoad);
+        setReloadMovie(ReloadMovie);
+        setReuseMask(ReuseMask);
+        setSVDNumber(SVDNumber);
+        
     end
 createTitleUI()
     function createTitleUI()
@@ -92,17 +134,17 @@ createTitleUI()
 createButtonsUI();
     function createButtonsUI()
         uicontrol('Style', 'pushbutton', 'String', 'Generate',...
-            'Position', [350 30+100 150 100],...
+            'Position', [400 30+100 150 100],...
             'Callback', @generate);
         uicontrol('Style', 'pushbutton', 'String', 'Load',...
-            'Position', [350 30+200 150 20],...
+            'Position', [400 30+200 150 20],...
             'Callback', @loadSettings);
         uicontrol('Style', 'pushbutton', 'String', 'Reset',...
-            'Position', [350 30+300 150 20],...
+            'Position', [400 30+300 150 20],...
             'Callback', @resetPlate);
         
         uicontrol('Style', 'pushbutton', 'String', 'Load Example Movie',...
-            'Position', [350 30+350 150 20],...
+            'Position', [400 30+350 150 20],...
             'Callback', @loadMovie);
         
     end
@@ -168,49 +210,63 @@ createButtonsUI();
         
         analysisName = get(ptitle3,'String');
         [FileName,PathName,FilterIndex] = uiputfile('*.xml','Save Analysis Configuration',[analysisName '_Analysis.xml']);
-        %csvwrite([PathName FileName],conc);
-        
+        fid = fopen([PathName FileName],'w');
         
         %'<Name>Frequency (Hz)</Name>\n<Val>0.20000000000000</Val>'
-        dd1='<Name>Frequency (Hz)</Name>\n<Val>%6.13f</Val>';
+%         dd1='<Name>Frequency (Hz)</Name>\n<Val>%6.13f</Val>';
+%         fprintf(fid,dd1,stimFreq3);
         
-        
-        
-        fid = fopen([PathName FileName],'w');
-        fprintf(fid,dd1,stimFreq3);
         %fwrite('blabla','char');
         %'<Name>Pulse width (ms)</Name>\r\n<Val>1.00000000000000</Val>'
         %         dd2='\r\n\r\n<Name>Pulse width (ms)</Name>\r\n<Val>%5.13f</Val>';
         %         fprintf(fid,dd2,stimFreq);
+         
         
-        %'<Name>Delay Time (ms)</Name>\r\n<Val>2000</Val>'
-        dd3='\r\n\r\n<Name>Delay Time (ms)</Name>\r\n<Val>%6f</Val>';
-        fprintf(fid,dd3,OnOffset3/fps3*1000);
+        i=1;
+        field(i).Name = 'Stimulation Frequency (Hz)';
+        field(i).Value = num2str(stimFreq3);
+        i=i+1;
+        field(i).Name = 'Delay Time (ms)';
+        field(i).Value = num2str(OnOffset3/fps3*1000);
+        i=i+1;
+        field(i).Name = 'Pulse count';
+        field(i).Value = num2str(NOS3);
+        i=i+1;
+        field(i).Name = 'Partial Stimulation Frequency (Hz)';
+        field(i).Value = stimFreq2txt.String;
+        i=i+1;
+        field(i).Name = 'Partial Delay Time (ms)';
+        field(i).Value = OnOffsettxt2.String;
+        i=i+1;
+        field(i).Name = 'Partial Pulse count';
+        field(i).Value =  NOS2txt.String;
+        i=i+1;
+        field(i).Name = 'Frame Selection';
+        field(i).Value =  frameSelectionTxt.String;
+        i=i+1;
+        field(i).Name = 'Mask Creation Time Projection';
+        field(i).Value =  maskTimeProj;
+        i=i+1;
+        field(i).Name = 'Eigenvalue Number';
+        field(i).Value =  num2str(SVDNumber);
+        i=i+1;
+        field(i).Name = 'Reuse Mask';
+        field(i).Value =  num2str(ReuseMask);
+        i=i+1;
+        field(i).Name = 'ReloadMovie';
+        field(i).Value =  num2str(ReloadMovie);
+        i=i+1;
+        field(i).Name = 'Fast Load';
+        field(i).Value =  num2str(FastLoad);
+        i=i+1;
+        field(i).Name = 'Photo Bleaching';
+        field(i).Value =  num2str(PhotoBleach);
+        i=i+1;
         
-        %'<Name>Pulse count</Name>\r\n<Val>2</Val>'
-        dd4='\r\n\r\n<Name>Pulse count</Name>\r\n<Val>%d</Val>';
-        fprintf(fid,dd4,NOS3);
-        
-        
-        fieldNames = {'Partial Frequency (Hz)'
-            'Partial Delay Time (ms)'
-            'Partial Pulse count'
-            'Frame Selection'
-            };
-
-        
-        
-        fieldValues= {stimFreq2txt.String, ...
-        OnOffsettxt2.String, ...    
-        NOS2txt.String,  ...   
-        frameSelectionTxt.String
-            };
-        
-        for ii=1:length(fieldNames)
-            dd4=['\r\n\r\n<Name>' fieldNames{ii} '</Name>\r\n<Val>%s</Val>'];
-            fprintf(fid,dd4,fieldValues{ii});
+        for i=1:length(field)
+            dd4=['\r\n\r\n<Name>'   field(i).Name '</Name>\r\n<Val>%s</Val>'];
+            fprintf(fid,dd4, field(i).Value);
         end
- 
         
         %'Camera Exposure Time (s) - 0.03'
         dd5='\r\n\r\nCamera Exposure Time (s) - %5.5f\r\n';
@@ -218,13 +274,87 @@ createButtonsUI();
         fclose(fid);
         disp(['Analysis writen to ' PathName FileName]);
     end
+
     function loadSettings(e,g,h)
         [ stimCfgFN.name, stimCfgFN.folder] = uigetfile('*.xml');
         stimCfg = xmlSettingsExtractor(stimCfgFN);
         setNOS(stimCfg.pulseCount);
+        setNOS2(stimCfg.pulseCount2);
         setFPS(stimCfg.imageFreq);
         setOnOffset(round(stimCfg.delayTime*stimCfg.imageFreq/1000));
+        setOnOffset2(round(stimCfg.delayTime2*stimCfg.imageFreq/1000));
+        
         setStimFreq(stimCfg.stimFreq);
+        setStimFreq2(stimCfg.stimFreq2);
+    end
+
+    function doSetReuseMask(s,e,h)
+        setReuseMask(ReuseMaskChkBx.Value);
+    end
+
+    function setReuseMask(method)
+        ReuseMask = method;
+        ReuseMaskChkBx.Value=method;
+    end
+
+    function doSetReloadMovie(s,e,h)
+        setReloadMovie(ReloadMovieChkBx.Value);
+    end
+
+    function setReloadMovie(method)
+        ReloadMovie = method;
+        ReloadMovieChkBx.Value=method;
+        
+    end
+
+    function doSetFastLoad(s,e,h)
+           setFastLoad(FastLoadChkBx.Value);
+    end
+
+    function setFastLoad(method)
+        FastLoad = method;
+        FastLoadChkBx.Value=method;
+    end
+
+
+    function doSetPhotoBleach(s,e,h)
+           setPhotoBleach(PhotoBleachLst.String{PhotoBleachLst.Value});
+    end
+
+    function setPhotoBleach(method)
+        PhotoBleach = method;
+    end
+
+
+
+    function doSetSVDNumber(s,e,h)
+        if strcmp(SVDLst.String{SVDLst.Value},'Pop-up')
+            setSVDNumber(0); % set SVDNumber to 0 for interactive popup question.
+        else
+            setSVDNumber(str2num(SVDLst.String{SVDLst.Value}));
+        end
+    end
+
+    function setSVDNumber(number)
+        SVDNumber = number;
+        SVDLst.Value=number;
+        if ~strcmp(SVDLst.String{SVDLst.Value},num2str(number))
+            error ('SVDNumber mismatch')
+        end
+    end
+
+    function doSetMaskTimeProj(s,e,h)
+        setMaskTimeProj((maskTimeProjLst.String{maskTimeProjLst.Value}));
+        
+    end
+
+    function setMaskTimeProj(st)
+        maskTimeProj= st;
+        if strcmp(st,'SVD')
+            SVDLst.Visible='on';
+        else
+            SVDLst.Visible='off';
+        end
     end
 
 

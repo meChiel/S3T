@@ -12,6 +12,7 @@ createButons();
     function createButons()
         bgc=[0.5 0.5 0.5];
         STToggle=0;
+        backgroundImageSelection='none';
         exportAll=0;
         f3 = figure('Visible','on','name','S3T: Data Viewer',...
             'Color',bgc,...
