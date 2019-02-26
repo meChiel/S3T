@@ -75,6 +75,9 @@ global ASR mASR miASR stdSR mstdSR swASR stdswASR AR mAR miAR AR1 rAR RSTmean RS
 global defaultDir
 global sliderBtn synSliderBtn
 global bgc fullVersion;
+global preCommand postCommand;
+preCommand = 'disp(''precommand'')';
+postCommand = 'disp(''postCommand'')';
 %% Set default values on load
 stimFreq = 0.2;
 NOS = 3; % Number of stimuli
@@ -2040,6 +2043,12 @@ end
                         dataFrameSelectionTxt ='(1:end)';
                         writeAnalysisStart(expnm,EID,analysisList(i).name);
                         loadAnalysis(analysisList(i));
+                        try 
+                            eval(preCommand);
+                        catch
+                            warning('failed to run preCommand');
+                            disp(preCommand);
+                        end
                         if reloadMovie % If with frameselection only a part of the movie is loaded, by reload, another part of the same movie can be loaded to create a mask.
                             [data, pathname, fname, dirname] = loadTiff([expnm{EID}.folder '\' expnm{EID}.name],fastLoadChkButton.Value );
                         end
@@ -2048,6 +2057,12 @@ end
                             processMovie(pathname);
                             moveResults(analysisList(i).name);
                             writeProcessEnd(expnm,EID);
+                        end
+                        try
+                        eval(postCommand);
+                        catch
+                            warning('failed to run postCommand');
+                            disp(postCommand);
                         end
                     end
                     
@@ -3029,7 +3044,16 @@ end
         setFrameSelectionTxt(analysisCfg.FrameSelectionTxt);
         setPhotoBleachingTxt(analysisCfg.PhotoBleachingTxt);
         setDutyCycleOnFrames(analysisCfg.dutyCycle);
-
+        if isfield (analysisCfg,'preCommand')
+            setPreCommand(analysisCfg.preCommand);
+        else
+            setPreCommand('');
+        end
+        if isfield (analysisCfg,'postCommand')
+            setPostCommand(analysisCfg.postCommand);
+        else
+            setPostCommand('');
+        end
 % if exist('eigTxt')
 %     eigTxt.String = EVN; 
 % end
@@ -3037,7 +3061,13 @@ end
     end
 
 
+    function setPreCommand(txt) 
+        preCommand=txt;
+    end
 
+    function setPostCommand(txt)
+        postCommand=txt;
+    end
 function setSkipMovie(value)
         if exist('skipMovieChkButton','var')
             skipMovieChkButton.Value=value;

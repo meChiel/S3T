@@ -1,8 +1,11 @@
 function analysisCfgGenerator  ()
 global ptitle3 NOStxt3 stimFreqtxt3 OnOffsettxt3 fpsTxt3 DCOFtxt3 DCOF2txt NOS2txt  stimFreq2txt data trace ...
     OnOffsettxt2;
-global frameSelectionTxt frameSelection maskTimeProjLst SVDLst SVDtxt PhotoBleachLst PhotoBleach ...
-    ReuseMaskChkBx ReloadMovieChkBx FastLoadChkBx;
+global frameSelectionTxt frameSelection maskTimeProjLst SVDLst SVDtxt ...
+    PhotoBleachLst PhotoBleach ...
+    ReuseMaskChkBx ReloadMovieChkBx FastLoadChkBx CellBodytypeLst ...
+    skipMovieChkBx WriteSVDChkBx AnalysistypeLst;
+global CellBodytype skipMovie WriteSVD;
 
 NOS3=1;
 NOS2=1;
@@ -17,7 +20,11 @@ SVDNumber = 2;
 maskTimeProj='SVD';
 PhotoBleach='linInt'; %linInt or 2expInt
 FastLoad=0;ReloadMovie=1;ReuseMask=0;
-
+Analysistype='0'; %Still to decide but is idea to have 10AP, 5x1AP, options 
+% or sponatinous vs stimulated?
+CellBodytype=0; 
+skipMovie=0;
+WriteSVD=1; 
 
 bgc=[.35 .35 .38];
 %bgc=[.95 .95 .95];
@@ -53,7 +60,7 @@ createInputFields();
         uicontrol('Style', 'text', 'String', 'duty-Cycle On Frames',...
             'Position', [70 by(0) 100 40]);
         
-       DCOF2txt = uicontrol('Style', 'Edit', 'String', num2str(dutyCycleOnFrames2),...
+        DCOF2txt = uicontrol('Style', 'Edit', 'String', num2str(dutyCycleOnFrames2),...
             'Position', [220 by(-1) 50 20],...
             'Callback', @doSetDCOF2);
         uicontrol('Style', 'text', 'String', ' Partial duty-Cycle On Frames',...
@@ -103,7 +110,7 @@ createInputFields();
             'Position', [20+50 by(4) 200 20]);
         
         
-         PhotoBleachLst = uicontrol('Style', 'popup', 'String', {'linInt','2exp'},...
+        PhotoBleachLst = uicontrol('Style', 'popup', 'String', {'linInt','2expInt'},...
             'Position', [20 by(5) 50 20],...
             'Callback', @doSetPhotoBleach);
         PhotoBleachtxt = uicontrol('Style', 'text', 'String', 'Photo Bleaching correction Method',...
@@ -113,17 +120,49 @@ createInputFields();
         FastLoadChkBx = uicontrol('Style', 'CheckBox', 'String', 'Fast Load',...
             'Position', [20 by(7) 150 20],...
             'Callback', @doSetFastLoad);
-       ReloadMovieChkBx = uicontrol('Style', 'CheckBox', 'String', 'Reload Movie',...
+        ReloadMovieChkBx = uicontrol('Style', 'CheckBox', 'String', 'Reload Movie',...
             'Position', [20 by(8) 150 20],...
             'Callback', @doSetReloadMovie);
         ReuseMaskChkBx = uicontrol('Style', 'CheckBox', 'String', 'ReuseMask',...
             'Position', [20 by(9) 150 20],...
             'Callback', @doSetReuseMask);
         
+        AnalysistypeLst = uicontrol('Style', 'popup', 'String', {'0','Stimulated','Spontanious'},...
+            'Position', [420 by(5) 50 20],...
+            'Callback', @doSetAnalysistype);
+        uicontrol('Style', 'text', 'String', 'Analysis Type',...
+            'Position', [420+50 by(5) 200 20]);
+        
+        CellBodytypeLst = uicontrol('Style', 'popup', 'String', {'Synapse','cell Body'},...
+            'Position', [420 by(6) 50 20],...
+            'Callback', @doSetCellBodytype);
+        uicontrol('Style', 'text', 'String', 'Cell Type',...
+            'Position', [420+50 by(6) 200 20]);
+        
+        skipMovieChkBx = uicontrol('Style', 'CheckBox', 'String', 'skipMovie',...
+            'Position', [420 by(7) 150 20],...
+            'Callback', @doSetSkipMovie);
+        WriteSVDChkBx = uicontrol('Style', 'CheckBox', 'String', 'WriteSVD',...
+            'Position', [420 by(8) 150 20],...
+            'Callback', @doSetWriteSVD);
+        
+        
+        
+        
+        
+        
+        
         setFastLoad(FastLoad);
         setReloadMovie(ReloadMovie);
         setReuseMask(ReuseMask);
         setSVDNumber(SVDNumber);
+        
+        setAnalysistype(Analysistype);
+        setCellBodytype(CellBodytype);
+        setSkipMovie(skipMovie);
+        setDCOF(dutyCycleOnFrames3);
+        setDCOF2(dutyCycleOnFrames2);
+        setWriteSVD(WriteSVD);
         
     end
 createTitleUI()
@@ -253,7 +292,7 @@ createButtonsUI();
         field(i).Name = 'Reuse Mask';
         field(i).Value =  num2str(ReuseMask);
         i=i+1;
-        field(i).Name = 'ReloadMovie';
+        field(i).Name = 'Reload Movie';
         field(i).Value =  num2str(ReloadMovie);
         i=i+1;
         field(i).Name = 'Fast Load';
@@ -262,6 +301,27 @@ createButtonsUI();
         field(i).Name = 'Photo Bleaching';
         field(i).Value =  num2str(PhotoBleach);
         i=i+1;
+        field(i).Name = 'Write SVD';
+        field(i).Value =  num2str(WriteSVD);
+        i=i+1;
+        field(i).Name = 'duty Cycle (frames)';
+        field(i).Value =  num2str(dutyCycleOnFrames3);
+        i=i+1;
+        field(i).Name = 'Partial Duty Cycle (frames)';
+        field(i).Value =  num2str(dutyCycleOnFrames2);
+        i=i+1;
+        field(i).Name = 'Skip Movie';
+        field(i).Value =  num2str(skipMovie);
+        i=i+1;
+        field(i).Name = 'Cell Body Type';
+        field(i).Value =  num2str(CellBodytype);
+        i=i+1;  
+        field(i).Name = 'Analysis Type';
+        field(i).Value =  num2str(Analysistype);
+        i=i+1;
+        
+        
+        
         
         for i=1:length(field)
             dd4=['\r\n\r\n<Name>'   field(i).Name '</Name>\r\n<Val>%s</Val>'];
@@ -304,7 +364,6 @@ createButtonsUI();
     function setReloadMovie(method)
         ReloadMovie = method;
         ReloadMovieChkBx.Value=method;
-        
     end
 
     function doSetFastLoad(s,e,h)
@@ -325,7 +384,50 @@ createButtonsUI();
         PhotoBleach = method;
     end
 
+        
 
+
+    function doSetAnalysistype(s,e,h)
+            setAnalysistype((AnalysistypeLst.String{AnalysistypeLst.Value}));
+    end
+
+    function setAnalysistype(tAnalysistype)
+        Analysistype =tAnalysistype;
+        AnalysistypeLst.Value=find(strcmp(AnalysistypeLst.String,Analysistype));        
+    end
+
+
+function doSetCellBodytype(s,e,h)
+            setCellBodytype((CellBodytypeLst.String{CellBodytypeLst.Value}));
+    end
+
+    function setCellBodytype(tCellBodytype)
+        CellBodytype =tCellBodytype;
+        CellBodytypeLst.Value=CellBodytype+1;        
+        %0 =synapse
+        %1 =cellbody
+        %2 =future
+    end
+
+
+
+    function doSetSkipMovie(s,e,h)
+            setSkipMovie(skipMovieChkBx.Value);
+    end
+
+    function setSkipMovie(tskipMovie)
+        skipMovie =tskipMovie;
+        skipMovieChkBx.Value=skipMovie;        
+    end
+
+    function doSetWriteSVD(s,e,h)
+            setWriteSVD(WriteSVDChkBx.Value);
+    end
+
+    function setWriteSVD(tWriteSVD)
+        WriteSVD =tWriteSVD;
+        WriteSVDChkBx.Value=WriteSVD;       
+    end
 
     function doSetSVDNumber(s,e,h)
         if strcmp(SVDLst.String{SVDLst.Value},'Pop-up')

@@ -189,8 +189,8 @@ else
         writeSVD = 1;
     end
     
-        %% dutyCycle
-    rr = strfind(aa,'<Name>duty Cycle</Name>');
+        %% duty Cycle: Only use first samples in the period. Discard later
+    rr = strfind(aa,'<Name>duty Cycle (frames)</Name>');
     if length(rr)>0
         if length(rr)>1
             warning('did find multiple duty Cycles, chosing 1')
@@ -203,6 +203,21 @@ else
         disp('Did not find dutyCycle, dutyCycle set to 0. ')
         dutyCycle = 0;
     end
+        %% partial Duty Cycle
+    rr = strfind(aa,'<Name>Partial Duty Cycle (frames)</Name>');
+    if length(rr)>0
+        if length(rr)>1
+            warning('did find multiple Partial Duty Cycles, chosing 1')
+        end
+        ss=strfind(aa(rr(1):end),'<Val>');
+        ss2=strfind(aa(rr(1)+(ss(1)):end),'</Val>');
+        dutyCycle=str2num((aa(rr(1)+ss(1)+4:rr(1)+ss(1)+ss2(1)-2)));
+        
+    else
+        disp('Did not find Partial Duty Cycle, Partial Duty Cycle set to 0. ')
+        dutyCycle = 0;
+    end
+    
     %%  skipMovie
    rr = strfind(aa,'<Name>Skip Movie</Name>');
     if length(rr)>0
@@ -274,8 +289,9 @@ else
         disp('Did not find Reuse Mask type, using no.')
         reuseMask = 0; %1
     end
-        %% Cell Body
-    rr = strfind(aa,'<Name>Cell Body</Name>');
+        %% Cell Body Type
+        rr = strfind(aa,'<Name>Cell Body Type</Name>');
+    
     if length(rr)>0
         if length(rr)>1
             warning('did find Cell Body, chosing 1')
@@ -289,7 +305,15 @@ else
         cellBody = 0; %1
     end
     
-       %% Analysis
+%%% For legacy, show warning to upgrade.
+    if strfind(aa,'<Name>Cell Body</Name>');
+        warning('Don''t use ''Cell Body'' in Analysis.xml, but use ''Cell Body Type''!!');
+        disp(['Cell Body found in : ' stimCfgFN.folder '\' stimCfgFN.name]);
+    end
+    
+       %% Analysis: The idea here is to create a meta-data set with predefined 
+       % hardcoded analysis parameters. So you can set analysis to: 5x1AP
+       % 10AP.
     rr = strfind(aa,'<Name>Analysis Type</Name>');
     if length(rr)>0
         if length(rr)>1
@@ -322,6 +346,25 @@ rr = strfind(aa,'<Name>Mask Creation Time Projection</Name>');
         maskTimeProjection = 'SVD';
     end    
 
+%% Pre Commands: Some Matlab commands to run before the execution of the analysis.
+rr = strfind(aa,'<Name>Matlab Pre-Commands</Name>');
+    if length(rr)>0
+        ss=strfind(aa(rr(1):end),'<Val>');
+        ss2=strfind(aa(rr(1)+(ss(1)):end),'</Val>');
+        matlabPreCommand=(aa(rr(1)+ss(1)+4:rr(1)+ss(1)+ss2(1)-2));
+        MPreC = matlabPreCommand;
+    end    
+
+%% Post Commands: Some Matlab commands to run after the execution of the analysis.
+
+rr = strfind(aa,'<Name>Matlab Post-Commands</Name>');
+    if length(rr)>0
+        ss=strfind(aa(rr(1):end),'<Val>');
+        ss2=strfind(aa(rr(1)+(ss(1)):end),'</Val>');
+        matlabPreCommand=(aa(rr(1)+ss(1)+4:rr(1)+ss(1)+ss2(1)-2));
+        MPostC = matlabPreCommand;
+    end    
+
 end
 stimCfg.cellBody =cellBody;
 stimCfg.delayTime =delayTime;
@@ -341,6 +384,7 @@ stimCfg.eigenvalueNumber = eigenvalueNumber;
 stimCfg.skipMovie = skipMovie;
 stimCfg.dutyCycle = dutyCycle;
 stimCfg.maskTimeProjectionMethod = 'SVD';
-
+stimCfg.MPreC=MPreC;
+stimCfg.MPostC=MPostC;
 
 end
