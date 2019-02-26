@@ -383,7 +383,7 @@ stimCfg.fastLoad = fastLoad;
 stimCfg.eigenvalueNumber = eigenvalueNumber;
 stimCfg.skipMovie = skipMovie;
 stimCfg.dutyCycle = dutyCycle;
-stimCfg.maskTimeProjectionMethod = 'SVD';
+stimCfg.maskTimeProjectionMethod = mTP;%'SVD';
 stimCfg.MPreC=MPreC;
 stimCfg.MPostC=MPostC;
 

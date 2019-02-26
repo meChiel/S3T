@@ -1040,6 +1040,11 @@ end
         imageEigen;
     end
     function segment2(source,event,handles)
+        
+        
+        switch maskTimeProjectionMethod
+            case 'SVD'        
+        
         %global data;
         [U, S, V] = doeigy();%source,event);%,handles);
         %% mirror eigen for + stimulation
@@ -1100,8 +1105,12 @@ end
 %         
     %    pause();
         %  s  = regionprops(synapseBW(:,:),'PixelList','PixelIdxList');
-        
+            case 'STD'
+                synProb= STD(data,3);
+        end    
     end
+
+
     function rmvBkGrnd(source,event,handles)
         subplot(4,4,16);
         tophat(); disp('tophat ipo freqfilter')
@@ -3044,6 +3053,7 @@ end
         setFrameSelectionTxt(analysisCfg.FrameSelectionTxt);
         setPhotoBleachingTxt(analysisCfg.PhotoBleachingTxt);
         setDutyCycleOnFrames(analysisCfg.dutyCycle);
+        setmaskTimeProjectionMethod(analysisCfg.maskTimeProjectionMethod);
         if isfield (analysisCfg,'preCommand')
             setPreCommand(analysisCfg.preCommand);
         else
@@ -3068,6 +3078,13 @@ end
     function setPostCommand(txt)
         postCommand=txt;
     end
+
+
+    function setmaskTimeProjectionMethod(methodTxt)
+        maskTimeProjectionMethod=methodTxt;
+    end
+
+
 function setSkipMovie(value)
         if exist('skipMovieChkButton','var')
             skipMovieChkButton.Value=value;
