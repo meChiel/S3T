@@ -7,6 +7,7 @@ global seeWellBtn stimLstX stimLstY
 global filterFieldLst lessMoreLst filterThresholdEdt markerSelectionBtn
 global doFilterBtn HistBtn levelDownBtn levelUpBtn ExportBtn fitBtn
 global lineSizeBtn LineStyleBtn logXChk logYChk wowChkBtn wow backgroundImageBtn backgroundImageSelection 
+global addFileBtn
 
 createButons();
     function createButons()
@@ -46,6 +47,11 @@ createButons();
             'Position', [5+50 (900-90) 50 20],...
             'Backgroundcolor',bgc,...
             'Callback', @setBackgroundImage);
+        
+        addFileBtn = uicontrol('Visible','off','Style', 'pushbutton', 'String', {'add file'},...
+            'Position', [5+50 (20) 50 20],...
+            'Backgroundcolor',bgc,...
+            'Callback', @addFile);
         
         doFilterBtn=[];
         filterThresholdEdt=[];
@@ -169,6 +175,29 @@ createButons();
         updatePlot(); 
     end
 
+
+    function addFile(src, e)
+        [plateFilename2, plateDir2] = uigetfile('*.txt',['Select data File'],[plateDir '\'],'MultiSelect','off');
+        defaultDir = plateDir;
+        [relPath1, relBaseFile, commonBasePath2, dotPath] = ...
+            calcRelativePath([plateDir2 plateFilename2],plateDir);
+        
+        if  1 % Prepend relatve path to new file
+            plateFilename{end+1}=[dotPath relPath1];
+        else % Change all paths to common path base
+            plateDir=commonBasePath2;
+            for i=1:length(plateFilename)
+                plateFilename{i}=[plateFilename{i} relBaseFile];
+            end
+            plateFilename{end+1}=[relPath1];
+        end
+        
+        openFiles(plateFilename,plateDir);
+        
+    end
+
+
+
     showButtons=1;
     function hideButtons(T)
         if exist('T','var')
@@ -207,6 +236,7 @@ createButons();
         fitBtn.Visible=visTExt; 
         seeWellBtn.Visible=visTExt; 
         wowChkBtn.Visible=visTExt;
+        addFileBtn.Visible = visTExt; 
         
     end
     function wowToggle(e,d,r)
@@ -332,9 +362,18 @@ global wellAvg mask
     function seeWell(tempFn,synNbr)
         subplot(4,4,1)
         tempFn=strrep(tempFn,'_PPsynapses','_synapses');
-        dd2 = ['..\..\' tempFn(1:end-13) '.tif_mask.png'];
+        e=strfind(tempFn,'\')
+        if length(e)
+            e=e(end);
+            tempDirFn=tempFn(1:e);
+            tempFFn=tempFn(e+1:end);
+        else
+            tempDirFn=[];
+            tempFFn=tempFn;
+        end
+        dd2 = [tempDirFn '..\..\' tempFFn(1:end-13) '.tif_mask.png'];
         if ~exist([plateDir dd2],'file')
-            dd2 = ['..\' tempFn(1:end-13) '.tif_mask.png'];
+            dd2 = [tempDirFn '..\' tempFFn(1:end-13) '.tif_mask.png'];
         end
         
         mask = imread([plateDir dd2]);
@@ -348,15 +387,15 @@ global wellAvg mask
         axis('off');axis ('equal');colormap('hot');
         
         subplot(4,4,[9,13]);  
-         dd2 = ['..\..\' tempFn(1:end-13) '.tif_avg.png'];
+         dd2 = [tempDirFn '..\..\' tempFFn(1:end-13) '.tif_avg.png'];
         if ~exist([plateDir dd2],'file')
-            dd2 = ['..\' tempFn(1:end-13) '.tif_avg.png'];
+            dd2 = [tempDirFn '..\' tempFFn(1:end-13) '.tif_avg.png'];
         end
         if ~exist([plateDir dd2],'file')
-            dd2 = ['..\..\output\avg\' tempFn(1:end-13) '.tif_avg.png'];
+            dd2 = [tempDirFn '..\..\output\avg\' tempFFn(1:end-13) '.tif_avg.png'];
         end
         if ~exist([plateDir dd2],'file')
-            dd2 = ['..\..\..\output\avg\' tempFn(1:end-13) '.tif_avg.png'];
+            dd2 = [tempDirFn '..\..\..\output\avg\' tempFFn(1:end-13) '.tif_avg.png'];
         end
 
         wellAvg = 200*ones(512);
@@ -803,9 +842,14 @@ global x y;
         colors = [...
             0       0.45	0.74;...
             0.85	0.33	0.1;...
-            0.93	0.69	0.13...
+            0.93	0.69	0.13;...
+            0.49    0.18    0.59;...
+            0.47    0.67    0.19;...
+            0.3     0.75    0.93;...
+            0.64    0.08    0.18;...
+            0       0.45    0.74
             ];
-        histogram(hdata,100,'orientation','horizontal','BinLimits',[ca.YLim(1),ca.YLim(2)],'FaceColor',colors(colorsNum,:));
+        histogram(hdata,100,'orientation','horizontal','BinLimits',[ca.YLim(1),ca.YLim(2)],'FaceColor',colors(mod(colorsNum-1,8)+1,:));
         aa = gca();
         cap = ca.Position;
         

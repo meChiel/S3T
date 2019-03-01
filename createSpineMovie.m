@@ -14,24 +14,24 @@ plateOnOff = [...
     0 0 0 0 0 0 0 0 0 0 0 0;
     ];
 %%
-
-plateOnOff = [...
-    0 0 0 0 0 0 0 0 0 0 0 0;
-    0 1 0 0 0 0 0 0 0 0 0 0;
-    0 0 0 0 0 0 0 0 0 0 0 0;
-    0 0 0 0 0 0 0 0 0 0 0 0;
-    0 0 0 0 0 0 0 0 0 0 0 0;
-    0 0 0 0 0 0 0 0 0 0 0 0;
-    0 0 0 0 0 0 0 0 0 0 0 0;
-    0 0 0 0 0 0 0 0 0 0 0 0;
-    ]; % Transpose to make the serialisation from left to right is done
-    %later with rot90.
- 
+% 
+% plateOnOff = [...
+%     0 0 0 0 0 0 0 0 0 0 0 0;
+%     0 1 0 0 0 0 0 0 0 0 0 0;
+%     0 0 0 0 0 0 0 0 0 0 0 0;
+%     0 0 0 0 0 0 0 0 0 0 0 0;
+%     0 0 0 0 0 0 0 0 0 0 0 0;
+%     0 0 0 0 0 0 0 0 0 0 0 0;
+%     0 0 0 0 0 0 0 0 0 0 0 0;
+%     0 0 0 0 0 0 0 0 0 0 0 0;
+%     ]; % Transpose to make the serialisation from left to right is done
+%     %later with rot90.
+% %  
 %%
 
 plateNoise = [...
     0 0 0 0 0 0 0 0 0 0 0 0;
-    0 2.8 0.01 .1 .1 .1 1 1 1 10 10 0;
+    0 0 0.01 .1 .1 .1 1 1 1 10 10 0;
     0 0 0.01 .1 .1 .1 1 1 1 10 10 0;
     0 0 0.01 .1 .1 .1 1 1 1 10 10 0;
     0 0 0.01 .1 .1 .1 1 1 1 10 10 0;
@@ -43,7 +43,7 @@ plateNoise = [...
 %% Plate Photo Bleaching Amplitude
 platePBA = [...
     0, 0 	0 		0 		0 		0 		0 		0 		0 		0 		0 		0 ;		
-    0, 0.4 	0 		0 		0 		0 		0 		0 		0 		0 		0 		0 ;		
+    0, 0 	0 		0 		0 		0 		0 		0 		0 		0 		0 		0 ;		
     0, 0.01 0.01 	0.01 	0.01 	0.01 	0.01 	0.01 	0.01 	0.01 	0.01 	0 ;
     0, .1 	.1 		.1 		.1 		.1 		.1 		.1 		.1 		.1 		.1 		0 ;		
     0, 1 	1 		1 		1 		1 		1 		1 		1 		1 		1 		0 ;		
@@ -120,7 +120,9 @@ for jj=0:(numOfWells-1)
     [X,Y]=meshgrid(1:sX,1:sY);
     sc=1;
     background=.000005*(((X.*X*0.01*sc-200).*(X*sc-200)+Y*sc.*X.*Y*sc));%+(X*sc-20).*Y));
-    background= 500*double(background>100)+background;
+    background(1:512,1:512)=background(1:512,1:512)+double(imread('background.bmp'))*500;
+%%% Creates a plateau in the image
+    %background= 500*double(background>100)+background;
     %background=.000000*(((X.*X*0.01*sc-200).*(X*sc-200)+Y*sc.*X.*Y*sc));%+(X*sc-20).*Y));
     
     tFrame=1/fs;
@@ -144,10 +146,9 @@ for jj=0:(numOfWells-1)
             images(pos(i,1),pos(i,2)) = (bgF(i)+(images(pos(i,1),pos(i,2)) - bgF(i) - PB(i))*decaytime(i))+PB(i);
             PB(i)= PB(i)*decaytime2(i);
         end
-       % image2(:,:,f) = image2(:,:,f)+plateNoise(idx(jj+1))*100*0.5*randn(size(image2(:,:,f)));
         image2(:,:,f) = conv2(spineshape,images);     
         image2(:,:,f) = image2(:,:,f)+background+1*pba*background*PB(i); % PB(i) is buffer going exp from 1 to 0 ;
-        image2(:,:,f) = image2(:,:,f)*(1+noiseLevel*50*randn(size(image2(:,:,f))));
+        image2(:,:,f) = image2(:,:,f).*(1+noiseLevel/10*randn(size(image2(:,:,f)))/pi);
         image3(:,:,f) = image2(1:512,1:512,f);
     end
 %    figure(1);colormap gray;

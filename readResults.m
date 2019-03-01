@@ -22,8 +22,10 @@ for i=1:(length(files))
     files(i).name
     try
         aWT = [aWT; readtable([dirname '\' files(i).name])];
-    catch
-        disp(error);
+    catch e
+        warning(['problem: readTable: ' dirname '\' files(i).name]);
+        disp(e.message);
+		pause();
     end
     %t = [t; readtable([dirname '\' num2fname(i)])];
     fnNber = [fnNber,  extractNumber(files(i).name)];

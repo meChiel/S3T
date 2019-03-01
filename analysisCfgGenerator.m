@@ -190,7 +190,11 @@ createButtonsUI();
 
     function loadMovie(e,r,t)
         [fn, di, pn]=uigetfile('*.tif');
+        try
         [data, pathname, fname, dirname] = loadTiff([di fn],1);%'c:',1);
+        catch
+        [data, pathname, fname, dirname] = loadTiff([di fn],0);%'c:',1);
+        end
         trace=mean(reshape(data,size(data,1)*size(data,2),[]),1);
         subplot(4,4,1);
         plot(trace);

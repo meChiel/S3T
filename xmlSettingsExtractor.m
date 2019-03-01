@@ -3,7 +3,7 @@ function stimCfg = xmlSettingsExtractor(stimCfgFN)
 %% Also see : stimSettingsLoader()
 
 if ~exist('stimCfgFN','var')
-    [stimCfgFN.name, stimCfgFN.folder] = uigetfile();
+    [stimCfgFN.name, stimCfgFN.folder] = uigetfile('*_Analysis.xml');
 end
 %% Parse the file
 
@@ -154,7 +154,11 @@ else
         
         ss2=strfind(aa(rr(1)+(ss(1)):end),sprintf('\r'));
         
-        imagePeriod=str2num(aa(rr(1)+ss(1)+2:rr(1)+ss(1)+ss2(1)-0));
+        if (rr(1)+ss(1)+ss2(1)-0))<length(aa)
+            imagePeriod=str2num(aa(rr(1)+ss(1)+2:rr(1)+ss(1)+ss2(1)-0));
+        else % In case no newline @EOF
+            imagePeriod=str2num(aa((rr(1)+ss(1)+2):end));
+        end
         imageFreq = 1/imagePeriod;
     else
         warning('did not find Camera Exposure Time (s)')
@@ -353,6 +357,8 @@ rr = strfind(aa,'<Name>Matlab Pre-Commands</Name>');
         ss2=strfind(aa(rr(1)+(ss(1)):end),'</Val>');
         matlabPreCommand=(aa(rr(1)+ss(1)+4:rr(1)+ss(1)+ss2(1)-2));
         MPreC = matlabPreCommand;
+    else
+        MPreC ='';
     end    
 
 %% Post Commands: Some Matlab commands to run after the execution of the analysis.
@@ -363,6 +369,8 @@ rr = strfind(aa,'<Name>Matlab Post-Commands</Name>');
         ss2=strfind(aa(rr(1)+(ss(1)):end),'</Val>');
         matlabPreCommand=(aa(rr(1)+ss(1)+4:rr(1)+ss(1)+ss2(1)-2));
         MPostC = matlabPreCommand;
+    else
+        MPostC ='';
     end    
 
 end
@@ -383,7 +391,7 @@ stimCfg.fastLoad = fastLoad;
 stimCfg.eigenvalueNumber = eigenvalueNumber;
 stimCfg.skipMovie = skipMovie;
 stimCfg.dutyCycle = dutyCycle;
-stimCfg.maskTimeProjectionMethod = mTP;%'SVD';
+stimCfg.maskTimeProjectionMethod = maskTimeProjection;%'SVD';
 stimCfg.MPreC=MPreC;
 stimCfg.MPostC=MPostC;
 

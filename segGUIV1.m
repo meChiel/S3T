@@ -76,6 +76,8 @@ global defaultDir
 global sliderBtn synSliderBtn
 global bgc fullVersion;
 global preCommand postCommand;
+global maskTimeProjectionMethod;
+maskTimeProjectionMethod='SVD';
 preCommand = 'disp(''precommand'')';
 postCommand = 'disp(''postCommand'')';
 %% Set default values on load
@@ -1041,7 +1043,10 @@ end
     end
     function segment2(source,event,handles)
         
-        
+        if ~exist('maskTimeProjectionMethod','var')
+            maskTimeProjectionMethod=('SVD');
+            warning('maskTimeProjectionMethod was not set!');
+        end
         switch maskTimeProjectionMethod
             case 'SVD'        
         
@@ -1106,7 +1111,7 @@ end
     %    pause();
         %  s  = regionprops(synapseBW(:,:),'PixelList','PixelIdxList');
             case 'STD'
-                synProb= STD(data,3);
+                synProb= std(data,0,3);
         end    
     end
 
@@ -1458,8 +1463,22 @@ end
         for i=1:size(dffsynsignal,2)
             if isempty(synsignal)
             	rawFoldedData=nan*ones(size(dffsynsignal)); %When no synapses
+                centre = nan;
+            xCentPos(i) = nan;
+            yCentPos(i) = nan;
+            bbox(i,1:2)= nan;
+            bbox(i,3:4)= nan;
+            synapseSize(i) = nan;
+        
             else
                 rawFoldedData=mean(foldData(synsignal(:,i)),2);
+                centre = mean(synRegio(i).PixelList,1);
+            xCentPos(i) = centre(2); 
+            yCentPos(i) = centre(1);
+            bbox(i,1:2)=max(synRegio(i).PixelList,[],1);
+            bbox(i,3:4)=min(synRegio(i).PixelList,[],1);
+            synapseSize(i) = length(synRegio(i).PixelList);
+        
             end
             
             rawBaseFluor(i) = mean(rawFoldedData(1:30));
@@ -1470,11 +1489,7 @@ end
             signal = dffsynsignal(:,i);
             synapseNbr(i) = i;
             
-            centre = mean(synRegio(i).PixelList,1);
-            xCentPos(i) = centre(2); 
-            yCentPos(i) = centre(1);
-            bbox(i,1:2)=max(synRegio(i).PixelList,[],1);
-            bbox(i,3:4)=min(synRegio(i).PixelList,[],1);
+            
             
             signal = multiResponseto1(signal,0);
             [mSig, miSig] = max(signal,[],1); % Find max ampl of the Average Synaptic Response
@@ -1482,7 +1497,6 @@ end
             miSigA(i)=miSig;
             AUC(i) = sum((signal>0).*signal);
             nAUC(i) = sum((signal<0).*signal);
-            synapseSize(i) = length(synRegio(i).PixelList);
             noiseSTD(i) = std(signal(1:5)); % Calculate noise power (std).
             aboveThreshold(i) = mSig>(2*noiseSTD(i));
             
@@ -2256,17 +2270,21 @@ end
       imageMetrics=calcImageMetrics(data)  ;
       
         mASR=0; miASR=0; mstdSR=0; fps=fps; UpHalfTime=0; DownHalfTime=0; expEqUp=0; expEqDown=0; tau1 = 0; ampSS=0; nSynapses=0; error=1;AUC=0;nAUC=0;
-        mswASR=0; miswASR=0;amp=0;tau1PA=0; ampPA=0; t0PA=0;
+        mswASR=0; miswASR=0;amp=0;tau1PA=0; ampPA=0; t0PA=0;TempSynSTD=0; TSpAPA=0; TSpAPAi=0;
         t =array2table([mASR mstdSR miASR  mswASR miswASR fps ...
             UpHalfTime DownHalfTime tau1 amp...
             nSynapses AUC nAUC tau1PA ampPA ...
             t0PA RSTmean RSTABSmean error...
+            ,TempSynSTD,...
+            TSpAPA, TSpAPAi,...
             [imageMetrics.value]  ],...
             'VariableNames',{...
             'peakAmp', 'mstdSR', 'miASR', 'sizeWeightedMASR', 'swmiASR', 'fps', ...
             'UpHalfTime', 'downHalfTime', 'tau1', 'ampSS',...
             'nSynapses','AUC','nAUC' , 'tau1PA', 'ampPA', ...
             't0PA' , 'RSTmean', 'RSTABSmean', 'error'...
+            ,'TempSynSTD',...
+            'TSpAPA', 'TSpAPAi',...
             imageMetrics.name});
         
         %t =array2table([mASR miASR fps UpHalfTime DownHalfTime expEqUp expEqDown error],'VariableNAmes',{'mASR', 'miASR', 'fps', 'UpHalfTime', 'downHalfTime', 'expEqy0', 'upA1', 'upx0', 'upT1', 'expEqdwny0', 'dwnA1', 'dwnx0', 'dwnT1', 'invalid'});
@@ -2852,9 +2870,25 @@ end
         
         for i=1:size(dffsynsignal,2)
             if isempty(synsignal)
-            	rawFoldedData=nan*ones(size(dffsynsignal)); %When no synapses
+                rawFoldedData=nan*ones(size(dffsynsignal)); %When no synapses
+                centre = nan;
+                xCentPos(i) = nan;
+                yCentPos(i) = centre(1);
+                bbox(i,1:2)=nan;
+                bbox(i,3:4)=nan;
+                synapseSize(i) = nan;
             else
                 rawFoldedData=mean(foldData(synsignal(:,i)),2);
+                  centre = mean(synRegio(i).PixelList,1);
+                  xCentPos(i) = centre(2);
+                  yCentPos(i) = centre(1);
+                  bbox(i,1:2)=max(synRegio(i).PixelList,[],1);
+                  try
+                  bbox(i,3:4)=min(synRegio(i).PixelList,[],1);
+                  catch e
+                      error(e.message);
+                  end
+                 synapseSize(i) = length(synRegio(i).PixelList);
             end
             
             rawBaseFluor(i) = mean(rawFoldedData(1:30));
@@ -2865,11 +2899,7 @@ end
             signal = dffsynsignal(:,i);
             synapseNbr(i) = i;
             
-            centre = mean(synRegio(i).PixelList,1);
-            xCentPos(i) = centre(2);
-            yCentPos(i) = centre(1);
-            bbox(i,1:2)=max(synRegio(i).PixelList,[],1);
-            bbox(i,3:4)=min(synRegio(i).PixelList,[],1);
+          
             
             signal = multiResponseto1(signal,0);
             part = foldData2(signal); % The dff data
@@ -2931,7 +2961,7 @@ end
 %                                      drawnow();%pause(.5)
                 end
             end
-            synapseSize(i) = length(synRegio(i).PixelList);
+     
         end
             
         UpHalfTime=tau1*0; DownHalfTime=tau1*0;
