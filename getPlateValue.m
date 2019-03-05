@@ -3,14 +3,12 @@ function val = getPlateValue(plate,experiments )
 % Given the plate layout: quantities and the fileNb2wellNb table.
 %
 % Plate defines: 
-% - the platevalues: The quantity of compound
+% - the platevalues: The quantity of compound in 8x12 plate format.
 % - expWells: is a vector defining the wellNumbers sequence used to
 % generate the filenames sequenceNumber.
 %
 % Experiment: Is the filename number.
 %
-
-
         global plateIndex;
         global   firstExpNb;
         if 0
@@ -35,6 +33,6 @@ function val = getPlateValue(plate,experiments )
             warning('firstExpNb was not defined is now set to 0.');
         end
         for ii=1:length(experiments)
-            val(ii) = plate.plateValues(plateIndex(:)==(plate.expwells(experiments(ii)+1-firstExpNb)));
+            val(ii) = plate.plateValues(plateIndex(:)==(plate.expwells(experiments(ii)-firstExpNb+1)));
         end
     end

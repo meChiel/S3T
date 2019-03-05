@@ -359,18 +359,12 @@ global data;
         updatePlot();
     end
 global wellAvg mask
-    function seeWell(tempFn,synNbr)
+    function seeWell(relPath,synNbr)
+        % relPath to _synapses or _PPsynapes file
         subplot(4,4,1)
-        tempFn=strrep(tempFn,'_PPsynapses','_synapses');
-        e=strfind(tempFn,'\')
-        if length(e)
-            e=e(end);
-            tempDirFn=tempFn(1:e);
-            tempFFn=tempFn(e+1:end);
-        else
-            tempDirFn=[];
-            tempFFn=tempFn;
-        end
+        relPath=strrep(relPath,'_PPsynapses','_synapses');
+        [tempFFn, tempDirFn]=getFN(relPath);
+            
         dd2 = [tempDirFn '..\..\' tempFFn(1:end-13) '.tif_mask.png'];
         if ~exist([plateDir dd2],'file')
             dd2 = [tempDirFn '..\' tempFFn(1:end-13) '.tif_mask.png'];
@@ -458,7 +452,10 @@ global wellAvg mask
             
             currentFile = fi;
             tmi =mi(fi); %tmi: total minima index
-            if any(strcmp('synapseNbr',fieldnames(data{fi}))) % check if well or plate level
+            
+            if any(strcmp('synapseNbr',fieldnames(data{fi})))  % check if well or plate level
+                % At Synapse or AllSynapse level.
+                
                 syNbr = data{fi}.synapseNbr(tmi);
                 if strcmp(stimLstX.String(stimLstX.Value),'fileName')
                     currentDataX =fi + pseudoRandom(length(data{fi}.(stimLstY.Value)));%1:size(plateFilename,2);
@@ -472,12 +469,15 @@ global wellAvg mask
                 %responses = csvread([responsePath responseFile]);
                 
                 tempPlateFilename = plateFilename{fi};
-                %dd = ['../' dd(1:end-3) 'csv'];
-                
-                
-                if strcmp(tempPlateFilename,'AllSynapses.txt')
+                [tTempPlateFilename, relDirPath]= getFN(tempPlateFilename);
+                if strcmp(tTempPlateFilename,'AllSynapses.txt')
+                    % Find the appropriate _synTraces.csv file
+                    
+                    tPlateDir=[plateDir relDirPath];
+                    
                     tempFilenb=data{fi}.FileNumber(tmi);
-                    analysisList= dir([plateDir 'SynapseDetails\*_PPsynapses.*']);
+                    
+                    analysisList= dir([tPlateDir 'SynapseDetails\*_PPsynapses.*']);
                     fileNumbers=extractNumber({analysisList.name});
                     [a]=find(tempFilenb==fileNumbers);
                     if length(a)~=1
@@ -485,35 +485,40 @@ global wellAvg mask
                         error('more or no files with same id number, please rename files to _e0001 numbering system');
                         
                     end
-                    tempPlateFilename=['SynapseDetails\' analysisList(a).name];
+                    tempPlateFilename=[relDirPath 'SynapseDetails\' analysisList(a).name];
                 end
-                tempFilename=strrep(tempPlateFilename,'_PPsynapses','_synapses');
-                tempFilename=strrep(tempFilename,'_synapses','_synTraces');
-                tempFilename = [ tempFilename(1:end-3) 'csv'];
+                
+                tempTraceFilename=strrep(tempPlateFilename,'_PPsynapses','_synapses'); % To work for _PPsynapses as well.
+                tempTraceFilename=strrep(tempTraceFilename,'_synapses','_synTraces'); % To work with _synapes.txt and _synapes.csv 
+                tempTraceFilename = [ tempTraceFilename(1:end-3) 'csv'];
+                
+                %%% Read the responses
                 try
-                    responses = table2array(readtable([plateDir tempFilename]));
-                catch
+                    responses = table2array(readtable([plateDir tempTraceFilename]));
+                catch % Legacy 2018
                     warning('using _synapses.csv files is old file naming, please rename files to _synTraces.csv');
-                    tempFilename = [tempFilename(1:end-13) 'synapses.csv'];
-                    responses = table2array(readtable([plateDir tempFilename]));
+                    tFn = [tempTraceFilename(1:end-13) 'synapses.csv'];
+                    responses = table2array(readtable([plateDir tFn]));
                 end
                 time=responses (:,1);
                 responses =responses (:,2:end)';
                 
-                hold on; plot(currentDataX(tmi),currentDataY(tmi),'*r')
+                hold on; plot(currentDataX(tmi),currentDataY(tmi),'*r'); % Show red marker on data point.
                 subplot(4,4,5)
                 hold off;
-                plot(time,responses (syNbr,:))
+                plot(time,responses (syNbr,:)); % Plot the synapse response
                 
             else % We are at well level.
                 %wellNbr = data{fi}.FileNumber(tmi);
                 detailFilename =plateFilename{fi};
                 dd=plateFilename{fi};
-                
-                
-                if strcmp(dd,'AllWells.txt')
+                [tTempPlateFilename, relDirPath]= getFN(tempPlateFilename);
+                tPlateDir=[plateDir relDirPath];
+               
+            
+                if strcmp(tTempPlateFilename,'AllWells.txt')
                     tempFilenb=data{fi}.FileNumber(tmi);
-                    analysisList= dir([plateDir '*_Analysis.*']);
+                    analysisList= dir([tPlateDir '*_Analysis.*']);
                     fileNumbers=extractNumber({analysisList.name});
                     [a]=find(tempFilenb==fileNumbers);
                     if length(a)~=1
@@ -522,16 +527,15 @@ global wellAvg mask
                     tempPlateFilename=[analysisList(a).name];
                     dd=tempPlateFilename;
                 end
-                
-                
+               
                 dd = [dd(1:end-12) 'synTraces.csv'];
                 try
-                    responses = table2array(readtable([plateDir 'synapseDetails\'  dd]));
+                    responses = table2array(readtable([tPlateDir 'synapseDetails\'  dd]));
                 catch
                     warning('No synTraces.csv file found, trying _synapses.csv.');
                     warning('using _synapses.csv files is old file naming, please rename files to _synTraces.csv');
                     dd = [dd(1:end-13) 'synapses.csv'];
-                    responses = table2array(readtable([plateDir 'synapseDetails\'  dd]));
+                    responses = table2array(readtable([tPlateDir 'synapseDetails\'  dd]));
                 end
                 time=responses (:,1);
                 responses =responses (:,2:end)';
@@ -546,11 +550,12 @@ global wellAvg mask
                 
                 
             end
+            
             xlabel('time'); ylabel('\Delta f/f')
             
-            
-            if (strcmp(plateFilename{fi},'AllSynapses.txt'))
-                seeWell(tempPlateFilename(16:end),syNbr);
+            %% Call seeWell
+            if (contains(plateFilename{fi},'AllSynapses.txt'))
+                seeWell(tempPlateFilename,syNbr);
             else
                 if (strcmp(plateFilename{fi},'AllWells.txt'))
                     seeWell(tempPlateFilename,syNbr);
@@ -565,7 +570,7 @@ global wellAvg mask
             end
             updatePlot();
         end
-        set(seeTraceBtn, 'Backgroundcolor',bgc);
+        set(seeTraceBtn, 'Backgroundcolor',bgc); %Color SeeTrace Button
     end
 
 

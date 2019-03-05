@@ -84,7 +84,7 @@ if (well96Data)
     
     %     experiments = 0:59;
     %     experiments = 1:19; warning('experiments Hack');
-    experiments = (1:size(aWT,1))-1;
+    experiments = fnNber; (1:size(aWT,1))-1;
     
     % Load the compound for all wells.
     tcsv = dir([dirname '\..' '\plateLayout_*.csv']);
@@ -166,7 +166,7 @@ if (well96Data)
   
     
     
-    fileNbTable = array2table(experiments','VariableNames',{'FileNumber'});
+    fileNbTable = array2table(fnNber','VariableNames',{'FileNumber'});
     %t=[t, NESTable, WellNbTable];
     aWT=[aWT, fileNbTable];
         rvec=[];
