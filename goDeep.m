@@ -8,6 +8,7 @@
         % If these particular files are found, than the subsequent
         % subdirectories of that folder are NOT looked into. 
         global defaultDir;
+        
         if nargin<3  
             if exist('defaultDir')
             [dataDirname] = uigetdir(defaultDir,'Select dir:');
@@ -22,6 +23,10 @@
         if nargin<2
             filterOptions='\*.tif';
         end
+                      
+        if 1 %Try to overwrite goDeep wit goAllsubdir
+        goAllSubDir(func,filterOptions,rootDir);
+        else
         if isempty(dir([dataDirname filterOptions]))
             d2= dir([dataDirname '\*.*']);
             d2(~[d2.isdir])=[]; % remove files, keep subdirs
@@ -58,4 +63,5 @@
         else
             func(dataDirname);
         end
-    end
+        end
+        end

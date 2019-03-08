@@ -6,6 +6,8 @@ global frameSelectionTxt frameSelection maskTimeProjLst SVDLst SVDtxt ...
     ReuseMaskChkBx ReloadMovieChkBx FastLoadChkBx CellBodytypeLst ...
     skipMovieChkBx WriteSVDChkBx AnalysistypeLst;
 global CellBodytype skipMovie WriteSVD;
+stimCfgFN.folder='c:\';
+
 
 NOS3=1;
 NOS2=1;
@@ -189,15 +191,19 @@ createButtonsUI();
     end
 
     function loadMovie(e,r,t)
-        [fn, di, pn]=uigetfile('*.tif');
-        try
-        [data, pathname, fname, dirname] = loadTiff([di fn],1);%'c:',1);
-        catch
-        [data, pathname, fname, dirname] = loadTiff([di fn],0);%'c:',1);
+        [fn, di, pn]=uigetfile([stimCfgFN.folder '*.tif']);
+        if di
+            stimCfgFN.folder=di;
+            
+            try % Fast load
+                [data, pathname, fname, dirname] = loadTiff([di fn],1);%'c:',1);
+            catch % If fast load not possible, do normal load
+                [data, pathname, fname, dirname] = loadTiff([di fn],0);%'c:',1);
+            end
+            trace=mean(reshape(data,size(data,1)*size(data,2),[]),1);
+            subplot(4,4,1);
+            plot(trace);
         end
-        trace=mean(reshape(data,size(data,1)*size(data,2),[]),1);
-        subplot(4,4,1);
-        plot(trace);
         
     end
     function a=by(a)
@@ -252,95 +258,103 @@ createButtonsUI();
         %   OnOffset=33;
         
         analysisName = get(ptitle3,'String');
-        [FileName,PathName,FilterIndex] = uiputfile('*.xml','Save Analysis Configuration',[analysisName '_Analysis.xml']);
-        fid = fopen([PathName FileName],'w');
-        
-        %'<Name>Frequency (Hz)</Name>\n<Val>0.20000000000000</Val>'
-%         dd1='<Name>Frequency (Hz)</Name>\n<Val>%6.13f</Val>';
-%         fprintf(fid,dd1,stimFreq3);
-        
-        %fwrite('blabla','char');
-        %'<Name>Pulse width (ms)</Name>\r\n<Val>1.00000000000000</Val>'
-        %         dd2='\r\n\r\n<Name>Pulse width (ms)</Name>\r\n<Val>%5.13f</Val>';
-        %         fprintf(fid,dd2,stimFreq);
-         
-        
-        i=1;
-        field(i).Name = 'Stimulation Frequency (Hz)';
-        field(i).Value = num2str(stimFreq3);
-        i=i+1;
-        field(i).Name = 'Delay Time (ms)';
-        field(i).Value = num2str(OnOffset3/fps3*1000);
-        i=i+1;
-        field(i).Name = 'Pulse count';
-        field(i).Value = num2str(NOS3);
-        i=i+1;
-        field(i).Name = 'Partial Stimulation Frequency (Hz)';
-        field(i).Value = stimFreq2txt.String;
-        i=i+1;
-        field(i).Name = 'Partial Delay Time (ms)';
-        field(i).Value = OnOffsettxt2.String;
-        i=i+1;
-        field(i).Name = 'Partial Pulse count';
-        field(i).Value =  NOS2txt.String;
-        i=i+1;
-        field(i).Name = 'Frame Selection';
-        field(i).Value =  frameSelectionTxt.String;
-        i=i+1;
-        field(i).Name = 'Mask Creation Time Projection';
-        field(i).Value =  maskTimeProj;
-        i=i+1;
-        field(i).Name = 'Eigenvalue Number';
-        field(i).Value =  num2str(SVDNumber);
-        i=i+1;
-        field(i).Name = 'Reuse Mask';
-        field(i).Value =  num2str(ReuseMask);
-        i=i+1;
-        field(i).Name = 'Reload Movie';
-        field(i).Value =  num2str(ReloadMovie);
-        i=i+1;
-        field(i).Name = 'Fast Load';
-        field(i).Value =  num2str(FastLoad);
-        i=i+1;
-        field(i).Name = 'Photo Bleaching';
-        field(i).Value =  num2str(PhotoBleach);
-        i=i+1;
-        field(i).Name = 'Write SVD';
-        field(i).Value =  num2str(WriteSVD);
-        i=i+1;
-        field(i).Name = 'duty Cycle (frames)';
-        field(i).Value =  num2str(dutyCycleOnFrames3);
-        i=i+1;
-        field(i).Name = 'Partial Duty Cycle (frames)';
-        field(i).Value =  num2str(dutyCycleOnFrames2);
-        i=i+1;
-        field(i).Name = 'Skip Movie';
-        field(i).Value =  num2str(skipMovie);
-        i=i+1;
-        field(i).Name = 'Cell Body Type';
-        field(i).Value =  num2str(CellBodytype);
-        i=i+1;  
-        field(i).Name = 'Analysis Type';
-        field(i).Value =  num2str(Analysistype);
-        i=i+1;
-        
-        
-        
-        
-        for i=1:length(field)
-            dd4=['\r\n\r\n<Name>'   field(i).Name '</Name>\r\n<Val>%s</Val>'];
-            fprintf(fid,dd4, field(i).Value);
+        [FileName,PathName,FilterIndex] = uiputfile([stimCfgFN.folder '*.xml'],'Save Analysis Configuration',[stimCfgFN.folder analysisName '_Analysis.xml']);
+        if PathName
+            stimCfgFN.folder=PathName;
+            fid = fopen([PathName FileName],'w');
+            
+            %'<Name>Frequency (Hz)</Name>\n<Val>0.20000000000000</Val>'
+            %         dd1='<Name>Frequency (Hz)</Name>\n<Val>%6.13f</Val>';
+            %         fprintf(fid,dd1,stimFreq3);
+            
+            %fwrite('blabla','char');
+            %'<Name>Pulse width (ms)</Name>\r\n<Val>1.00000000000000</Val>'
+            %         dd2='\r\n\r\n<Name>Pulse width (ms)</Name>\r\n<Val>%5.13f</Val>';
+            %         fprintf(fid,dd2,stimFreq);
+            
+            
+            i=1;
+            field(i).Name = 'Stimulation Frequency (Hz)';
+            field(i).Value = num2str(stimFreq3);
+            i=i+1;
+            field(i).Name = 'Delay Time (ms)';
+            field(i).Value = num2str(OnOffset3/fps3*1000);
+            i=i+1;
+            field(i).Name = 'Pulse count';
+            field(i).Value = num2str(NOS3);
+            i=i+1;
+            field(i).Name = 'Partial Stimulation Frequency (Hz)';
+            field(i).Value = stimFreq2txt.String;
+            i=i+1;
+            field(i).Name = 'Partial Delay Time (ms)';
+            field(i).Value = OnOffsettxt2.String;
+            i=i+1;
+            field(i).Name = 'Partial Pulse count';
+            field(i).Value =  NOS2txt.String;
+            i=i+1;
+            field(i).Name = 'Frame Selection';
+            field(i).Value =  frameSelectionTxt.String;
+            i=i+1;
+            field(i).Name = 'Mask Creation Time Projection';
+            field(i).Value =  maskTimeProj;
+            i=i+1;
+            field(i).Name = 'Eigenvalue Number';
+            field(i).Value =  num2str(SVDNumber);
+            i=i+1;
+            field(i).Name = 'Reuse Mask';
+            field(i).Value =  num2str(ReuseMask);
+            i=i+1;
+            field(i).Name = 'Reload Movie';
+            field(i).Value =  num2str(ReloadMovie);
+            i=i+1;
+            field(i).Name = 'Fast Load';
+            field(i).Value =  num2str(FastLoad);
+            i=i+1;
+            field(i).Name = 'Photo Bleaching';
+            field(i).Value =  num2str(PhotoBleach);
+            i=i+1;
+            field(i).Name = 'Write SVD';
+            field(i).Value =  num2str(WriteSVD);
+            i=i+1;
+            field(i).Name = 'duty Cycle (frames)';
+            field(i).Value =  num2str(dutyCycleOnFrames3);
+            i=i+1;
+            field(i).Name = 'Partial Duty Cycle (frames)';
+            field(i).Value =  num2str(dutyCycleOnFrames2);
+            i=i+1;
+            field(i).Name = 'Skip Movie';
+            field(i).Value =  num2str(skipMovie);
+            i=i+1;
+            field(i).Name = 'Cell Body Type';
+            field(i).Value =  num2str(CellBodytype);
+            i=i+1;
+            field(i).Name = 'Analysis Type';
+            field(i).Value =  num2str(Analysistype);
+            i=i+1;
+            
+            
+            
+            
+            for i=1:length(field)
+                dd4=['\r\n\r\n<Name>'   field(i).Name '</Name>\r\n<Val>%s</Val>'];
+                fprintf(fid,dd4, field(i).Value);
+            end
+            
+            %'Camera Exposure Time (s) - 0.03'
+            dd5='\r\n\r\nCamera Exposure Time (s) - %5.5f\r\n';
+            fprintf(fid,dd5,1/fps3);
+            fclose(fid);
+            disp(['Analysis writen to ' PathName FileName]);
+        else
+            disp(['Analysis write cancelled.']);
         end
-        
-        %'Camera Exposure Time (s) - 0.03'
-        dd5='\r\n\r\nCamera Exposure Time (s) - %5.5f\r\n';
-        fprintf(fid,dd5,1/fps3);
-        fclose(fid);
-        disp(['Analysis writen to ' PathName FileName]);
     end
 
     function loadSettings(e,g,h)
-        [ stimCfgFN.name, stimCfgFN.folder] = uigetfile('*.xml');
+        [ stimCfgFN.name, folerReturn] = uigetfile([stimCfgFN.folder '*.xml']);
+        if folerReturn
+            stimCfgFN.folder=folerReturn;
+        end
         stimCfg = xmlSettingsExtractor(stimCfgFN);
         setNOS(stimCfg.pulseCount);
         setNOS2(stimCfg.pulseCount2);
@@ -379,7 +393,6 @@ createButtonsUI();
         FastLoadChkBx.Value=method;
     end
 
-
     function doSetPhotoBleach(s,e,h)
            setPhotoBleach(PhotoBleachLst.String{PhotoBleachLst.Value});
     end
@@ -387,9 +400,6 @@ createButtonsUI();
     function setPhotoBleach(method)
         PhotoBleach = method;
     end
-
-        
-
 
     function doSetAnalysistype(s,e,h)
             setAnalysistype((AnalysistypeLst.String{AnalysistypeLst.Value}));
@@ -412,8 +422,6 @@ function doSetCellBodytype(s,e,h)
         %1 =cellbody
         %2 =future
     end
-
-
 
     function doSetSkipMovie(s,e,h)
             setSkipMovie(skipMovieChkBx.Value);

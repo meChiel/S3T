@@ -1,11 +1,15 @@
 %fname = '../../data/Experiment 1_iglu spontaneous.tif';
 %fname = '../../data/data_endoscope.tif';
 
-function [A, fname, FileName, PathName, U, S, V]=loadTiff(fname,fastload,frameNumbers)
+function [A, fname, FileName, PathName, U, S, V, error]=loadTiff(fname,fastload,frameNumbers)
 %set Fastload Default value
 if nargin<2
    fastload=0;
 end
+error=0;
+U=nan;
+S=nan;
+V=nan;
 %fname = '../../data/Experiment 5_SyG 10AP.tif';
 global defaultDir
 if nargin<1 || isempty(fname)
@@ -18,7 +22,7 @@ if (isempty(bkslsh))
 end
 FileName = fname(bkslsh(end)+1:end);
 PathName = fname(1:bkslsh(end));
-
+disp(['Loading: ' fname]);
 %%
 
 extra=1; % Provides some animation. Avg movie, avg signal, ...
@@ -45,7 +49,15 @@ num_images = numel(info);
 A=zeros(info(1).Height,info(1).Width,num_images);
 
 for k = 1:num_images
-    A(:,:,k) = imread(fname, k);
+    bbb=imread(fname, k);
+    if (size(bbb,3))==1
+        A(:,:,k) = bbb;
+    else
+        disp(['Unsupporte file format: ']);
+        disp(['     ' fname] );
+        error=1;
+        A=nan;
+    end
     if extra==1 && mod(k,100)==0
         imagesc(A(:,:,k));
         title(['Loading ' num2str(k) '/'  num2str(num_images)])

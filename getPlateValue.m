@@ -3,9 +3,11 @@ function val = getPlateValue(plate,experiments )
 % Given the plate layout: quantities and the fileNb2wellNb table.
 %
 % Plate defines: 
-% - the platevalues: The quantity of compound in 8x12 plate format.
-% - expWells: is a vector defining the wellNumbers sequence used to
-% generate the filenames sequenceNumber.
+% - plate.plateValues: The quantity of compound in 8x12 plate format.
+% - plate.expwells: is a vector defining the (Andor)wellNumbers sequence used to
+% generate the filenames sequenceNumber. e.g.
+% plate.expwells=[14:23,26:35,38:47,50:59,62:71,74:83] is a typical
+% sequence for the Anndor microscope.
 %
 % Experiment: Is the filename number.
 %

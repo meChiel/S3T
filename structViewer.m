@@ -1,26 +1,34 @@
-function structViewer(s,rootName,f)
+function [t,rootNode]=structViewer(s,rootName,f,t,rootNode)
 % s =struct to view
-% Name of the rootNode
+% rootName: Name of the rootNode
 % f is the uifigure handle, if not, a new figure will be created.
+
+
 if nargin<3
     f = uifigure;
 end
 if nargin<2
     rootName='struct';
 end
-
-        
+if nargin<4
+    t = uitree(f,'Position',[20 150 550 550]);
+    rootNode = uitreenode(t,'Text',rootName,'NodeData',[]);
+else
+    t = t;
+    rootNode=rootNode;
+end
 %c2 = ;
 %c3 = ;
-t = uitree(f,'Position',[20 150 550 550]);
 
-rootNode = uitreenode(t,'Text',rootName,'NodeData',[]);
+
+
+set(rootNode,'Icon','my_icon.png')
 if length(s)~=1
     s3=s;
     for pk=1:length(s3)
         s=s3(pk);
-         rNode2{pk} = uitreenode(rootNode,'Text',[ rootName ': ' '[' num2str(pk) ']'],'NodeData',[]);
-        createStructFieldNodes(rNode2{pk},s,[rootName ': ' num2str(pk)]);
+         rNode2{pk} = uitreenode(rootNode,'Text',[ OKname2text(rootName) ': ' '[' num2str(pk) ']'],'NodeData',[]);
+        createStructFieldNodes(rNode2{pk},s,[OKname2text(rootName) ': ' num2str(pk)]);
     end
 else
     
@@ -59,10 +67,10 @@ end
             %if (isstruct(s.(fn{j})))
             if (isstruct(s2.(fnn{i})))
                 %L1Node{j,i} = uitreenode(rootTxtNode{j},'Text',fnn{i},'NodeData',[]);
-                L1Node{i} = uitreenode(parentNode,'Text',fnn{i},'NodeData',[]);
+                L1Node{i} = uitreenode(parentNode,'Text',OKname2text(fnn{i}),'NodeData',[]);
                 if length(s2.(fnn{i}))~=1
                     for kk=1:length(s2.(fnn{i})) % create for each element in the array a node
-                        Node2{i,kk} = uitreenode(L1Node{i},'Text',[fnn{i} '[' num2str(kk) ']'],'NodeData',[]);
+                        Node2{i,kk} = uitreenode(L1Node{i},'Text',[OKname2text(fnn{i}) '[' num2str(kk) ']'],'NodeData',[]);
                         % Create for each element in the struct a node.
                         createStructFieldNodes(Node2{i,kk},s2.(fnn{i})(kk),fnn{i});
                     end
@@ -79,15 +87,26 @@ end
 % If node is a leave display the leave
     function showLeave(parentNode,s2,fnj)%s2=s.(fn{j}),fn{j}
         if (isstr(s2))
-            leaveNode = uitreenode(parentNode,'Text',[fnj ': ' s2],'NodeData',[s2]);
+            leaveNode = uitreenode(parentNode,'Text',[OKname2text(fnj) ': ' s2],'NodeData',[s2]);
         else
             if (isnumeric(s2))
-                leaveNode = uitreenode(parentNode,'Text',[fnj ': ' num2str(s2)],'NodeData',[s2]);
+                if strcmp(fnj,'processed')
+                    if s2==0
+                        set(parentNode,'Icon','unprocesssed_icon.png');
+                    else
+                        if s2==1
+                            set(parentNode,'Icon','processsed_icon.png');
+                        else
+                            set(parentNode,'Icon','partiallyprocesssed_icon.png');
+                        end
+                    end
+                end 
+                leaveNode = uitreenode(parentNode,'Text',[OKname2text(fnj) ': ' num2str(s2)],'NodeData',[s2]);
             else
                 if (islogical(s2))
-                    leaveNode = uitreenode(parentNode,'Text',[fnj ': ' num2str(s2)],'NodeData',[]);
+                    leaveNode = uitreenode(parentNode,'Text',[OKname2text(fnj) ': ' num2str(s2)],'NodeData',[]);
                 else
-                    leaveNode = uitreenode(parentNode,'Text',[fnj ': ' 'unsupported format'],'NodeData',[]);
+                    leaveNode = uitreenode(parentNode,'Text',[OKname2text(fnj) ': ' 'unsupported format'],'NodeData',[]);
                 end
             end
         end

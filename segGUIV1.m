@@ -1082,16 +1082,18 @@ end
         end
         
         res = zeros(16,1);
+%         tic
+%         for evnI = 1:16
+%           res(evnI) = norm(reshape(data-reshape(U(:,1:evnI)*S(1:evnI,1:evnI)*V(:,(1:evnI))',size(data)),1, []))/norm(data(:))*100;
+%         end
+%         toc
         tic
-        for evnI = 1:16
-          res(evnI) = norm(reshape(data-reshape(U(:,1:evnI)*S(1:evnI,1:evnI)*V(:,(1:evnI))',size(data)),1, []))/norm(data(:))*100;
-        end
-        toc
         rdata=data;
         for evnI = 1:16
             rdata = rdata - reshape(U(:,evnI)*S(evnI,evnI)*V(:,(evnI))',size(data)); 
             res(evnI) = norm(reshape(rdata,1,[])) /norm(data(:))*100;
         end
+        toc
         
         synProb = reshape(U(:,EVN),[wy,wx]);
         % EVN=1; %Eigen vector number
@@ -1253,6 +1255,7 @@ end
         else
             [data, pathname, fname, dirname] = loadTiff([],fastLoadChkButton.Value);
         end
+        disp(pathname);
         wx = size(data,2); wy = size(data,1);wt = size(data,3);
         fNmTxt.String=fname;
         dNmTxt.String=dirname;
@@ -1406,24 +1409,30 @@ end
         end
     end
     function avgSynapseResponse(source,ev)
+        
+     % Some pixel averages:
+        rAR = mean(reshape(data,wx*wy,[]),1); % Average over all pixels, average Response
+        dd=mean(reshape(data,wx*wy,[]),1);
+        mdd=multiResponseto1(dd,0);
+        AR = dff(dd); % Average over all pixels, average Response
+        [TSpAPA , TSpAPAi] = max(mdd); %Temporal spike Averaged Pixel Amplitude
+        
+        
         nSynapses = size(synsignal,2);
         hold off
+     
         if ~isempty(synsignal)
             ASR = mean(dff(synsignal'),1); % Average over all synapses
-            dd=mean(reshape(data,wx*wy,[]),1);
-            mdd=multiResponseto1(dd,0);
-            AR = dff(dd); % Average over all pixels, average Response
-            
             
 %                imageMetrics(5).name = 'Temporal spike Averaged Pixel Amplitude';
-        [TSpAPA , TSpAPAi] = max(mdd); %Temporal spike Averaged Pixel Amplitude
+        
 %         imageMetrics(5).value= TSpAPA;
 %         imageMetrics(6).name = 'Temporal spike Averaged Pixel Amplitude Index';
 %         imageMetrics(6).value= TSpAPAi;
             
             
             disp('AR1 disabled in AVGSynapseResponse ;') ; AR1=AR*0;%      AR1 = mean(dff(reshape(data,wx*wy,[]),1)); % Average over all pixels, average Response
-            rAR = mean(reshape(data,wx*wy,[]),1); % Average over all pixels, average Response
+            
            
             stdSR = std(dff(synsignal'),1); %stdSR for all points in time
             mstdSR = max(stdSR);
@@ -1437,10 +1446,12 @@ end
       
             
         else
-            ASR=zeros(1,size(rAR,2));
-            AR=zeros(1,size(rAR,2));
-            stdSR = zeros(1,size(rAR,2));
+            ASR=zeros(1,size(synsignal,1));
+            AR=zeros(1,size(synsignal,1));
+            stdSR = zeros(1,size(synsignal,1));
             mstdSR = 0;
+            swASR = zeros(1,size(synsignal,1));
+            AR1=zeros(1,size(synsignal,1));
             invalidate();
         end
         tvec = (dt*(1:size(ASR,2))');
@@ -1481,7 +1492,11 @@ end
         
             end
             
-            rawBaseFluor(i) = mean(rawFoldedData(1:30));
+            if size(rawFoldedData)>=30
+                rawBaseFluor(i) = mean(rawFoldedData(1:30));
+            else
+                rawBaseFluor(i) = mean(rawFoldedData(:));
+            end
             rawMaxFluor(i)= max(rawFoldedData);
             rawDFluor(i) = rawMaxFluor(i)-rawBaseFluor(i);
             rawDFF(i) = rawDFluor(i)/rawBaseFluor(i);
@@ -1765,6 +1780,14 @@ end
         %% Image Metrics
         imageMetrics=calcImageMetrics(data);
         
+        
+        %% res metric
+        resNames=[];
+        SNames=[];
+        for i=1:16
+            resNames{i} = ['res' num2str(i)];
+            SNames{i} = ['S' num2str(i)];
+        end
         %% Export analysis data
         savesubplot(4,4,8,[pathname '_analysis']);
         t =array2table([...
@@ -1773,14 +1796,14 @@ end
             nSynapses AUC nAUC tau1PA ampPA t0PA RSTmean ...
             RSTABSmean error TempSynSTD ...
             TSpAPA TSpAPAi ...
-            ,[imageMetrics.value] ],...
+            ,[imageMetrics.value], res' diag(S(1:16,1:16))'],...
             'VariableNames',{...
             'peakAmp', 'mstdSR', 'miASR', 'sizeWeightedMASR', ...
             'swmiASR', 'fps', 'UpHalfTime', 'downHalfTime', 'tau1', 'ampSS', ...
             'nSynapses','AUC','nAUC' , 'tau1PA', 'ampPA', 't0PA' ,'RSTmean',...
             'RSTABSmean','error','TempSynSTD',...
             'TSpAPA', 'TSpAPAi'...
-             imageMetrics.name});
+             imageMetrics.name resNames{:} SNames{:}} );
         %t =array2table([mASR miASR fps UpHalfTime DownHalfTime expEqUp expEqDown error ],'VariableNAmes',{'mASR', 'miASR', 'fps', 'UpHalfTime', 'downHalfTime', 'expEqy0', 'upA1', 'upx0', 'upT1', 'expEqdwny0', 'dwnA1', 'dwnx0', 'dwnT1','error'});
         %t =array2table([mASR miASR fps UpHalfTime DownHalfTime expEqUp expEqDown ],'VariableNAmes',{'mASR', 'miASR', 'fps', 'UpHalfTime', 'downHalfTime', 'expEqy0', 'upA1', 'upx0', 'upT1', 'upA2', 'upT2', 'expEqdwny0', 'dwnA1', 'dwnx0', 'dwnT1', 'dwnA2', 'dwnT2'});
         if ~isdir([dirname 'output\']);
@@ -1946,35 +1969,38 @@ end
     function processDirAndSubDirs(dataDirname)
     
         defaultDir =  [dataDirname '\..'];
-        if isempty(dir([dataDirname '\*.tif']))
-            dd= dir([dataDirname '\*.*']);
-            dd(~[dd.isdir])=[]; % remove files, keep subdirs
-            for  i=1:(length(dd)-2) % remove . and ..
-                if isempty(dir([dataDirname '\' dd(i+2).name '\*.tif']))
-                    ddd= dir([dataDirname '\' dd(i+2).name '\*.*']);
-                    ddd(~[ddd.isdir])=[]; % remove files, keep subdirs
-                    for  ii=1:(length(ddd)-2) % remove . and ..
-                        if isempty(dir([dataDirname '\' dd(i+2).name '\' ddd(ii+2).name '\*.tif']))
-                            dddd= dir([dataDirname '\' dd(i+2).name '\' ddd(ii+2).name '\*.*']);
-                            dddd(~[dddd.isdir])=[]; % remove files, keep subdirs
-                            for  iii=1:(length(dddd)-2) % remove . and ..
-                                if isempty(dir([dataDirname '\' dd(i+2).name '\' ddd(ii+2).name '\' dddd(iii+2).name '\*.tif']))
-                                else
-                                    processDir([dataDirname '\' dd(i+2).name '\' ddd(ii+2).name '\' dddd(iii+2).name]);
-                                end
-                            end
-                        else
-                            processDir([dataDirname '\' dd(i+2).name '\' ddd(ii+2).name]);
-                        end
-                    end
-                else
-                    processDir([dataDirname '\' dd(i+2).name]);
-                end
-            end
+        if 1 %Overwrite, default godeepBehaviour, do all subdirs 
+            goAllSubDir(@processDir,'*.tif',dataDirname);
         else
-            processDir(dataDirname);
+            if isempty(dir([dataDirname '\*.tif']))
+                dd= dir([dataDirname '\*.*']);
+                dd(~[dd.isdir])=[]; % remove files, keep subdirs
+                for  i=1:(length(dd)-2) % remove . and ..
+                    if isempty(dir([dataDirname '\' dd(i+2).name '\*.tif']))
+                        ddd= dir([dataDirname '\' dd(i+2).name '\*.*']);
+                        ddd(~[ddd.isdir])=[]; % remove files, keep subdirs
+                        for  ii=1:(length(ddd)-2) % remove . and ..
+                            if isempty(dir([dataDirname '\' dd(i+2).name '\' ddd(ii+2).name '\*.tif']))
+                                dddd= dir([dataDirname '\' dd(i+2).name '\' ddd(ii+2).name '\*.*']);
+                                dddd(~[dddd.isdir])=[]; % remove files, keep subdirs
+                                for  iii=1:(length(dddd)-2) % remove . and ..
+                                    if isempty(dir([dataDirname '\' dd(i+2).name '\' ddd(ii+2).name '\' dddd(iii+2).name '\*.tif']))
+                                    else
+                                        processDir([dataDirname '\' dd(i+2).name '\' ddd(ii+2).name '\' dddd(iii+2).name]);
+                                    end
+                                end
+                            else
+                                processDir([dataDirname '\' dd(i+2).name '\' ddd(ii+2).name]);
+                            end
+                        end
+                    else
+                        processDir([dataDirname '\' dd(i+2).name]);
+                    end
+                end
+            else
+                processDir(dataDirname);
+            end
         end
-    
     end
 
     function [isProcessed, currentfolder]=writeProcessStart(expnm,iii,currentfolder)
@@ -2006,109 +2032,130 @@ end
         % [C10dirname] = uigetdir(defaultDir,'Select control 10AP dir:');
         defaultDir =  [datadirname '\..'];
         experiments = dir([datadirname '\*.tif']);
-        dNmTxt.String = datadirname;
-        for ii = 1:length(experiments )
-            %ee = num2str(100+experiments(ii));ee = ee(2:3); % To make 01,02, 03, .. 10, 11
-            expnm{ii} = dir ([datadirname '\' experiments(ii).name]);
-        end
         
-        
-        if (~isdir([expnm{1}.folder '\process\']))
-            mkdir([expnm{1}.folder '\process\']);
-        end
-        currentfolder=expnm{1}.folder;
-        
-        for EID = 1:length(experiments)
-            [isProcessed, currentfolder]=writeProcessStart(expnm,EID,currentfolder);
-            if  ~isProcessed
-                % Load the data
-                fNmTxt.String=['loading..' expnm{EID}.name];
-                if fastLoadChkButton.Value
-                    [data, pathname, fname, dirname,U,S,V] = loadTiff([expnm{EID}.folder '\' expnm{EID}.name],fastLoadChkButton.Value );
-                    imageEigen(U,S,V);
-                    synProb = reshape(U(:,EVN),[wy,wx]);
-                else
-                    [data, pathname, fname, dirname] = loadTiff([expnm{EID}.folder '\' expnm{EID}.name],fastLoadChkButton.Value );
-                end
-                defaultDir = dirname;
-                dNmTxt.String = defaultDir;
-                wx = size(data,2); wy = size(data,1);
-                fNmTxt.String=fname;
-                pause(.01);
-                
-                %% Check for analysis files:
-                if (loadAnalysisChkButton.Value==1)
-                    if ~isempty(dir( [pathname(1:end) '*_Analysis.xml']))
-                        % Check if there is a special Analysis needed for this
-                        % file.
-                        analysisList = dir( [pathname(1:end) '*_Analysis.xml']);
-                    else %Look if there are default analysis file in the dir.
-                        k=strfind(pathname,'\');
-                        kk=k(end);
-                        
-                        % If no special analysis, use default ones in dir.
-                        if ~isempty(dir( [pathname(1:kk) '*_Analysis.xml']))
-                            analysisList = dir( [pathname(1:kk) '*_Analysis.xml']);                            
-                        else
-                            error('Sorry could not find analysis file.\n Processing aborted...');
-                        end
-                        
-                        % Remove individual analysis files containg '*.tif' from this list.
-                        for i=length(analysisList):-1:1 % Remove from end to begin, to keep the indexing logical.
-                            
-                            if ~isempty(strfind(analysisList(i).name,'tif'))
-                                analysisList(i)=[];
-                            end
-                        end
-                    end
-                    
-                    for i=1:length(analysisList)
-                        dataFrameSelectionTxt ='(1:end)';
-                        writeAnalysisStart(expnm,EID,analysisList(i).name);
-                        loadAnalysis(analysisList(i));
-                        try 
-                            eval(preCommand);
-                        catch
-                            warning('failed to run preCommand');
-                            disp(preCommand);
-                        end
-                        if reloadMovie % If with frameselection only a part of the movie is loaded, by reload, another part of the same movie can be loaded to create a mask.
-                            [data, pathname, fname, dirname] = loadTiff([expnm{EID}.folder '\' expnm{EID}.name],fastLoadChkButton.Value );
-                        end
-                        if ~skipMovie
-                            pause(0.05);
-                            processMovie(pathname);
-                            moveResults(analysisList(i).name);
-                            writeProcessEnd(expnm,EID);
-                        end
-                        try
-                        eval(postCommand);
-                        catch
-                            warning('failed to run postCommand');
-                            disp(postCommand);
-                        end
-                    end
-                    
-                    
-                else % The checkbox is not enabled, just use settings from the GUI.
-                    dataFrameSelectionTxt ='(1:end)';
-                    processMovie(pathname);
-                    writeProcessEnd(expnm,EID);
-                end
-                
-                
-                
-                %% Write in the process file.
-                
-                
+        experiments=experiments(~([experiments.isdir])); %remove dir called *.tif from list
+        if ~isempty(experiments) % only process when tif files are found
+            dNmTxt.String = datadirname;
+            for ii = 1:length(experiments )
+                %ee = num2str(100+experiments(ii));ee = ee(2:3); % To make 01,02, 03, .. 10, 11
+                expnm{ii} = dir ([datadirname '\' experiments(ii).name]);
             end
             
+            
+            if (~isdir([expnm{1}.folder '\process\']))
+                mkdir([expnm{1}.folder '\process\']);
+            end
+            currentfolder=expnm{1}.folder;
+            
+            for EID = 1:length(experiments) %=tif files
+                [isProcessed, currentfolder]=writeProcessStart(expnm,EID,currentfolder);
+                if  ~isProcessed
+                    % Load the data
+                    fNmTxt.String=['loading..' expnm{EID}.name];
+                    if fastLoadChkButton.Value
+                        [data, pathname, fname, dirname,U,S,V,invalidFileError] = loadTiff([expnm{EID}.folder '\' expnm{EID}.name],fastLoadChkButton.Value );
+                        imageEigen(U,S,V);
+                        synProb = reshape(U(:,EVN),[wy,wx]);
+                    else
+                        [data, pathname, fname, dirname,~,~,~,invalidFileError] = loadTiff([expnm{EID}.folder '\' expnm{EID}.name],fastLoadChkButton.Value );
+                    end
+                    if   ~invalidFileError
+                        defaultDir = dirname;
+                        dNmTxt.String = defaultDir;
+                        wx = size(data,2); wy = size(data,1);
+                        fNmTxt.String=fname;
+                        pause(.01);
+                        
+                        %% Check for analysis files:
+                        if (loadAnalysisChkButton.Value==1)
+                            if ~isempty(dir( [pathname(1:end) '*_Analysis.xml']))
+                                % Check if there is a special Analysis needed for this
+                                % file.
+                                analysisList = dir( [pathname(1:end) '*_Analysis.xml']);
+                            else %Look if there are default analysis file in the dir.
+                                k=strfind(pathname,'\');
+                                kk=k(end);
+                                
+                                % If no special analysis, use default ones in dir.
+                                if ~isempty(dir( [pathname(1:kk) '*_Analysis.xml']))
+                                    analysisList = dir( [pathname(1:kk) '*_Analysis.xml']);
+                                else
+                                    %error
+                                    warning('Sorry could not find analysis file.\n Processing aborted...');
+                                    disp(['   ' pathname(1:end)]);
+                                    pause(10);
+                                    analysisList=[];
+                                    writeProcessFail(expnm,EID,'Sorry could not find analysis file.')
+                                    
+                                end
+                                
+                                % Remove individual analysis files containg '*.tif' from this list.
+                                for i=length(analysisList):-1:1 % Remove from end to begin, to keep the indexing logical.
+                                    
+                                    if ~isempty(strfind(analysisList(i).name,'tif'))
+                                        analysisList(i)=[];
+                                    end
+                                end
+                            end
+                            
+                            for i=1:length(analysisList)
+                                dataFrameSelectionTxt ='(1:end)';
+                                writeAnalysisStart(expnm,EID,analysisList(i).name);
+                                loadAnalysis(analysisList(i));
+                                try
+                                    eval(preCommand);
+                                catch
+                                    warning('failed to run preCommand');
+                                    disp(preCommand);
+                                end
+                                if reloadMovie % If with frameselection only a part of the movie is loaded, by reload, another part of the same movie can be loaded to create a mask.
+                                    [data, pathname, fname, dirname] = loadTiff([expnm{EID}.folder '\' expnm{EID}.name],fastLoadChkButton.Value );
+                                end
+                                if ~skipMovie
+                                    pause(0.05);
+                                    processMovie(pathname);
+                                    moveResults(analysisList(i).name);
+                                    writeProcessEnd(expnm,EID);
+                                end
+                                try
+                                    eval(postCommand);
+                                catch
+                                    warning('failed to run postCommand');
+                                    disp(postCommand);
+                                end
+                            end
+                            
+                            
+                        else % The loadAnalysis checkbox is not enabled, just use settings from the GUI.
+                            dataFrameSelectionTxt ='(1:end)';
+                            processMovie(pathname);
+                            writeProcessEnd(expnm,EID);
+                        end
+                        
+                        
+                        
+                        %% Write in the process file.
+                        
+                    else % Files is invalid
+                        disp('File is invalid, skipping file for processing.');
+                        disp(['   ' expnm{EID}.folder '\' expnm{EID}.name ' is already processed']);
+                        pause(1);
+                    end
+                else % Files is already processed
+                    disp('File is already processed, skipping file for processing.');
+                    disp(['   ' '\' expnm{EID}.name ' is already processed']);
+                    %pause(1);
+                    
+                end
+            end
+            disp(['All movies in ' datadirname ' processed.']);
+            dNmTxt.String = ['All movies in ' datadirname ' processed.'];
+            p = mfilename('fullpath');
+            bp = strfind(p,'\');
+            zip([datadirname '\process\processSoft_' getenv('ComputerName') '_' getenv('username') '.zip'],[p(1:(bp(end))) '*.m'])
+        else
+            disp([datadirname 'no tiff files found in.']);
         end
-        disp(['All movies in ' datadirname ' processed.']);
-        dNmTxt.String = ['All movies in ' datadirname ' processed.'];
-        p = mfilename('fullpath');
-        bp = strfind(p,'\');
-        zip([datadirname '\process\processSoft_' getenv('ComputerName') '_' getenv('username') '.zip'],[p(1:(bp(end))) '*.m'])
     end
 
     function moveResults(analysisListName)
@@ -2151,6 +2198,17 @@ end
     function loadAnalysis(FNname)
         analysisCfgLoad(FNname);
     end
+
+
+ function writeProcessFail(expnm,iii,message)
+        %AP10Response(iii) = mASR;
+        fid =fopen([expnm{iii}.folder '\process\process_' expnm{iii}.name '.txt'],'a');
+        cl = clock;
+        fprintf(fid,[':\n ' ]);
+        fprintf(fid,['Failed processing: ' message]);
+        fclose(fid);
+    end
+
     function writeProcessEnd(expnm,iii)
         %AP10Response(iii) = mASR;
         fid =fopen([expnm{iii}.folder '\process\process_' expnm{iii}.name '.txt'],'a');
@@ -2235,7 +2293,7 @@ end
                
             % Invalidate:
             extractSignals(); 
-            exportSynapseSignals();
+            exportSynapseSignals(); % tempThreshold(dff(synsignal'))
             exportMask('_mask.png'); % Mask after temporal Thresholding, =default to (reuse)
             
        synRegio(1).PixelIdxList=nan;
@@ -2247,7 +2305,7 @@ end
             analyseSingSynResponse();
             avgSynapseResponse(); % AR=f(synsignal)
             doMultiResponseto1(); % AR=mr(AR), ASR=mr(ASR)   % Temporal Averaging          
-            analyseAvgResponse();
+            analyseAvgResponse(); % write outputfiles Analysis.
        
             
             subplot(4,4,16);
@@ -2256,7 +2314,7 @@ end
             savesubplot(4,4,12,[pathname(1:end-4) '_signals']);
             
             % csvwrite([dirname 'output\' fname(1:end-4) '_synapses.csv'],dff(synsignal'))
-            invalidate();
+           % invalidate();
             
         end
     end
@@ -2267,6 +2325,7 @@ end
         hold off;
         plot(0);
         savesubplot(4,4,8,[pathname '_analysis']);
+      %Don't think this is needed any more, is calculated in analyseAvgResponse
       imageMetrics=calcImageMetrics(data)  ;
       
         mASR=0; miASR=0; mstdSR=0; fps=fps; UpHalfTime=0; DownHalfTime=0; expEqUp=0; expEqDown=0; tau1 = 0; ampSS=0; nSynapses=0; error=1;AUC=0;nAUC=0;
@@ -2765,8 +2824,11 @@ end
             catch e
                 disp(['size(data) = ' num2str(size(data)) ', OnOffset= ' num2str(OnOffset) ', iSP =' num2str(iSP) ', dCOF= ' num2str(dCOF) ]);
                 disp('Multi Response to 1 error, press any to crash, or set a breakpoint to investigate')
-                pause;
-                error(e);
+                 pause;
+                disp(['error: ' pathname]);
+                disp('run analysisCfgGenerator(), to resolve analysis errors');
+                error(e.message);
+                
             end
         end
         
@@ -2842,6 +2904,7 @@ end
                     'Position',[85 20 70 25],...
                     'String','Close',...
                     'Callback','delete(gcf)');
+                pause();
             end
         end
         if debug
@@ -2890,8 +2953,11 @@ end
                   end
                  synapseSize(i) = length(synRegio(i).PixelList);
             end
-            
-            rawBaseFluor(i) = mean(rawFoldedData(1:30));
+            if size(rawFoldedData)>=30
+                rawBaseFluor(i) = mean(rawFoldedData(1:30));
+            else
+                rawBaseFluor(i) = mean(rawFoldedData(:));
+            end
             rawMaxFluor(i)= max(rawFoldedData);
             rawDFluor(i) = rawMaxFluor(i)-rawBaseFluor(i);
             rawDFF(i) = rawDFluor(i)/rawBaseFluor(i);
@@ -3163,6 +3229,33 @@ function setSkipMovie(value)
         setOnOffset(round(stimCfg.delayTime*stimCfg.imageFreq/1000));
         setStimFreq(stimCfg.stimFreq);
     end
- 
+  function goAllSubDir(func,filterOptions,rootDir)
+        % goAllSubDir will evaluate the function func on specific files in
+        % current directory or subdirectory. 
+       
+        %global defaultDir;
+        if nargin<3  
+            if exist('defaultDir')
+            [dataDirname] = uigetdir(defaultDir,'Select dir:');
+            defaultDir =  [dataDirname '\..'];
+            else
+                [dataDirname] = uigetdir('','Select dir:');
+            defaultDir =  [dataDirname '\..'];
+            end
+        else
+            dataDirname=rootDir;  
+        end
+        if nargin<2
+            filterOptions='\*.tif';
+        end
+        if isempty(dir([dataDirname filterOptions]))
+            d2= dir([dataDirname '\*.*']);
+            d2(~[d2.isdir])=[]; % remove files, keep subdirs
+            for  i=1:(length(d2)-2) % remove . and ..
+                goAllSubDir(func,filterOptions,[dataDirname '\' d2(i+2).name])
+                func([dataDirname '\' d2(i+2).name]);
+            end
+        end
+  end
 end
 

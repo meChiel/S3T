@@ -154,7 +154,7 @@ else
         
         ss2=strfind(aa(rr(1)+(ss(1)):end),sprintf('\r'));
         
-        if (rr(1)+ss(1)+ss2(1)-0))<length(aa)
+        if ((rr(1)+ss(1)+ss2(1)-0))<length(aa)
             imagePeriod=str2num(aa(rr(1)+ss(1)+2:rr(1)+ss(1)+ss2(1)-0));
         else % In case no newline @EOF
             imagePeriod=str2num(aa((rr(1)+ss(1)+2):end));
