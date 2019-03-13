@@ -409,7 +409,7 @@ global wellAvg mask
 
     function seeTrace(d,f,e)
         STToggle=~STToggle;
-        while (STToggle) %See Trace Toggle
+        while (STToggle)
             STToggle=0;
             set(seeTraceBtn, 'Backgroundcolor',[.65 0.15 0.15]);
             [x, y]=ginput(1);
@@ -422,25 +422,9 @@ global wellAvg mask
                 if strcmp(stimLstX.String(stimLstX.Value),'fileName')
                     currentDataX =i + pseudoRandom(length(data{i}.(stimLstY.Value)));%1:size(plateFilename,2);
                 else
-                    if length(stimLstX.Value)==1
-                        currentDataX =data{i}.(stimLstX.Value);
-                    else %multiple select
-                        for ms=1:length(stimLstX.Value)
-                            currentDataX(:,ms) =data{i}.(stimLstX.Value(ms));
-                        end
-                    end
-                    
+                    currentDataX =data{i}.(stimLstX.Value);
                 end
-                
-                if length(stimLstY.Value)==1
-                    currentDataY =data{i}.(stimLstY.Value);
-                else %multiple select
-                    for ms=1:length(stimLstY.Value)
-                        currentDataY(:,ms) =data{i}.(stimLstY.Value(ms));
-                    end
-                end
-                
-                
+                currentDataY =data{i}.(stimLstY.Value);
                 tmaxx = max([tmaxx max(currentDataX)]);
                 tminx = min([tminx min(currentDataX)]);
                 
@@ -455,31 +439,11 @@ global wellAvg mask
                 if strcmp(stimLstX.String(stimLstX.Value),'fileName')
                     currentDataX =i + pseudoRandom(length(data{i}.(stimLstY.Value)));%1:size(plateFilename,2);
                 else
-                    if length(stimLstX.Value)==1
-                        currentDataX =data{i}.(stimLstX.Value);
-                    else %multiple select
-                        for ms=1:length(stimLstX.Value)
-                            currentDataX(:,ms) =data{i}.(stimLstX.Value(ms));
-                        end
-                    end
-                    
-                    
+                    currentDataX =data{i}.(stimLstX.Value);
                 end
-                
-                  if length(stimLstY.Value)==1
-                       currentDataY =data{i}.(stimLstY.Value);
-                    else %multiple select
-                        for ms=1:length(stimLstX.Value)
-                         currentDataY(:,ms) =data{i}.(stimLstY.Value(ms));
-                        end
-                    end
-                
+                currentDataY =data{i}.(stimLstY.Value);
                 try
-                    distances=(((x-currentDataX)/dx).^2 + ((y-currentDataY)/dy).^2); %distance matrix: horizontal=multiple selections, vertical = multiple files
-                    if size(distances,2)>1 % when multiple selections, rows are from the same file, so search for min distance of each file 
-                        distances=min(distances,[],2);
-                    end
-                    [m(i), mi(i)]=min(distances);
+                    [m(i), mi(i)]=min(sum([(x-currentDataX)/dx (y-currentDataY)/dy].^2,2));
                 catch
                     m(i) = inf; mi(i)=inf;
                 end
@@ -617,16 +581,10 @@ global wellAvg mask
         if ~exist('defaultDir','var')
             defaultDir='';
         end
-        [plateFilename, plateDir] = uigetfile({'*.txt', 'Analysis File';...
-            '*.csv', 'Trace File' ...
-            ;'*_traces.csv' 'Well Avg Trace';...
-            '**_synTraces.csv' 'Synapse Trace';...
-            '*_RawSynTraces.csv' 'Raw Synapse Traces';...
-            '*.*' '(*.*) All files'...
-            },['Select data File'],[defaultDir '\'],'MultiSelect','on');
+        [plateFilename, plateDir] = uigetfile({{'*.txt'} {'*.csv'}},['Select data File'],[defaultDir '\'],'MultiSelect','on');
         defaultDir = plateDir;
         openFiles(plateFilename,plateDir);
-        hideButtons();%
+        hideButtons();%,'*_traces.csv','*synTraces.csv','*_RawSynTraces.csv','*.*'
     end
     function openFiles(plateFilename2,plateDir)
         currentFile = 1;
@@ -740,9 +698,9 @@ global x y;
                 if ~wow
                     if length(stimLstX.Value)==1
                         x{i}(:)=data{i}.(stimLstX.Value);
-                    else %multiple select
+                    else
                         for ms=1:length(stimLstX.Value)
-                        x{i}(:,ms)=data{i}.(stimLstX.Value(ms));
+                        x{i}(ms)=data{i}.(stimLstX.Value(ms));
                         end
                     end
                 else
@@ -774,9 +732,9 @@ global x y;
             if ~wow
                 if length(stimLstY.Value)==1
                     y{i}(:)=data{i}.(stimLstY.Value);
-                else %multiple things selected
+                else
                     for ms=1:length(stimLstY.Value)
-                        y{i}(:,ms)=data{i}.(stimLstY.Value(ms));
+                        y{i}(ms)=data{i}.(stimLstY.Value(ms));
                     end
                 end
                 

@@ -6,7 +6,7 @@ if length(ff)
     relPath=path(1:ff(end));
 else
     relPath=[];
-    fn=relPath;
+    fn=path;
 end
 
 end
