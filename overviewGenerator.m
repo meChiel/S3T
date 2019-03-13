@@ -89,7 +89,7 @@ end
 disp([inputDir ffname '_overview.png Generated'])
 figure(7);image(bb);
 else
-    warning(['OverviewGenerator : No ' ffname ' entries found for overview generator in ' inputDir]);
+    disp(['OverviewGenerator : No ' ffname ' entries found for overview generator in ' inputDir]);
     %break;
 end
 end

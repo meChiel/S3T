@@ -89,14 +89,14 @@ createButons();
 %         stimLstX = uicontrol('Style', 'popup', 'String', [selectionOptions, {'fileName'}],...
 %             'Position', [10 60 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
 %             'Visible','off','CallBack',@updatePlot );      
-        stimLstX = uicontrol('Style', 'popup', 'String', [{'fileName'}],...
+        stimLstX = uicontrol('Style', 'list','Max',10,'Min',1, 'String', [{'fileName'}],...
             'Position', [10 60 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
             'Visible','off','CallBack',@updatePlot );     
         
 %         stimLstY = uicontrol('Style', 'popup', 'String', [selectionOptions , {'fileName'}],...
 %             'Position', [10 80 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
 %             'Visible','off','CallBack',@updatePlot );
-        stimLstY = uicontrol('Style', 'popup', 'String', [ {'fileName'}],...
+        stimLstY = uicontrol('Style', 'list', 'Max',10,'Min',1,'String', [ {'fileName'}],...
             'Position', [10 80 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
             'Visible','off','CallBack',@updatePlot );
         
@@ -512,7 +512,7 @@ global wellAvg mask
                 %wellNbr = data{fi}.FileNumber(tmi);
                 detailFilename =plateFilename{fi};
                 dd=plateFilename{fi};
-                [tTempPlateFilename, relDirPath]= getFN(tempPlateFilename);
+                [tTempPlateFilename, relDirPath]= getFN(dd);
                 tPlateDir=[plateDir relDirPath];
                
             
@@ -581,10 +581,16 @@ global wellAvg mask
         if ~exist('defaultDir','var')
             defaultDir='';
         end
-        [plateFilename, plateDir] = uigetfile('*.txt',['Select data File'],[defaultDir '\'],'MultiSelect','on');
+        [plateFilename, plateDir] = uigetfile({'*.txt', 'Analysis File';...
+            '*.csv', 'Trace File' ...
+            ;'*_traces.csv' 'Well Avg Trace';...
+            '**_synTraces.csv' 'Synapse Trace';...
+            '*_RawSynTraces.csv' 'Raw Synapse Traces';...
+            '*.*' '(*.*) All files'...
+            },['Select data File'],[defaultDir '\'],'MultiSelect','on');
         defaultDir = plateDir;
         openFiles(plateFilename,plateDir);
-        hideButtons();
+        hideButtons();%
     end
     function openFiles(plateFilename2,plateDir)
         currentFile = 1;
@@ -696,7 +702,13 @@ global x y;
             if ~strcmp(stimLstX.String(stimLstX.Value),'fileName') 
                 % Normal case
                 if ~wow
-                    x{i}(:)=data{i}.(stimLstX.Value);
+                    if length(stimLstX.Value)==1
+                        x{i}(:)=data{i}.(stimLstX.Value);
+                    else %multiple select
+                        for ms=1:length(stimLstX.Value)
+                        x{i}(ms)=data{i}.(stimLstX.Value(ms));
+                        end
+                    end
                 else
                     tempX=data{i}.(stimLstX.Value);
                     if exist('x','var')
@@ -724,8 +736,14 @@ global x y;
                 xlabelText = 'File Name'; 
             end
             if ~wow
-               
-                y{i}(:)=data{i}.(stimLstY.Value);
+                if length(stimLstY.Value)==1
+                    y{i}(:)=data{i}.(stimLstY.Value);
+                else %multiple things selected
+                    for ms=1:length(stimLstY.Value)
+                        y{i}(ms)=data{i}.(stimLstY.Value(ms));
+                    end
+                end
+                
             else
                 tempY=data{i}.(stimLstY.Value);
                 if exist('y','var')

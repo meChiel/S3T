@@ -2154,7 +2154,7 @@ end
             bp = strfind(p,'\');
             zip([datadirname '\process\processSoft_' getenv('ComputerName') '_' getenv('username') '.zip'],[p(1:(bp(end))) '*.m'])
         else
-            disp([datadirname 'no tiff files found in.']);
+            disp([datadirname ': No tiff files found in.']);
         end
     end
 
@@ -3248,7 +3248,12 @@ function setSkipMovie(value)
         if nargin<2
             filterOptions='\*.tif';
         end
-        if isempty(dir([dataDirname filterOptions]))
+        
+        if ~isempty(dir([dataDirname '\' filterOptions]))
+            func([dataDirname]);
+        end
+        
+        if 1%isempty(dir([dataDirname filterOptions]))
             d2= dir([dataDirname '\*.*']);
             d2(~[d2.isdir])=[]; % remove files, keep subdirs
             for  i=1:(length(d2)-2) % remove . and ..

@@ -1,7 +1,8 @@
-function [t,rootNode]=structViewer(s,rootName,f,t,rootNode)
+function [t,rootNode]=structViewer(s,rootName,f,rootDir,uia,t,rootNode)
 % s =struct to view
 % rootName: Name of the rootNode
 % f is the uifigure handle, if not, a new figure will be created.
+% If a dir is shown, the rootDir;
 
 
 if nargin<3
@@ -10,7 +11,7 @@ end
 if nargin<2
     rootName='struct';
 end
-if nargin<4
+if nargin<6
     t = uitree(f,'Position',[20 150 550 550]);
     rootNode = uitreenode(t,'Text',rootName,'NodeData',[]);
 else
@@ -118,5 +119,30 @@ end
         %can be retreived.
         node = event.SelectedNodes;
         display(node.NodeData);
+        display(node.Text);
+       %dir(['/**/*' node.Text])
+        thePath=node.Text
+        p=node.Parent;
+        while (isprop(p,'Text')) %Go up the tree, until there is no text field
+            thePath=[p.Text '\' thePath];
+            p=p.Parent;
+        end
+        if strcmp(rootDir(end),'\')
+            thePath=strrep(thePath,[rootName '\'],rootDir);
+        else
+            thePath=strrep(thePath,rootName,rootDir);
+        end
+        thePath=strrep(thePath,rootName,rootDir);
+        %imagesc(uia,imread(['F:\share\data\Rajiv\2018\02-03-2018\plate1\Protocol11220180302_110630_20180302_112921\1AP_Analysis\' node.Text '_avg.png']));
+        maskFile=[thePath '_mask.png'];
+        if exist(maskFile,'file')
+            imagesc(uia,imread(maskFile));
+        else
+            overviewFile=[thePath '\mask_overview.png'];
+            if exist(overviewFile,'file')
+                 imagesc(uia,imread(overviewFile));
+                 uia.Position=[560,0,800,1100];
+            end
+        end
     end
 end

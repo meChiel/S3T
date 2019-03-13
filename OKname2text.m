@@ -3,7 +3,8 @@ function label = OKname2text(okname)
 % characters. 
 
     label=okname;
-
+    label=strrep(label,'SU_','_');
+    label=strrep(label,'SP_','.');
     label=strrep(label,'ID_','');
 	label=strrep(label,'_COMMA_',',');
     label=strrep(label,'_MIN_','-');

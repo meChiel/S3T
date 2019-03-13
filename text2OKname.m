@@ -6,6 +6,13 @@ oklabel=label;
 if ~isempty(str2num(oklabel(1)))
     oklabel= ['ID_' oklabel];
 end
+if strcmp(oklabel(1),'_')
+    oklabel= ['SU_' oklabel(2:end)]; %Starting Underscore
+end
+if strcmp(oklabel(1),'.')
+    oklabel= ['SP_' oklabel(2:end)]; %Starting Point
+end
+
 oklabel=strrep(oklabel,',','_COMMA_');
 oklabel=strrep(oklabel,'-','_MIN_');
 oklabel=strrep(oklabel,'%','_PCT_');

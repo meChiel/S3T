@@ -194,6 +194,7 @@ createButtonsUI();
         [fn, di, pn]=uigetfile([stimCfgFN.folder '*.tif']);
         if di
             stimCfgFN.folder=di;
+            stimCfgFN.name=fn;
             
             try % Fast load
                 [data, pathname, fname, dirname] = loadTiff([di fn],1);%'c:',1);
@@ -257,8 +258,14 @@ createButtonsUI();
         %   stimFreq=.2;
         %   OnOffset=33;
         
+       
         analysisName = get(ptitle3,'String');
+        specificAnalysis=1;
+        if specificAnalysis
+            [FileName,PathName,FilterIndex] = uiputfile([stimCfgFN.folder '*.tif'],'Save Analysis Configuration: specify file',[stimCfgFN.folder '\' stimCfgFN.name '_' analysisName '_Analysis.xml']);
+        else
         [FileName,PathName,FilterIndex] = uiputfile([stimCfgFN.folder '*.xml'],'Save Analysis Configuration',[stimCfgFN.folder analysisName '_Analysis.xml']);
+        end
         if PathName
             stimCfgFN.folder=PathName;
             fid = fopen([PathName FileName],'w');

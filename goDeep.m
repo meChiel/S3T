@@ -13,6 +13,7 @@
             if exist('defaultDir')
             [dataDirname] = uigetdir(defaultDir,'Select dir:');
             defaultDir =  [dataDirname '\..'];
+            rootDir = [dataDirname '\'];
             else
                 [dataDirname] = uigetdir('','Select dir:');
             defaultDir =  [dataDirname '\..'];
