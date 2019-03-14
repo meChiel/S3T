@@ -28,7 +28,7 @@ if ~isempty(strfind(dirname(end-length('output\'):end),'output')) %make sure thi
             catch e
                 warning(['problem: readTable: ' dirname '\' files(i).name]);
                 disp(['problem: concatenating Table with previous in file: ']);
-                disp(dirname '\' files(i).name]);
+                disp([dirname '\' files(i).name]);
                 disp(e.message);
                 pause();
             end

@@ -1,6 +1,6 @@
 function dataViewer()
 global plateFilename plateDir responses detailFilename defaultDir currentFile marker lineSize LineStyle;
-global fittt histtt exporttt currentLevel STToggle seeTraceBtn exportAll selectionOptions; 
+global fittt histtt exporttt currentLevel STToggle seeTraceBtn exportAll selectionOptions AddDataCommandBtn AddDataCommandEdt; 
 global exportAllChk openFilesBtn showButtons logX logY; 
 global bgc
 global seeWellBtn stimLstX stimLstY
@@ -34,6 +34,17 @@ createButons();
             'Backgroundcolor',bgc,...
             'Callback', @seeTrace);
         
+        
+        AddDataCommandEdt = uicontrol('Visible','off','Style', 'edit', 'String', 'data{1}=[data{1} array2table(data{1}.(1)./data{1}.(2), ''VariableNames'' ,{''div''})]',...
+            'Position', [5+50+500 20 500 20],...
+            'Backgroundcolor',bgc)
+        
+        AddDataCommandBtn = uicontrol('Visible','off','Style', 'pushbutton', 'String', 'Do',...
+            'Position', [5+50+500+500 20 50 20],...
+            'Backgroundcolor',bgc,...
+            'Callback', @doAddDataCommand);
+        
+        
         lineSizeBtn = uicontrol('Visible','off','Style', 'popup', 'String', {'0.5','1','2','3','4','5','6'},...
             'Position', [5+50 (900) 50 20],...
             'Backgroundcolor',bgc,...
@@ -49,7 +60,7 @@ createButons();
             'Callback', @setBackgroundImage);
         
         addFileBtn = uicontrol('Visible','off','Style', 'pushbutton', 'String', {'add file'},...
-            'Position', [5+50 (20) 50 20],...
+            'Position', [5+50 (0) 50 20],...
             'Backgroundcolor',bgc,...
             'Callback', @addFile);
         
@@ -175,9 +186,22 @@ createButons();
         updatePlot(); 
     end
 
+    function doAddDataCommand(f,r,e)
+        eval(AddDataCommandEdt.String);
+          selectionOptions=data{1}.Properties.VariableNames;
+        for i=1:length(selectionOptions)
+            selectionOptions{i}=OKname2text(selectionOptions{i});
+        end
+        
+       
+            stimLstX.String=[selectionOptions, {'fileName'}];
+            stimLstY.String=[selectionOptions, {'fileName'}];
+            filterFieldLst.String=[selectionOptions, {'fileName'}];
+    end
 
     function addFile(src, e)
         [plateFilename2, plateDir2] = uigetfile('*.txt',['Select data File'],[plateDir '\'],'MultiSelect','off');
+        if plateFilename2~=0 % When you press cancel
         defaultDir = plateDir;
         [relPath1, relBaseFile, commonBasePath2, dotPath] = ...
             calcRelativePath([plateDir2 plateFilename2],plateDir);
@@ -193,7 +217,7 @@ createButons();
         end
         
         openFiles(plateFilename,plateDir);
-        
+        end
     end
 
 
@@ -215,6 +239,8 @@ createButons();
         logYChk.Visible=visTExt;
         markerSelectionBtn.Visible=visTExt; 
         seeTraceBtn.Visible=visTExt; 
+        AddDataCommandEdt.Visible=visTExt; 
+        AddDataCommandBtn.Visible=visTExt; 
         lineSizeBtn.Visible=visTExt; 
         LineStyleBtn.Visible=visTExt;
         backgroundImageBtn.Visible=visTExt;
@@ -496,10 +522,30 @@ global wellAvg mask
                 if strcmp(stimLstX.String(stimLstX.Value),'fileName')
                     currentDataX =fi + pseudoRandom(length(data{fi}.(stimLstY.Value)));%1:size(plateFilename,2);
                 else
-                    currentDataX =data{fi}.(stimLstX.Value);
+                    if length(stimLstX.Value)==1
+                        currentDataX =data{i}.(stimLstX.Value);
+                    else %multiple select
+                        for ms=1:length(stimLstX.Value)
+                            currentDataX(:,ms) =data{i}.(stimLstX.Value(ms));
+                        end
+                    end
+                    
                 end
+                
+                if length(stimLstY.Value)==1
+                    currentDataY =data{i}.(stimLstY.Value);
+                else %multiple select
+                    for ms=1:length(stimLstY.Value)
+                        currentDataY(:,ms) =data{i}.(stimLstY.Value(ms));
+                    end
+                end
+%                     
+%                     
+%                     
+%                     currentDataX =data{fi}.(stimLstX.Value);
+%                 end
                 %           currentDataX =data{fi}.(stimLstX.Value);
-                currentDataY =data{fi}.(stimLstY.Value);
+%                 currentDataY =data{fi}.(stimLstY.Value);
                 
                 %[responseFile, responsePath]=uigetfile('*.csv');
                 %responses = csvread([responsePath responseFile]);
@@ -908,7 +954,15 @@ global x y;
             0.64    0.08    0.18;...
             0       0.45    0.74
             ];
-        histogram(hdata,100,'orientation','horizontal','BinLimits',[ca.YLim(1),ca.YLim(2)],'FaceColor',colors(mod(colorsNum-1,8)+1,:));
+        if size(hdata,1)==1
+            histogram(hdata,100,'orientation','horizontal','BinLimits',[ca.YLim(1),ca.YLim(2)],'FaceColor',colors(mod(colorsNum-1,8)+1,:));
+        else
+            for i=1:size(hdata,2)
+                histogram(hdata(:,i),100,'orientation','horizontal','BinLimits',[ca.YLim(1),ca.YLim(2)],'FaceColor',colors(mod(colorsNum-1+i-1,8)+1,:));
+                hold on;
+            end
+        end
+    
         aa = gca();
         cap = ca.Position;
         
@@ -917,11 +971,13 @@ global x y;
         stdy = std(hdata);
         hold on;
         
-        plot([0 10],[my, my] ,'k','linewidth',6);
-        text(10,my,num2str(my));
-        plot([0 7],[my+stdy, my+stdy] ,'r','linewidth',1);
-        plot([0 7],[my-stdy, my-stdy] ,'r','linewidth',1);
-        text(8,my+stdy*.9,num2str(stdy),'Rotation',-90,'Color','red');
+        for jj=1:length(my) %For all selections
+            plot([0 10],[my(jj), my(jj)] ,'k','linewidth',6);
+            text(10,my(jj),num2str(my(jj)));
+            plot([0 7],[my(jj)+stdy(jj), my(jj)+stdy(jj)] ,'r','linewidth',1);
+            plot([0 7],[my(jj)-stdy(jj), my(jj)-stdy(jj)] ,'r','linewidth',1);
+            text(8,my(jj)+stdy(jj)*.9,num2str(stdy(jj)),'Rotation',-90,'Color','red');
+        end
         %plot([0, 20] ,[0 10],'k','lineWidth',6);
         aa.YLim = ca.YLim;
         aa.Visible='off';
