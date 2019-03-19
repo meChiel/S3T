@@ -676,6 +676,7 @@ global wellAvg mask
     end
     function openFiles(plateFilename2,plateDir)
         currentFile = 1;
+        eigData=0;
         if ~iscell(plateFilename2)
             a=plateFilename2;
             plateFilename=[];
@@ -699,24 +700,49 @@ global wellAvg mask
         if strcmp(plateFilename{1}(1:end),'AllSynapses.txt')
             currentLevel='plateLevel';
         end
-        data=[];
-        for (i=1:size(plateFilename,2))
-            hold off;
-            data{i} = readtable([plateDir plateFilename{i}]);
-        end
-        %         for (i=1:size(plateFilename,2))
-        %             x{i}(:)=data{i}.miASR;
-        %             y{i}(:)=data{i}.peakAmp;
-        %             subplot(1,2,2);
-        %             plot(x{i},y{i},'.'), hold on;
-        %         end
         
-        selectionOptions=data{1}.Properties.VariableNames;
-        for i=1:length(selectionOptions)
-            selectionOptions{i}=OKname2text(selectionOptions{i});
+        if (~isempty(strfind(plateFilename{1}(end-10:end),'_eig'))) && (strcmp(plateFilename{1}(end-3:end),'.csv'))
+            currentLevel='wellLevel';
+            eigData = 1;
         end
         
-       
+        if ~eigData
+            data=[];
+            for (i=1:size(plateFilename,2))
+                hold off;
+                data{i} = readtable([plateDir plateFilename{i}]);
+            end
+        else %is eigdata
+            data=[];
+            selectionOptions=[];
+            for (i=1:size(plateFilename,2))
+                hold off;
+                 r(:,i) = csvread([plateDir plateFilename{i}]);
+                selectionOptions{i}=text2OKname(plateFilename{i});
+            end
+            data{1} = array2table([(1:size(r,1))' r],'VariableNames',{ 'sampleNR', selectionOptions{:}});
+            t= plateFilename{1};% Make 1 platefilename of selection of files.
+            plateFilename=[];
+            plateFilename{1}=t; % Make 1 platefilename of selection of files.
+            
+        end
+        
+            %         for (i=1:size(plateFilename,2))
+            %             x{i}(:)=data{i}.miASR;
+            %             y{i}(:)=data{i}.peakAmp;
+            %             subplot(1,2,2);
+            %             plot(x{i},y{i},'.'), hold on;
+            %         end
+            
+            selectionOptions=data{1}.Properties.VariableNames;
+            for i=1:length(selectionOptions)
+                selectionOptions{i}=OKname2text(selectionOptions{i});
+            end
+      
+        
+       stimLstX.Value=1;
+       stimLstY.Value=1;
+       filterFieldLst.Value=1;
             stimLstX.String=[selectionOptions, {'fileName'}];
             stimLstY.String=[selectionOptions, {'fileName'}];
             filterFieldLst.String=[selectionOptions, {'fileName'}];
