@@ -298,9 +298,16 @@ updatePlot();
              minX(ii)=min(histxbounds);
              maxX(ii)=max(histxbounds);
          end
+         if autoscaleOn
          plateminX=min(minX);
          platemaxX=max(maxX);
          platemaxCounts=max(n);
+         else
+         plateminX=tmin;
+         platemaxX=tmax;
+         platemaxCounts=max(n);
+             
+         end
          histX = linspace(plateminX,platemaxX,40);
      end
       if autoscaleOn || plotType.Value == 3 % 3=boxplot
