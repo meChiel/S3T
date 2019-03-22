@@ -757,21 +757,31 @@ global wellAvg mask
     end
 
     function filterData(d,f,e)
-        filterField = filterFieldLst.String{filterFieldLst.Value};
+        filterField = text2OKname(filterFieldLst.String{filterFieldLst.Value});
         filterThreshold = str2num(filterThresholdEdt.String);
         for  i = 1:length(data)
             switch lessMoreLst.Value
+                case 1 %Is LESS Than
+                removeSelection = ((data{i}.(filterField))>filterThreshold);
                 case 2
-                selectionPoints = ((data{i}.(filterField))<filterThreshold);
-                case 1
-                selectionPoints = ((data{i}.(filterField))>filterThreshold);
-                case 4  
-                selectionPoints = ((data{i}.(filterField))==filterThreshold);
-                case 3
-                selectionPoints = ((data{i}.(filterField))~=filterThreshold);
+                removeSelection = ((data{i}.(filterField))<filterThreshold);
+                case 3 % Equals
+                    if isnan(filterThreshold)
+                        removeSelection = ~isnan(((data{i}.(filterField))));
+                    else
+                        removeSelection = ((data{i}.(filterField))~=filterThreshold);
+                    end
+                case 4 % Equals Not
+                    if isnan(filterThreshold)
+                        removeSelection = isnan(((data{i}.(filterField))));
+                    else
+                    removeSelection = ((data{i}.(filterField))==filterThreshold);
+                    end
+                    
+                    
             end
-            disp([num2str(sum(selectionPoints)) ' points removed']);
-            data{i}(selectionPoints,:)=[];
+            disp([num2str(sum(removeSelection)) ' points removed']);
+            data{i}(removeSelection,:)=[];
             if isempty(data{i})
             %    data{i}=[];
             end
@@ -877,11 +887,11 @@ global x y;
             if barplot
                 bar(x{i},y{i});
             else
-                xnoise=0;rand(size(x{i})).*0.2;
+                xnoise=0;rand(size(x{i})).*0.2-0.1;
                 
                 plot(x{i}+xnoise,y{i},'Marker',marker,'LineWidth',lineSize,'LineStyle', LineStyle );
                 if logX
-                xnoise=rand(size(x{i}))*.2;
+                xnoise=rand(size(x{i}))*.10-0.05;
                 plot(x{i}.*(1+xnoise),y{i},'Marker',marker,'LineWidth',lineSize,'LineStyle', LineStyle )
                 end
                 ,hold on;
@@ -891,16 +901,29 @@ global x y;
                     xcats=unique(x{i});
                     yy=y{i};
                     xx=x{i};
+                    dx=max(x{i})-min(x{i});
+                        
                     for i3=1:length(xcats)
                         sel =yy(xcats(i3)==xx);
                         msel=mean(sel);
                         msell(i3)=msel;
                         ssel=std(sel);
-                        plot([xcats(i3),xcats(i3)],[msel-ssel,msel+ssel],'r','LineWidth',lineSize)
+                        if logX
+                            plot([xcats(i3)*(1-1/dx),xcats(i3)*(1-1/dx),xcats(i3)*(1+1/dx),xcats(i3)*(1+1/dx),xcats(i3)*(1+1/dx),xcats(i3)*(1-1/dx)],[msel-ssel,msel+ssel,msel+ssel,msel-ssel,msel-ssel,msel-ssel],'b','LineWidth',lineSize)
+                            plot([xcats(i3)*(1-1/dx),xcats(i3)*(1+1/dx)],[msel,msel],'r','LineWidth',lineSize)
+                        else
+                            plot([xcats(i3)-1/dx,xcats(i3)-1/dx,xcats(i3)+1/dx,xcats(i3)+1/dx,xcats(i3)+1/dx,xcats(i3)-1/dx],[msel-ssel,msel+ssel,msel+ssel,msel-ssel,msel-ssel,msel-ssel],'b','LineWidth',lineSize)
+                            plot([xcats(i3)-1/dx,xcats(i3)+1/dx],[msel,msel],'r','LineWidth',lineSize)
+                        end
+                        %plot([xcats(i3),xcats(i3)],[msel-ssel,msel+ssel],'r','LineWidth',lineSize)
+                       %     boxplot([xcats(i3),xcats(i3)],[msel-ssel,msel+ssel]);%,'r','LineWidth',lineSize)
                     end
+                   % boxplot(xx,yy);%,'r','LineWidth',lineSize)
                    
-                    plot(xcats,msell,'k','LineWidth',lineSize);            
-                    %dx=max(x{i})-min(x{i});
+                   
+                   plot(xcats,msell,'k','LineWidth',lineSize);
+                   
+                    
                 end
                 
             end
@@ -915,7 +938,7 @@ global x y;
                t= [t;x{i}(:) y{i}(:) ones(length(y{i}(:)),1)*i];
             end
             if (~exportAll)
-                tt = array2table(t,'VariableNames',{xlabelText{1} ylabelText{1} 'color'});
+                tt = array2table(t,'VariableNames',{text2OKname(xlabelText{1}) text2OKname(ylabelText{1}) 'color'});
             else
                 tt = data{i};
             end

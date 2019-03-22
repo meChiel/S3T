@@ -5,9 +5,26 @@ fn=[];
 for ii=1:59
 pt='Y:\data\simulation\sim3\';
 pt='F:\share\data\simulation\sim3\';
+pt='F:\share\data\simulation\Noise=0.01-10 PBA=1\';
 t = num2str(ii+100);
-r = load([pt '\GT\groundTruth00' t(2:end) '.mat']);
+warning off;
+r = load([pt 'GT\groundTruth00' t(2:end) '.mat']);
+warning on;
 pos=r.pos;
+spikeAmplitude=r.spikeAmplitude;
+spikeAmplitude2=r.spikeAmplitude2;
+spikeAmplitude3=r.spikeAmplitude3;
+tFrame=r.tFrame;
+f=r.f;
+spiketimes = r.spiketimes;
+spiketimes2 = r.spiketimes2;
+spiketimes3 = r.spiketimes3;
+bgF=r.bgF;
+PB=r.PB;
+decaytime = r.decaytime;
+decaytime2 = r.decaytime2;
+
+spineshape=r.spineshape;
 images=zeros(512,512);
 for i=1:length(pos) % For active spines
     %images(pos(i,1),pos(i,2))=images(pos(i,1),pos(i,2))+bgF(i);
@@ -20,7 +37,7 @@ end
 tas = conv2(spineshape,images); %Truth Active Spines
 tas=tas(1:512,1:512);
 tasm = tas>mean(tas(:))+3*std(tas(:));
-cm = imread([pt 'SVD3-1AP_Analysis\NS_120181002_1046_e00' t(2:end) '.tif_mask.png']);
+cm = imread([pt 'SVD2-1AP_Analysis\NS_120181002_1046_e00' t(2:end) '.tif_mask.png']);
 % figure;imagesc(cm>0)
 diff=(double(cm>0)-double(tasm));
 fp(ii)=sum(sum(diff>.5));
