@@ -891,8 +891,11 @@ global x y;
                 
                 plot(x{i}+xnoise,y{i},'Marker',marker,'LineWidth',lineSize,'LineStyle', LineStyle );
                 if logX
+                L=(i-1)*.3; %Shift between files
                 xnoise=rand(size(x{i}))*.10-0.05;
-                plot(x{i}.*(1+xnoise),y{i},'Marker',marker,'LineWidth',lineSize,'LineStyle', LineStyle )
+                plot(x{i}.*(1+xnoise+L),y{i},'Marker',marker,'LineWidth',lineSize,'LineStyle', LineStyle )
+                else
+                    plot(x{i}+xnoise,y{i},'Marker',marker,'LineWidth',lineSize,'LineStyle', LineStyle );
                 end
                 ,hold on;
                 
@@ -909,8 +912,12 @@ global x y;
                         msell(i3)=msel;
                         ssel=std(sel);
                         if logX
-                            plot([xcats(i3)*(1-1/dx),xcats(i3)*(1-1/dx),xcats(i3)*(1+1/dx),xcats(i3)*(1+1/dx),xcats(i3)*(1+1/dx),xcats(i3)*(1-1/dx)],[msel-ssel,msel+ssel,msel+ssel,msel-ssel,msel-ssel,msel-ssel],'b','LineWidth',lineSize)
-                            plot([xcats(i3)*(1-1/dx),xcats(i3)*(1+1/dx)],[msel,msel],'r','LineWidth',lineSize)
+                         
+                            h=plot([xcats(i3)*(1-1/dx+L),xcats(i3)*(1-1/dx+L),xcats(i3)*(1+1/dx+L),xcats(i3)*(1+1/dx+L),xcats(i3)*(1+1/dx+L),xcats(i3)*(1-1/dx+L)],[msel-ssel,msel+ssel,msel+ssel,msel-ssel,msel-ssel,msel-ssel],'b','LineWidth',lineSize)
+                            set(get(get(h,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
+                            h=plot([xcats(i3)*(1-1/dx+L),xcats(i3)*(1+1/dx+L)],[msel,msel],'r','LineWidth',lineSize);
+                            set(get(get(h,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
+                            
                         else
                             plot([xcats(i3)-1/dx,xcats(i3)-1/dx,xcats(i3)+1/dx,xcats(i3)+1/dx,xcats(i3)+1/dx,xcats(i3)-1/dx],[msel-ssel,msel+ssel,msel+ssel,msel-ssel,msel-ssel,msel-ssel],'b','LineWidth',lineSize)
                             plot([xcats(i3)-1/dx,xcats(i3)+1/dx],[msel,msel],'r','LineWidth',lineSize)
@@ -921,8 +928,9 @@ global x y;
                    % boxplot(xx,yy);%,'r','LineWidth',lineSize)
                    
                    
-                   plot(xcats,msell,'k','LineWidth',lineSize);
-                   
+                  h= plot(xcats,msell,'k','LineWidth',lineSize);
+                  set(get(get(h,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
+                    
                     
                 end
                 
@@ -976,6 +984,11 @@ global x y;
         %disp(af);
         pause(.05);
         end
+%        for i=1:length()
+        %leg{}=leg{};
+%        end
+        
+        legend(plateFilename);
         end
     end
 

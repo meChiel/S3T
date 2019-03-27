@@ -1,11 +1,25 @@
 % truthComparator
+%%
+p=tic
+clear all;
+dataDirname='F:\share\data\simulation\Noise=0.01-10 PBA=1 T2'
+createSpineMovie;
+segGUIV1(dataDirname);
+goAllSubDir(@readResults,'*.tif',dataDirname);
 
+
+%%
+anaNames={'SVD1-1AP_Analysis','SVD2-1AP_Analysis','SVD3-1AP_Analysis','STD-1AP_Analysis'};
+
+for kk=1:length(anaNames)
+    anaName=anaNames{kk};
 fp=[];
 fn=[];
 for ii=1:59
 pt='Y:\data\simulation\sim3\';
 pt='F:\share\data\simulation\sim3\';
 pt='F:\share\data\simulation\Noise=0.01-10 PBA=1\';
+pt=dataDirname;
 t = num2str(ii+100);
 warning off;
 r = load([pt 'GT\groundTruth00' t(2:end) '.mat']);
@@ -37,7 +51,7 @@ end
 tas = conv2(spineshape,images); %Truth Active Spines
 tas=tas(1:512,1:512);
 tasm = tas>mean(tas(:))+3*std(tas(:));
-cm = imread([pt 'SVD2-1AP_Analysis\NS_120181002_1046_e00' t(2:end) '.tif_mask.png']);
+cm = imread([pt anaName '\NS_120181002_1046_e00' t(2:end) '.tif_mask.png']);
 % figure;imagesc(cm>0)
 diff=(double(cm>0)-double(tasm));
 fp(ii)=sum(sum(diff>.5));
@@ -47,17 +61,25 @@ imagesc(tasm)
 drawnow();
 end
 %%
-fpSVD2=fp;
-fnSVD2=fn;
-%%
+switch kk
+    case 1
 fpSVD1=fp;
 fnSVD1=fn;
 %%
+    case 2
+fpSVD2=fp;
+fnSVD2=fn;
+%%
+    case 3
 fpSVD3=fp;
 fnSVD3=fn;
 %%
+    case 4
 fpSTD=fp;
 fnSTD=fn;
+end
+end
+p3=toc
 %%
 figure;plot(fpSTD);hold on;plot(fpSVD1);plot(fpSVD2);plot(fpSVD3);legend('STD','SVD1','SVD2','SVD3');title('false postive [pixels]'); xlabel('artificial sample Number'); ylabel('misclassified number of pixels');
 figure;plot(fnSTD);hold on;plot(fnSVD1);plot(fnSVD2);plot(fnSVD3);legend('STD','SVD1','SVD2','SVD3');title('false negative [pixels]'); xlabel('artificial sample Number'); ylabel('misclassified number of pixels');
@@ -166,4 +188,4 @@ caxis(c);
 axis equal
 axis off
 colorbar
-
+p2=toc

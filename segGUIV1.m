@@ -1114,6 +1114,7 @@ end
         %  s  = regionprops(synapseBW(:,:),'PixelList','PixelIdxList');
             case 'STD'
                 synProb= std(data,0,3);
+                S=zeros(32:32);
         end    
     end
 
@@ -1790,6 +1791,9 @@ end
         end
         %% Export analysis data
         savesubplot(4,4,8,[pathname '_analysis']);
+        if isempty(res)
+            res=nan*zeros(16,1);
+        end
         t =array2table([...
             mASR mstdSR miASR  mswASR ...
             miswASR fps UpHalfTime DownHalfTime tau1 amp ...

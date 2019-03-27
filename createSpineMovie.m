@@ -50,7 +50,7 @@ platePBA = [...
     0, 1 	1 		1 		1 		1 		1 		1 		1 		1 		1 		0 ;		
     0, 10 	10 		10 		10 		10 		10 		10 		10 		10 		10 		0 ;		
     0, 0 	0 		0 		0 		0 		0 		0 		0 		0 		0 		0 ;		
-    ]*0+1;
+    ]*0+1; %x0 disables photbleach
 
 %%
 
@@ -85,8 +85,8 @@ for jj=0:(numOfWells-1)
     PB=ones(Nspines,1); % Photo Bleach
     PB2=ones(Nspines,1); % Photo Bleach
     
-    bgF=100*ones(Nspines,1); % Background Fluorescence active spines
-    bgF2=100*ones(Nspines2,1); % Background Fluorescence non-active spines
+    bgF=500*ones(Nspines,1); % Background Fluorescence active spines
+    bgF2=500*ones(Nspines2,1); % Background Fluorescence non-active spines
     pos2=ceil(512*rand(Nspines2,2)); % Postion of non-active spines
     spiketimes = 1.2*ones(Nspines,1)+0.00*randn(Nspines,1); % SpikeTime + random delay
     spiketimes2 = 6.2*ones(Nspines,1)+0.00*randn(Nspines,1); % SpikeTime + random delay
@@ -195,7 +195,18 @@ for jj=0:(numOfWells-1)
                pause(1);
                imwrite(uint16(image3(:,:,i)*4),ffname,'WriteMode','append');
            catch(e)
-               error('tried 2 times but could not write to file')
+               try
+                   pause(1);
+                   imwrite(uint16(image3(:,:,i)*4),ffname,'WriteMode','append');
+               catch(e)
+                   try
+                       pause(1);
+                       imwrite(uint16(image3(:,:,i)*4),ffname,'WriteMode','append');
+                   catch(e)
+                       error('tried 4 times but could not write to file')
+                   end
+               end
+               
            end
        end
     
