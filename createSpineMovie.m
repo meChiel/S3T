@@ -50,7 +50,7 @@ platePBA = [...
     0, 1 	1 		1 		1 		1 		1 		1 		1 		1 		1 		0 ;		
     0, 10 	10 		10 		10 		10 		10 		10 		10 		10 		10 		0 ;		
     0, 0 	0 		0 		0 		0 		0 		0 		0 		0 		0 		0 ;		
-    ]*0+1; %x0 disables photbleach
+    ]*0+.1; %x0 disables photbleach
 
 %%
 
