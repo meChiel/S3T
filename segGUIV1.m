@@ -1056,11 +1056,20 @@ end
         for ii=1:6
             nBlack = sum(U(:,ii)<mean(U(:,ii)));
             nWhite = sum(U(:,ii)>mean(U(:,ii)));
+            
+            nWhite = abs(prctile(V(:,ii),01.0)); %We expect the distribution of the response to be shifted/more tailed towards the side where reponse is positive. 
+            nBlack = abs(prctile(V(:,ii),99.0));
+            
             if (nBlack<nWhite)
                 thesign = -1;
             else
                 thesign = 1;
             end
+%             if ii==1
+%                 thesign=-1*thesign; %Flip the first eigvector, since we expect here the response to be mainly above 0.
+%             end
+            
+            
             U(:,ii) = thesign .*U(:,ii);
             V(:,ii) = thesign .*V(:,ii);
             %synProb = (-1*(sign(V(1,EVN)).*synProb));
@@ -1870,8 +1879,11 @@ end
         
         for i=1:length(fmeasureMethods)
         imageMetrics(4+i).name = ['FM_' fmeasureMethods{i}];
-        imageMetrics(4+i).value= fmeasure(Tavg,fmeasureMethods{i})
+        imageMetrics(4+i).value= nan;%fmeasure(Tavg,fmeasureMethods{i})
+        
         end
+        disp('metrics disabled l:1879');
+        pause(1);
         
  end
      

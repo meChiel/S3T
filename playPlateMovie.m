@@ -1,4 +1,4 @@
-function playPlateMovie(dd,writeMovie,accuracy)
+function playPlateMovie(dd,writeMovie,accuracy,headless,outputDownsampleFactor)
 %% playPlateMovie(dir,writeMovie,accuracy)
 %
 % with dir, the dir, if not a dialog opens to specify.
@@ -14,8 +14,18 @@ function playPlateMovie(dd,writeMovie,accuracy)
 %
 % goAllSubDir(@(x) playPlateMovie(x,1,2),'*.tif','E:\someDir\2-03-19')
 %%
-headless = 1;%0
+
 %%
+if nargin<5
+    outputDownsampleFactor = 8;%0  
+end
+
+d=outputDownsampleFactor ; %Downsample
+
+if nargin<4
+    headless = 0;%0
+end
+
 if nargin<3
     accuracy=16;
 end
@@ -24,16 +34,18 @@ if nargin<2
     writeMovie=0;
 end
 
-if nargin<1
+if nargin<1 || isempty(dd)
     dd=uigetdir();
-    answer = questdlg('Would you like to write the movie?', ...
-        'Write Movie', ...
-        'Yes','No','No');
-    switch answer
-        case 'Yes'
-            writeMovie=1;
-        case 'No'
-            writeMovie=0;
+    if isemty(writeMovie)
+        answer = questdlg('Would you like to write the movie?', ...
+            'Write Movie', ...
+            'Yes','No','No');
+        switch answer
+            case 'Yes'
+                writeMovie=1;
+            case 'No'
+                writeMovie=0;
+        end
     end
 end
 
@@ -46,12 +58,27 @@ S=[];
 V=[];
 tic
 fname=dir([dd '\*.tif']);
+fname=natsort(fname);
 nTifFiles=length(fname); %60
-if nTifFiles>9 %only create overview movie if there are at least 10 movies
+if nTifFiles>9 && isdir([dd '\eigs'])%only create overview movie if there are at least 10 movies
     for i=1:nTifFiles
         disp(['fast loading: ' fname(i).name]);
         try
-            [~, U(:,:,i), S(:,:,i), V(:,:,i)] = fastLoadTiff([fname(i).folder '\' fname(i).name] ,1,accuracy);
+            [~, u, s, v, sizeA] = fastLoadTiff([fname(i).folder '\' fname(i).name] ,1,accuracy);
+            if i==1
+                movieLenght = size(v,1);
+            end
+            for rrr=1:accuracy % Fit the small movie in the 512,512 frame
+                uu=reshape(u(:,rrr),sizeA(1),sizeA(2));
+                uup=zeros(512,512);
+                uup(1:sizeA(1),1:sizeA(2))=uu;                
+                U(:,rrr,i)=uup(:);
+            end
+            S(:,:,i)=s;
+            V(:,:,i)=zeros(movieLenght,accuracy);
+            tt=min(movieLenght,size(v,1));
+            V(1:tt,1:size(v,2),i)=v(1:tt,:);
+            
         catch
             U(:,:,i)=zeros(512*512,accuracy);
             S(:,:,i)=zeros(accuracy,accuracy);
@@ -68,7 +95,7 @@ if nTifFiles>9 %only create overview movie if there are at least 10 movies
     %%
     Ub=U;
     %%
-    d=8; %Downsample
+    
     tic
     U=[];
     for i=1:nTifFiles
@@ -107,12 +134,12 @@ if nTifFiles>9 %only create overview movie if there are at least 10 movies
     
     %%
     if writeMovie
-        vidObj = VideoWriter([dd '\overviewVideo_a' num2str(accuracy) '.avi']);
+        vidObj = VideoWriter([dd '\' fname(end).name '__overviewVideo_a' num2str(accuracy) '.avi']);
         
         %vidObj = VideoWriter('overviewVideo.avi','MPEG-4');
         % vidObj = VideoWriter('overviewVideo.avi','Motion JPEG 2000');
         %vidObj.CompressionRatio=1000;
-        vidObj.Quality=80;
+        vidObj.Quality=90;
         open(vidObj);
     end
     %%

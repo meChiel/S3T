@@ -1,7 +1,7 @@
 % This creates a full 96 well plate of data.
 % The well on teh boundaries are not used, and not iamged and so do not 
 % have data.
-
+close all;clear all
 
 plateOnOff = [...
     0 0 0 0 0 0 0 0 0 0 0 0;
@@ -13,30 +13,30 @@ plateOnOff = [...
     0 1 1 1 1 1 1 1 1 1 1 0;
     0 0 0 0 0 0 0 0 0 0 0 0;
     ];
-%%
-% 
-% plateOnOff = [...
-%     0 0 0 0 0 0 0 0 0 0 0 0;
-%     0 1 0 0 0 0 0 0 0 0 0 0;
-%     0 0 0 0 0 0 0 0 0 0 0 0;
-%     0 0 0 0 0 0 0 0 0 0 0 0;
-%     0 0 0 0 0 0 0 0 0 0 0 0;
-%     0 0 0 0 0 0 0 0 0 0 0 0;
-%     0 0 0 0 0 0 0 0 0 0 0 0;
-%     0 0 0 0 0 0 0 0 0 0 0 0;
-%     ]; % Transpose to make the serialisation from left to right is done
-%     %later with rot90.
-% %  
+%
+
+plateOnOff = [...
+    0 0 0 0 0 0 0 0 0 0 0 0;
+    0 1 0 0 0 0 0 0 0 0 0 0;
+    0 0 0 0 0 0 0 0 0 0 0 0;
+    0 0 0 0 0 0 0 0 0 0 0 0;
+    0 0 0 0 0 0 0 0 0 0 0 0;
+    0 0 0 0 0 0 0 0 0 0 0 0;
+    0 0 0 0 0 0 0 0 0 0 0 0;
+    0 0 0 0 0 0 0 0 0 0 0 0;
+    ]; % Transpose to make the serialisation from left to right is done
+    %later with rot90.
+%  
 %%
 
 plateNoise = [...
     0 0 0 0 0 0 0 0 0 0 0 0;
-    0 0 0.01 .1 .1 .1 1 1 1 10 10 0;
-    0 0 0.01 .1 .1 .1 1 1 1 10 10 0;
-    0 0 0.01 .1 .1 .1 1 1 1 10 10 0;
-    0 0 0.01 .1 .1 .1 1 1 1 10 10 0;
-    0 0 0.01 .1 .1 .1 1 1 1 10 10 0;
-    0 0 0.01 .1 .1 .1 1 1 1 10 10 0;
+    0 0.0000 0.001 .01 .1 1 10 100 1000 10000 100000 0;
+    0 0.0001 0.001 .01 .1 1 10 100 1000 10000 100000 0;
+    0 0.0001 0.001 .01 .1 1 10 100 1000 10000 100000 0;
+    0 0.0001 0.001 .01 .1 1 10 100 1000 10000 100000 0;
+    0 0.0001 0.001 .01 .1 1 10 100 1000 10000 100000 0;
+    0 0.0001 0.001 .01 .1 1 10 100 1000 10000 100000 0;
     0 0 0 0 0 0 0 0 0 0 0 0;
     ];
 
@@ -50,7 +50,7 @@ platePBA = [...
     0, 1 	1 		1 		1 		1 		1 		1 		1 		1 		1 		0 ;		
     0, 10 	10 		10 		10 		10 		10 		10 		10 		10 		10 		0 ;		
     0, 0 	0 		0 		0 		0 		0 		0 		0 		0 		0 		0 ;		
-    ]*0+.1; %x0 disables photbleach
+    ]*0+.0; %x0 disables photbleach
 
 %%
 
@@ -78,7 +78,7 @@ for jj=0:(numOfWells-1)
     nSpikes = 3;
     freqSpikes = 0.2;
     Nspines = 20; % Active spines
-    Nspines2 = 20; % Non-active spines
+    Nspines2 = 0; % Non-active spines
     pos=ceil(512*rand(Nspines,2)); % Spine positions
     pba=rPlatePBA(idx(jj+1));  disp(['Photo Bleaching amplitude: ' num2str(pba)]);
     noiseLevel = rPlateNoise(idx(jj+1)); disp(['Noise:' num2str(noiseLevel)]);
@@ -147,8 +147,8 @@ for jj=0:(numOfWells-1)
             PB(i)= PB(i)*decaytime2(i);
         end
         image2(:,:,f) = conv2(spineshape,images);     
-        image2(:,:,f) = image2(:,:,f)+background+1*pba*background*PB(i); % PB(i) is buffer going exp from 1 to 0 ;
-        image2(:,:,f) = image2(:,:,f).*(1+noiseLevel/10*randn(size(image2(:,:,f)))/pi);
+       % image2(:,:,f) = image2(:,:,f)+background+1*pba*background*PB(i); % PB(i) is buffer going exp from 1 to 0 ;
+       % image2(:,:,f) = image2(:,:,f).*(1+noiseLevel/10*randn(size(image2(:,:,f)))/pi);
         image3(:,:,f) = image2(1:512,1:512,f);
     end
 %    figure(1);colormap gray;

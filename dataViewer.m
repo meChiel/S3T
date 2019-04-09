@@ -446,23 +446,23 @@ global wellAvg mask
             tminy=inf;
             for (i=1:size(plateFilename,2))
                 if strcmp(stimLstX.String(stimLstX.Value),'fileName')
-                    currentDataX =i + pseudoRandom(length(data{i}.(stimLstY.Value)));%1:size(plateFilename,2);
+                    currentDataX =i + pseudoRandom(length(data{i}.(text2OKname(stimLstY.String{stimLstY.Value}))));%1:size(plateFilename,2);
                 else
                     if length(stimLstX.Value)==1
-                        currentDataX =data{i}.(stimLstX.Value);
+                        currentDataX =data{i}.(text2OKname(stimLstX.String{stimLstX.Value}));
                     else %multiple select
                         for ms=1:length(stimLstX.Value)
-                            currentDataX(:,ms) =data{i}.(stimLstX.Value(ms));
+                            currentDataX(:,ms) =data{i}.(text2OKname(stimLstX.String{stimLstX.Value(ms)}));
                         end
                     end
                     
                 end
                 
                 if length(stimLstY.Value)==1
-                    currentDataY =data{i}.(stimLstY.Value);
+                    currentDataY =data{i}.(text2OKname(stimLstY.String{stimLstY.Value}));
                 else %multiple select
                     for ms=1:length(stimLstY.Value)
-                        currentDataY(:,ms) =data{i}.(stimLstY.Value(ms));
+                        currentDataY(:,ms) =data{i}.(text2OKname(stimLstY.String{stimLstY.Value(ms)}));
                     end
                 end
                 
@@ -479,26 +479,26 @@ global wellAvg mask
             
             for (i=1:size(plateFilename,2))
                 if strcmp(stimLstX.String(stimLstX.Value),'fileName')
-                    currentDataX =i + pseudoRandom(length(data{i}.(stimLstY.Value)));%1:size(plateFilename,2);
+                    currentDataX =i + pseudoRandom(length(data{i}.(text2OKname(stimLstY.String{stimLstY.Value}))));%1:size(plateFilename,2);
                 else
                     if length(stimLstX.Value)==1
-                        currentDataX =data{i}.(stimLstX.Value);
+                        currentDataX =data{i}.(text2OKname(stimLstX.String{stimLstX.Value}));
                     else %multiple select
                         for ms=1:length(stimLstX.Value)
-                            currentDataX(:,ms) =data{i}.(stimLstX.Value(ms));
+                            currentDataX(:,ms) =data{i}.(text2OKname(stimLstX.String{stimLstX.Value(ms)}));
                         end
                     end
                     
                     
                 end
                 
-                  if length(stimLstY.Value)==1
-                       currentDataY =data{i}.(stimLstY.Value);
-                    else %multiple select
-                        for ms=1:length(stimLstX.Value)
-                         currentDataY(:,ms) =data{i}.(stimLstY.Value(ms));
-                        end
+                if length(stimLstY.Value)==1
+                    currentDataY =data{i}.(text2OKname(stimLstY.String{stimLstY.Value}));
+                else %multiple select
+                    for ms=1:length(stimLstX.Value)
+                        currentDataY(:,ms) =data{i}.(text2OKname(stimLstY.String{stimLstY.Value(ms)}));
                     end
+                end
                 
                 try
                     distances=(((x-currentDataX)/dx).^2 + ((y-currentDataY)/dy).^2); %distance matrix: horizontal=multiple selections, vertical = multiple files
@@ -520,23 +520,23 @@ global wellAvg mask
                 
                 syNbr = data{fi}.synapseNbr(tmi);
                 if strcmp(stimLstX.String(stimLstX.Value),'fileName')
-                    currentDataX =fi + pseudoRandom(length(data{fi}.(stimLstY.Value)));%1:size(plateFilename,2);
+                    currentDataX =fi + pseudoRandom(length(data{fi}.(text2OKname(stimLstY.String{stimLstY.Value}))));%1:size(plateFilename,2);
                 else
                     if length(stimLstX.Value)==1
-                        currentDataX =data{i}.(stimLstX.Value);
+                        currentDataX =data{fi}.(text2OKname(stimLstX.String{stimLstX.Value}));
                     else %multiple select
                         for ms=1:length(stimLstX.Value)
-                            currentDataX(:,ms) =data{i}.(stimLstX.Value(ms));
+                            currentDataX(:,ms) =data{fi}.(text2OKname(stimLstX.String{stimLstX.Value(ms)}));
                         end
                     end
                     
                 end
                 
                 if length(stimLstY.Value)==1
-                    currentDataY =data{i}.(stimLstY.Value);
+                    currentDataY =data{fi}.(text2OKname(stimLstY.String{stimLstY.Value}));
                 else %multiple select
                     for ms=1:length(stimLstY.Value)
-                        currentDataY(:,ms) =data{i}.(stimLstY.Value(ms));
+                        currentDataY(:,ms) =data{fi}.(text2OKname(stimLstY.String{stimLstY.Value(ms)}));
                     end
                 end
 %                     
@@ -818,17 +818,18 @@ global x y;
         end
         for (i=1:size(plateFilename,2))
             if ~strcmp(stimLstX.String(stimLstX.Value),'fileName') 
-                % Normal case
-                if ~wow
+                
+                if ~wow % Normal case
                     if length(stimLstX.Value)==1
-                        x{i}(:)=data{i}.(stimLstX.Value);
+                        x{i}(:)=data{i}.(text2OKname(stimLstX.String{stimLstX.Value}));
                     else %multiple select
                         for ms=1:length(stimLstX.Value)
-                        x{i}(:,ms)=data{i}.(stimLstX.Value(ms));
+                        x{i}(:,ms)=data{i}.(text2OKname(stimLstX.String{stimLstX.Value(ms)}));
                         end
                     end
-                else
-                    tempX=data{i}.(stimLstX.Value);
+                else % Animation
+                    %tempX=data{i}.(stimLstX.Value);
+                    tempX=data{i}.(text2OKname(stimLstX.String{stimLstX.Value}));
                     if exist('x','var')
                         try
                             x{i}(:)=tempX+animValue(af)*(x{i}(:)-tempX);
@@ -850,20 +851,23 @@ global x y;
             else %Special fileName Case
                 %x{i}(:)=i + rand(length(data{i}.(stimLstY.Value)),1)*0.5;%1:size(plateFilename,2);
                  x=[];
-                x{i}(:)=i + pseudoRandom(length(data{i}.(stimLstY.Value)));%1:size(plateFilename,2);
+                x{i}(:)=i + pseudoRandom(length(data{i}.(text2OKname(stimLstY.String{stimLstY.Value}))));%1:size(plateFilename,2);
                 xlabelText = 'File Name'; 
             end
             if ~wow
                 if length(stimLstY.Value)==1
-                    y{i}(:)=data{i}.(stimLstY.Value);
+                    %y{i}(:)=data{i}.(stimLstY.Value);
+                    y{i}(:)=data{i}.(text2OKname(stimLstY.String{stimLstY.Value}));
                 else %multiple things selected
                     for ms=1:length(stimLstY.Value)
-                        y{i}(:,ms)=data{i}.(stimLstY.Value(ms));
+                        %y{i}(:,ms)=data{i}.(stimLstY.Value(ms));
+                        y{i}(:,ms)=data{i}.(text2OKname(stimLstY.String{stimLstY.Value(ms)}));
+                        
                     end
                 end
                 
             else
-                tempY=data{i}.(stimLstY.Value);
+                tempY=data{i}.(text2OKname(stimLstY.String{stimLstY.Value}));
                 if exist('y','var')
                     try
                     y{i}(:)=tempY+animValue(af)*(y{i}(:)-tempY);
@@ -889,7 +893,7 @@ global x y;
             else
                 xnoise=0;rand(size(x{i})).*0.2-0.1;
                 
-                plot(x{i}+xnoise,y{i},'Marker',marker,'LineWidth',lineSize,'LineStyle', LineStyle );
+              %  plot(x{i}+xnoise,y{i},'Marker',marker,'LineWidth',lineSize,'LineStyle', LineStyle );
                 if logX
                 L=(i-1)*.3; %Shift between files
                 xnoise=rand(size(x{i}))*.10-0.05;

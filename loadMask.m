@@ -2,7 +2,11 @@
         %ok=0;
         
         if (nargin==0)
-            [maskFilename, maskDir] = uigetfile('*.png',['Select mask:'],[defaultDir '\']);
+            if exist('defaultDir','var')
+                [maskFilename, maskDir] = uigetfile('*.png',['Select mask:'],[defaultDir '\']);
+            else
+                [maskFilename, maskDir] = uigetfile('*.png',['Select mask:']);
+            end
             maskFilePath = [maskDir '\' maskFilename];
         else
             maskFilePath;

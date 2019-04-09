@@ -1,4 +1,4 @@
-function [A, U2, S2, V2] = fastLoadTiff(pname,onlySVD, accuracy)
+function [A, U2, S2, V2,sizeA] = fastLoadTiff(pname,onlySVD, accuracy)
 % Will load a tiff movie, but will not load the movie raw data, but it's SVD decomposition.
 % The SVD decomposition should be available in the eigs subdir.
 % Using first 16 eigenvectors it will reconstruct the movie.
@@ -27,7 +27,9 @@ for evnI=1:accuracy
     U2(:,evnI) = ((double(p(:))-2^15)/length(p(:)));
     V2(:,evnI) = csvread([dirname './eigs/' fname '_eigV' num2str(evnI) '.csv']);
     S2(evnI,evnI) = csvread([dirname './eigs/' fname '_eigS' num2str(evnI) '.csv']);
+    
 end
+sizeA=[size(p,1) size(p,2) size(V2,1)];
 if onlySVD
 A=nan;
 else
