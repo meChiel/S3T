@@ -41,6 +41,7 @@ global synapseBW; % The BW figure with synapses=1, no-synapse=0
 global fname pathname dirname; % Data location
 global synRegio; % Regionprops return
 global U S V; % eigv decomposition
+global m; %This is the struct where all the main(m) window buttons and variables should be in.
 global wx wy wt;
 global synsignal;
 global EVN eigTxt; % Defines wich eigen value is used to create the mask
@@ -51,7 +52,7 @@ global maskRegio;
 global stimulationStartTime;
 global stimFreq NOS OnOffset;
 global stimFreqtxt NOStxt OnOffsettxt;
-global stimFreqtxt2 NOStxt2 OnOffsettxt2;
+global stimFreqtxt2 NOStxt2 %OnOffsettxt2;
 global reuseMask reuseMaskChkButton fastLoad fastLoadChkButton segmentCellBodiesChkButton segmentCellBodies loadAnalysisChkButton; 
 global pauseCB;
 global nSynapses;
@@ -98,7 +99,7 @@ setwriteSVD(1);
 %% Set default values on load
 stimFreq2 = 0;
 NOS2 = 0; % Number of stimuli
-OnOffset2 = 0;
+m.OnOffset2 = 0;
 
 
 %% Create a figure and axes
@@ -198,7 +199,7 @@ end
                     'Callback', @doSetStimFreq2);
                 uicontrol('Style', 'text', 'String', 'Stim. freq. (Hz)',...
                     'Position', [270 by(-3) 100 20]);
-                OnOffsettxt2 = uicontrol('Style', 'Edit', 'String', num2str(OnOffset2),...
+                m.OnOffsettxt2 = uicontrol('Style', 'Edit', 'String', num2str(m.OnOffset2),...
                     'Position', [220 by(-2) 50 20],...
                     'Callback', @doSetOnOffset2);
                 uicontrol('Style', 'text', 'String', 'Stim. delay (frames)',...
@@ -656,11 +657,11 @@ end
     end
 
     function doSetOnOffset2(s,e,h)
-        setOnOffset2(str2double(OnOffsettxt2.String));
+        setOnOffset2(str2double(m.OnOffsettxt2.String));
     end
     function setOnOffset2(OnOffsetTemp)
-        OnOffset2= OnOffsetTemp;
-        OnOffsettxt2.String = num2str(OnOffset2);
+        m.OnOffset2= OnOffsetTemp;
+        m.OnOffsettxt2.String = num2str(m.OnOffset2);
     end
 
     function doSetStimFreq(s,e,h)
@@ -2236,7 +2237,7 @@ end
             '\r\n\t OnOffset = ' num2str(OnOffset) ...
             '\r\n\t Partial stimFreq = ' num2str(stimFreq2) ...
             '\r\n\t Partial number of stimuli =' num2str(NOS2) ...
-            '\r\n\t Partial OnOffset = ' num2str(OnOffset2) ...
+            '\r\n\t Partial OnOffset = ' num2str(m.OnOffset2) ...
             '\r\n\t Eigen Value Nr = ' num2str(EVN) ...
             '\r\n\t fps = ' num2str(fps) ...
             '\r\n\t dt =  ' num2str(dt) ...
@@ -2905,9 +2906,9 @@ end
         end
         part=zeros(iSP,NOS2);
         for j = 1:NOS2
-            %part(:,j)=signal(OnOffset2+(j-1)*iSP+(1:iSP));
+            %part(:,j)=signal(m.OnOffset2+(j-1)*iSP+(1:iSP));
             try
-                part(:,j)=signal(OnOffset2+floor((j-1)/sFq2*fps)+(1:iSP)); % Here the rounding is done after the multiplication = better
+                part(:,j)=signal(m.OnOffset2+floor((j-1)/sFq2*fps)+(1:iSP)); % Here the rounding is done after the multiplication = better
             catch e
                 d = dialog('Position',[300 300 250 150],'Name','Wrong Numbers');
                 

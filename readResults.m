@@ -248,7 +248,8 @@ if ~isempty(strfind(dirname(end-length('output\'):end),'output')) %make sure thi
                 
                 rvec=[];
                 for ii=1:length(nEl)
-                    rvec=[rvec; repmat(sfnNber(ii),nEl(ii),1)];
+                    %rvec=[rvec; repmat(sfnNber(ii),nEl(ii),1)];
+                    rvec=[rvec; repmat(metaTable2.FileNumber(ii),nEl(ii),1)];
                 end
                 aST = [aST, array2table(rvec,'VariableNames',{'FileNumber'})];
             else %

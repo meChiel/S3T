@@ -16,11 +16,13 @@ if y80<min(x)
     disp('Used max amp i.s.o. 80%')
 end
 
+%frame20 = find(x<=y20, 1,'first');
 frame20 = find(x<=y20, 1,'first');
 if isempty(frame20)
 frame20=nan;
 end
-frame80 = find(x<y80, 1,'first');
+%frame80 = find(x<y80, 1,'first');
+frame80 = find(x>y80, 1,'last');
 if isempty(frame80)
 frame80=nan;
 end
@@ -36,7 +38,7 @@ catch
     % probaly frame20=1 and frame20-1 = 0 x(frame20-1)=> Subscript indices must either be real positive integers or logicals.
 end
 try
-    t80=linInt(t(frame80-1),t(frame80),x(frame80-1),x(frame80),y80);
+    t80=linInt(t(frame80),t(frame80+1),x(frame80),x(frame80+1),y80);
     
 catch
     try
@@ -66,9 +68,12 @@ t0 = t80 + log(y80/amp)*tau1;
     end
 
 % Debug plot
-%figure
+% figure(5)
 % plot(t,x)
 % hold on;
 % plot(t,amp*exp(-(t-t0)/tau1),'*')
+% plot([t20 t20],[0 amp]);
+% plot([t80 t80],[0 amp]);
+% pause(.1)
 %pause
 end

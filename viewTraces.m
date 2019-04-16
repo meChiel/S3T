@@ -443,6 +443,7 @@ updatePlot();
                  end
              end
          end
+        % axis tight;
          if txtOn
              if isStarted ==0
                  try

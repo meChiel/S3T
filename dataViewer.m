@@ -954,9 +954,11 @@ global x y;
             else
                 tt = data{i};
             end
-            [filename, pathname] = uiputfile('analysis_data.csv', 'Export to file ...');
-                writetable(tt,[pathname filename]);
-                exporttt=0;
+            
+            [filename, pathname] = uiputfile([plateDir 'analysis_data.csv'], 'Export to file ...');
+            exporttt=0;
+            writetable(tt,[pathname filename]);
+          
         end
         if histtt
 %             for i=1:size(y,2)
