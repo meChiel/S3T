@@ -279,6 +279,27 @@ else
         disp('Did not find Photo Bleaching type, using Lin. Interpolation.')
         PhotoBleachingTxt = 'linInt'; %2expInt
     end
+    
+    
+    
+    %% Number Average Samples
+    rr = strfind(aa,'<Name>Number Average Samples</Name>');
+    if length(rr)>0
+        if length(rr)>1
+            warning('did find multiple Number Average Samples, chosing 1')
+        end
+        ss=strfind(aa(rr(1):end),'<Val>');
+        ss2=strfind(aa(rr(1)+(ss(1)):end),'</Val>');
+        NumAvgSamples=str2num(aa(rr(1)+ss(1)+4:rr(1)+ss(1)+ss2(1)-2));
+    else
+        disp('Did not find Number Average Samples type, using 30.')
+        NumAvgSamples = 30; %Number of samples to use to calculate the base fluoresence/photobleach 2exp fit
+    end
+    
+    
+    
+    
+    
     %% Reuse Mask
     rr = strfind(aa,'<Name>Reuse Mask</Name>');
     if length(rr)>0
@@ -384,6 +405,7 @@ stimCfg.pulseCount =pulseCount;
 stimCfg.pulseCount2 =pulseCount2;
 stimCfg.FrameSelectionTxt = FrameSelectionTxt;
 stimCfg.PhotoBleachingTxt = PhotoBleachingTxt;
+stimCfg.NumAvgSamples = NumAvgSamples;
 stimCfg.reuseMask = reuseMask;
 stimCfg.reloadMovie = reloadMovie;
 stimCfg.writeSVD = writeSVD;

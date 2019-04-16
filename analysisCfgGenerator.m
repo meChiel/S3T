@@ -4,7 +4,7 @@ global ptitle3 NOStxt3 stimFreqtxt3 OnOffsettxt3 fpsTxt3 DCOFtxt3 DCOF2txt NOS2t
 global frameSelectionTxt frameSelection maskTimeProjLst SVDLst SVDtxt ...
     PhotoBleachLst PhotoBleach ...
     ReuseMaskChkBx ReloadMovieChkBx FastLoadChkBx CellBodytypeLst ...
-    skipMovieChkBx WriteSVDChkBx AnalysistypeLst;
+    skipMovieChkBx WriteSVDChkBx AnalysistypeLst NumAvgSamples numAvgSamplesTxt;
 global CellBodytype skipMovie WriteSVD;
 stimCfgFN.folder='c:\';
 
@@ -97,6 +97,14 @@ createInputFields();
         setFPSBtn = uicontrol('Style', 'text', 'String', 'frames per second',...
             'Position', [20+50 by(-7) 150 20],...
             'Callback', @doSetFPS);
+        
+        
+        
+        numAvgSamplesTxt = uicontrol('Style', 'Edit', 'String', num2str(fps3),...
+            'Position', [20 by(6) 50 20],'Callback', @doSetNumAvgSamples);
+        numAvgSamplesTxttt = uicontrol('Style', 'text', 'String', 'number of samples to calc average',...
+            'Position', [20+50 by(6) 200 20],...
+            'Callback', @doSetNumAvgSamples);
         
         maskTimeProjLst = uicontrol('Style', 'popup', 'String', {'SVD','STD','SVM','NN','NMF'},...
             'Position', [20 by(3) 50 20],...
@@ -260,14 +268,18 @@ createButtonsUI();
         
        
         analysisName = get(ptitle3,'String');
+        if ~isfield(stimCfgFN,'name')
+            stimCfgFN.name='';
+        end
         specificAnalysis=1;
         if specificAnalysis
-            [FileName,PathName,FilterIndex] = uiputfile([stimCfgFN.folder '*.tif'],'Save Analysis Configuration: specify file',[stimCfgFN.folder '\' stimCfgFN.name '_' analysisName '_Analysis.xml']);
+            [FileName,PathName,FilterIndex] = uiputfile([stimCfgFN.folder '*.xml'],'Save Analysis Configuration: specify file',[stimCfgFN.folder '\' stimCfgFN.name '_' analysisName '_Analysis.xml']);
         else
         [FileName,PathName,FilterIndex] = uiputfile([stimCfgFN.folder '*.xml'],'Save Analysis Configuration',[stimCfgFN.folder analysisName '_Analysis.xml']);
         end
         if PathName
             stimCfgFN.folder=PathName;
+          
             fid = fopen([PathName FileName],'w');
             
             %'<Name>Frequency (Hz)</Name>\n<Val>0.20000000000000</Val>'
@@ -338,6 +350,10 @@ createButtonsUI();
             field(i).Name = 'Analysis Type';
             field(i).Value =  num2str(Analysistype);
             i=i+1;
+            field(i).Name = 'Number Average Samples';
+            field(i).Value =  num2str(NumAvgSamples);
+            i=i+1;
+            
             
             
             
@@ -545,6 +561,19 @@ function doSetFrameSelection(s,e,h) % Number of Stimuli
         frameSelectionTxt.String = frameSelection;
     end
 
+
+
+
+
+function doSetNumAvgSamples(s,e,h)
+        setNumAvgSamples(str2double(numAvgSamplesTxt.String));
+        doUpdateFold();
+    end
+
+    function setNumAvgSamples(num)
+        NumAvgSamples=num;
+        numAvgSamplesTxt.String = num2str(NumAvgSamples);
+    end
 
 
     function doSetFPS(s,e,h)

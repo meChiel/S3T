@@ -1,18 +1,19 @@
-function [bcresponse, dff, BC, mstart]=exp2BleachCorrection(signal)
+function [bcresponse, dff, BC, mstart]=exp2BleachCorrection(signal,avgSampleSize)
 % bcresponse: Returns Bleach corrected Response 
 % dff: delta f / f
 % BC: bleach correction
 % mstart: the samples used at the start of the exp fit.
-
-avgSampleSize=30;
+if nargin<2
+    avgSampleSize=30;
+end
 aSS = avgSampleSize;
-LM=size(signal,2);
+LM = size(signal,2);
 
 %mmstart= mean(signal(:,1:aSS),2);
 
 mmend= mean(signal(:,end-aSS:end),2);
-
-x=[(1:aSS*1) (LM-(aSS*1)):LM];
+xend=(LM-(aSS*1)):LM;
+x=[(1:aSS*1) repmat(xend,1,200)];
 if isempty(signal)
     signal=nan*ones(1,size(signal,2));
     a=nan; b=nan; c=nan; p=nan; q=nan;
@@ -21,8 +22,9 @@ for i=1:size(signal,1)
     mstart= signal(i,1:aSS*1);
     
     mend= signal(i,end-(aSS*1):end);
-
-    y=[mstart mend];
+    mend=(repmat(mmend(i),1,aSS+1));
+    
+    y=[mstart repmat(mend,1,200)];
 
 [a(i),b(i),c(i),p(i),q(i)]=exp2fit(x,y);
 end
@@ -40,7 +42,8 @@ dff=(signal-BC)./(real(a')); % Delta f over f
 
 % Debug
 debug = 1;
-n=1;
+for n=1:size(signal,1)
+%n=1;
 if debug
   %figure;
   subplot(4,4,4)
@@ -53,11 +56,13 @@ if debug
   hold on
   plot(BC(n,:),'g','LineWidth',3)
   
-%   plot(aSS/2, mstart(n),'or','LineWidth',6)
-%   plot(1:aSS, mend(n)*ones(aSS,1),'k','LineWidth',3)
-%   plot(ls-aSS/2, mend(n),'or','LineWidth',6)
-%  % plot([aSS/2, ls-aSS/2],[mstart(n) mend(n)],'g','LineWidth',3)
-%   plot(ls-(aSS-1):ls, mend(n)*ones(aSS,1),'k','LineWidth',3)    
+  %plot(aSS/2, mmend(n),'or','LineWidth',6)
+  plot(1:aSS, mmend(n)*ones(aSS,1),'k','LineWidth',3)
+  plot(ls-aSS/2, mmend(n),'or','LineWidth',6)
+ % plot([aSS/2, ls-aSS/2],[mstart(n) mend(n)],'g','LineWidth',3)
+  plot(ls-(aSS-1):ls, mend(n)*ones(aSS,1),'k','LineWidth',3)    
   
   subplot(4,4,12)
+end
+pause(.1)
 end

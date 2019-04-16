@@ -78,7 +78,6 @@ global sliderBtn synSliderBtn
 global bgc fullVersion;
 global preCommand postCommand;
 global maskTimeProjectionMethod;
-global NumbAvgSamples;
 maskTimeProjectionMethod='SVD';
 preCommand = 'disp(''precommand'')';
 postCommand = 'disp(''postCommand'')';
@@ -92,7 +91,7 @@ fps = 33;
 dt = 1/fps;
 debug = 0;
 dutyCycleOnFrames = 0;
-setNumbAvgSamples(30);
+
 setPhotoBleachingTxt('linInt');
 setwriteSVD(1);
  
@@ -115,6 +114,7 @@ end
 if nargin>0
     processDirAndSubDirs(myDir);
 end
+if 0
     function startUp()
         fullVersion = 0;
         bgc=[.35 .35 .38];
@@ -3166,7 +3166,6 @@ end
        disp('fast load xml setting disabled');%setFastLoad(analysisCfg.fastLoad);
         setFrameSelectionTxt(analysisCfg.FrameSelectionTxt);
         setPhotoBleachingTxt(analysisCfg.PhotoBleachingTxt);
-        setNumbAvgSamples(analysisCfg.NumAvgSamples);
         setDutyCycleOnFrames(analysisCfg.dutyCycle);
         setmaskTimeProjectionMethod(analysisCfg.maskTimeProjectionMethod);
         if isfield (analysisCfg,'preCommand')
@@ -3234,10 +3233,6 @@ function setSkipMovie(value)
     function setPhotoBleachingTxt(PBT)
         PhotoBleachingTxt = PBT;
     end
-
-    function setNumbAvgSamples(num)
-        NumbAvgSamples=num;
-    end
  
     function doLoadAnalysisSettings(s,f,g)
         [FN.name, FN.folder]=uigetfile('*Analysis.xml',['Select mask:'],[defaultDir '\']);
@@ -3286,4 +3281,4 @@ function setSkipMovie(value)
         end
   end
 end
-
+end
