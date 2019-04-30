@@ -120,7 +120,7 @@ createInputFields();
             'Position', [20+50 by(4) 200 20]);
         
         
-        PhotoBleachLst = uicontrol('Style', 'popup', 'String', {'linInt','2expInt'},...
+        PhotoBleachLst = uicontrol('Style', 'popup', 'String', {'linInt','2expInt','auto2expInt'},...
             'Position', [20 by(5) 50 20],...
             'Callback', @doSetPhotoBleach);
         PhotoBleachtxt = uicontrol('Style', 'text', 'String', 'Photo Bleaching correction Method',...
@@ -248,7 +248,7 @@ createButtonsUI();
         plot(part);
         title('Avg trace folding')
         subplot(4,4,3)
-        part2 = multiResponseto1(traceFrames,0,settings);
+        part2 = multiResponseto1(part,0,settings);
         subplot(4,4,7)
         
         plot(part2);
@@ -303,13 +303,13 @@ createButtonsUI();
             field(i).Value = num2str(NOS3);
             i=i+1;
             field(i).Name = 'Partial Stimulation Frequency (Hz)';
-            field(i).Value = stimFreq2txt.String;
+            field(i).Value = num2str(stimFreq2);
             i=i+1;
             field(i).Name = 'Partial Delay Time (ms)';
-            field(i).Value = OnOffsettxt2.String;
+            field(i).Value = num2str(OnOffset2/fps3*1000);
             i=i+1;
             field(i).Name = 'Partial Pulse count';
-            field(i).Value =  NOS2txt.String;
+            field(i).Value =  num2str(NOS2);
             i=i+1;
             field(i).Name = 'Frame Selection';
             field(i).Value =  frameSelectionTxt.String;
@@ -499,8 +499,8 @@ function doSetCellBodytype(s,e,h)
         setOnOffset(str2double(OnOffsettxt3.String));
         doUpdateFold();
     end
-    function setOnOffset(OnOffset2)
-        OnOffset3= OnOffset2;
+    function setOnOffset(OnOffset1)
+        OnOffset3= OnOffset1;
         OnOffsettxt3.String = num2str(OnOffset3);
     end
 

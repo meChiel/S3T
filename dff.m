@@ -18,6 +18,9 @@ if BC == 1  %Do Bleach Correction?
                 %   [~,dff] = linMinBleachCorrect(signal);warning ('dff hack');
             case '2expInt'
                 [~,dff] = exp2BleachCorrection(signal,NumbAvgSamples);warning ('dff hack');
+            case 'auto2expInt'
+                [~,dff] = findBaseFluorPoints(signal);
+            
             otherwise
                 error('Bleach correction Type not recognised.')
         end

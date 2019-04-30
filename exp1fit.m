@@ -8,26 +8,51 @@ tmax = t(frame);
 y20=amp*0.1;
 if y20<min(x)
     y20=min(x);
-    disp('Used min amp i.s.o. 20%')
+    disp('Used min amp i.s.o. 10%')
 end
 y80=amp*0.6;
 if y80<min(x)
     y80=max(x);
-    disp('Used max amp i.s.o. 80%')
+    disp('Used max amp i.s.o. 60%')
 end
 
 %frame20 = find(x<=y20, 1,'first');
-frame20 = find(x<=y20, 1,'first');
-if isempty(frame20)
-frame20=nan;
+pointy80='last';%'first'
+pointy20='firstAfter80';%'last';%'first';%'firstAfter80'
+
+
+switch pointy80
+    case 'first'
+        frame80 = find(x<=y80, 1,'first');
+    case 'last'
+        frame80 = find(x>y80, 1,'last');
 end
-%frame80 = find(x<y80, 1,'first');
-frame80 = find(x>y80, 1,'last');
 if isempty(frame80)
 frame80=nan;
 end
+
+switch pointy20
+    case 'first'        
+        frame20 = find(x<=y20, 1,'first');
+    case 'last'
+        frame20 = find(x>y20, 1,'last');
+    case 'firstAfter80'
+        frame20 = frame80+find(x(frame80:end)<=y20(frame80:end), 1,'first');
+end
+if isempty(frame20)
+frame20=nan;
+end
+
+
 try
-    t20=linInt(t(frame20-1),t(frame20),x(frame20-1),x(frame20),y20);
+    switch pointy20
+        case 'first'
+            t20=linInt(t(frame20-1),t(frame20),x(frame20-1),x(frame20),y20); %if first
+        case 'last'
+            t20=linInt(t(frame20),t(frame20+1),x(frame20),x(frame20+1),y20); %if last
+        case 'firstAfter80'
+            t20=linInt(t(frame20-1),t(frame20),x(frame20-1),x(frame20),y20); %if first
+    end
 catch
     try 
         t20=t(frame20);
@@ -38,8 +63,12 @@ catch
     % probaly frame20=1 and frame20-1 = 0 x(frame20-1)=> Subscript indices must either be real positive integers or logicals.
 end
 try
-    t80=linInt(t(frame80),t(frame80+1),x(frame80),x(frame80+1),y80);
-    
+    switch pointy80
+        case 'first'
+            t80=linInt(t(frame80-1),t(frame80),x(frame80-1),x(frame80),y80); %if first
+        case 'last'
+            t80=linInt(t(frame80),t(frame80+1),x(frame80),x(frame80+1),y80);
+    end
 catch
     try
         t80=t(frame80);

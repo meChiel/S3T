@@ -13,7 +13,11 @@ V=nan;
 %fname = '../../data/Experiment 5_SyG 10AP.tif';
 global defaultDir
 if nargin<1 || isempty(fname)
+    if defaultDir~=0
     [FileName,PathName] = uigetfile('*.tif','Select the Tiff file',defaultDir);
+    else
+        [FileName,PathName] = uigetfile('*.tif','Select the Tiff file');
+    end
     fname = [PathName FileName];
 end
 bkslsh = strfind(fname,'\');
@@ -79,7 +83,7 @@ if extra
     
     %% Look at average reponse:
     for k = 1:num_images
-        ss(k) = sum(sum(A(:,:,k)-Avg));
+        ss(k) = mean(mean(A(:,:,k)-Avg));
     end
     %fig=figure;
     subplot(4,4,10);

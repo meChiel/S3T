@@ -192,8 +192,6 @@ createButons();
         for i=1:length(selectionOptions)
             selectionOptions{i}=OKname2text(selectionOptions{i});
         end
-        
-       
             stimLstX.String=[selectionOptions, {'fileName'}];
             stimLstY.String=[selectionOptions, {'fileName'}];
             filterFieldLst.String=[selectionOptions, {'fileName'}];

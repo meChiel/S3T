@@ -26,13 +26,13 @@ accuracy=16;
 %% Static Viewer
 if 0
 ix=0;iy=0;
-ov=zeros(50*16,50*9);
+ov=zeros(elSize*16,elSize*9);
 for i=1:length(d)
     mins = min(d(i).PixelList);
     maxs = max(d(i).PixelList);
     centrs=(maxs-mins)/2+mins;    
-    ovk=zeros(50,50);
-    ff=d(i).PixelList+25-floor(centrs);
+    ovk=zeros(elSize,elSize);
+    ff=d(i).PixelList+elSize/2-floor(centrs);
     for j=1:length(ff)
         ovk(ff(j,1),ff(j,2))=srcIm1(d(i).PixelList(j,1),d(i).PixelList(j,2))-2^15;
     end
@@ -42,7 +42,7 @@ for i=1:length(d)
         iy=iy+1;
         ix=0;
     end
-    ov((1:50)+50*ix,(1:50)+50*iy)=ovk;
+    ov((1:elSize)+elSize*ix,(1:elSize)+elSize*iy)=ovk;
 end
 f=figure('Name','Synapse Viewer','NumberTitle','off');
 set(f,'color',[0 0 0],'toolbar','none');imagesc(ov');colormap gray;
@@ -54,52 +54,54 @@ end
 
 %% Static Color Viewer
 if 0
-ix=0;iy=0;
-ov=zeros(50*16,50*9,3);
-for i=1:length(d)
-    ll=srcIm1(d(i).PixelIdxList);
-    mins = min(d(i).PixelList);
-    maxs = max(d(i).PixelList);
-    centrs=(maxs-mins)/2+mins;    
-    ovk=zeros(50,50);
-    ff=d(i).PixelList+25-floor(centrs);
-    for j=1:length(ff)
-        ovk(ff(j,1),ff(j,2),1)=srcIm1(d(i).PixelList(j,1),d(i).PixelList(j,2))-2^15;
-        ovk(ff(j,1),ff(j,2),2)=srcIm2(d(i).PixelList(j,1),d(i).PixelList(j,2))-2^15;
-        ovk(ff(j,1),ff(j,2),3)=srcIm3(d(i).PixelList(j,1),d(i).PixelList(j,2))-2^15;
+    ix=0;iy=0;
+    ov=zeros(elSize*16,elSize*9,3);
+    for i=1:length(d)
+        ll=srcIm1(d(i).PixelIdxList);
+        mins = min(d(i).PixelList);
+        maxs = max(d(i).PixelList);
+        centrs=(maxs-mins)/2+mins;
+        ovk=zeros(elSize,elSize);
+        ff=d(i).PixelList+elSize/2-floor(centrs);
+        for j=1:length(ff)
+            ovk(ff(j,1),ff(j,2),1)=srcIm1(d(i).PixelList(j,1),d(i).PixelList(j,2))-2^15;
+            ovk(ff(j,1),ff(j,2),2)=srcIm2(d(i).PixelList(j,1),d(i).PixelList(j,2))-2^15;
+            ovk(ff(j,1),ff(j,2),3)=srcIm3(d(i).PixelList(j,1),d(i).PixelList(j,2))-2^15;
+        end
+        
+        ix=ix+1;
+        if ix>15
+            iy=iy+1;
+            ix=0;
+        end
+        ov((1:elSize)+elSize*ix,(1:elSize)+elSize*iy,:)=ovk(:,:,:);
     end
-    
-    ix=ix+1;
-    if ix>15
-        iy=iy+1;
-        ix=0;
-    end
-    ov((1:50)+50*ix,(1:50)+50*iy,:)=ovk(:,:,:);
-end
-f=figure('Name','Synapse Viewer','NumberTitle','off');
-set(f,'color',[0 0 0],'toolbar','auto');imagesc(permute(ov,[2,1,3]));%colormap gray;
-axis equal
-axis off
-axis tight
-gg=gca;
-gg.Color=[0 0 0];
+    f=figure('Name','Synapse Viewer','NumberTitle','off');
+    set(f,'color',[0 0 0],'toolbar','auto');imagesc(permute(ov,[2,1,3]));%colormap gray;
+    axis equal
+    axis off
+    axis tight
+    gg=gca;
+    gg.Color=[0 0 0];
 end
 
 %% Synapse player Viewer:
-
-
-vidObj = VideoWriter([dd fn(1:end-13) '__synapseOverviewVideo_a' num2str(accuracy) '.avi']);
-
-%vidObj = VideoWriter('overviewVideo.avi','MPEG-4');
-% vidObj = VideoWriter('overviewVideo.avi','Motion JPEG 2000');
-%vidObj.CompressionRatio=1000;
-vidObj.Quality=90;
-open(vidObj);
-
-        
+movWrite=0;
+if movWrite
+    
+    vidObj = VideoWriter([dd fn(1:end-13) '__synapseOverviewVideo_a' num2str(accuracy) '.avi']);
+    
+    %vidObj = VideoWriter('overviewVideo.avi','MPEG-4');
+    % vidObj = VideoWriter('overviewVideo.avi','Motion JPEG 2000');
+    %vidObj.CompressionRatio=1000;
+    vidObj.Quality=90;
+    open(vidObj);
+    
+end
 %
 ix=0;iy=0;
-ov=zeros(50*16,50*9);
+elSize=150;
+ov=zeros(elSize*16*2,elSize*9*2);
 
 f=figure('Name','Synapse Viewer','NumberTitle','off');
 set(f,'color',[0 0 0],'toolbar','none');
@@ -112,10 +114,9 @@ axis tight
 axis off
 
 
-for t=1:length(V) %For all frames
+for t=1:10:length(V) %For all frames
     ix=0;iy=0;
-    ov=zeros(50*16,50*9);
-    
+    ov=zeros(elSize*16,elSize*9);
     
     cf=reshape(U(:,:)*S*V(t,:)',sizeA(1),sizeA(2)); %reconstruct the entire curent frame.
     for i=1:length(d) % for all synapses
@@ -123,16 +124,16 @@ for t=1:length(V) %For all frames
         mins = min(d(i).PixelList);
         maxs = max(d(i).PixelList);
         centrs=(maxs-mins)/2+mins;
-        ovk=zeros(50,50);
-        ff=d(i).PixelList+25-floor(centrs);
+        ovk=zeros(elSize,elSize);
+        ff=d(i).PixelList+elSize/2-floor(centrs);
         for j=1:length(ff) % for all pixels
-            ovk(ff(j,1),ff(j,2))=U(d(i).PixelIdxList(j),:)*S*V(t,:)';
+            ovk(0+ff(j,1),0+ff(j,2))=U(d(i).PixelIdxList(j),:)*S*V(t,:)';
         end
         
         if 0  % Plot surrounding pixels
-            lu=floor(centrs)-25;
+            lu=floor(centrs)-elSize/2;
             try
-                ovk=5*ovk+cf(lu(1)+(1:50),lu(2)+(1:50));
+                ovk=5*ovk+cf(lu(1)+(1:elSize),lu(2)+(1:elSize));
             catch
             end
         end
@@ -142,7 +143,7 @@ for t=1:length(V) %For all frames
             iy=iy+1;
             ix=0;
         end
-        ov((1:50)+50*ix,(1:50)+50*iy)=ovk(:,:);
+        ov((1:elSize)+elSize*ix,(1:elSize)+elSize*iy)=ovk(:,:);
     end
     
     ov(floor(1:size(ov,2)/length(V)*t),1)=ov(floor(1:size(ov,2)/length(V)*t),1)+2000;
@@ -156,31 +157,35 @@ for t=1:length(V) %For all frames
     axis off
     disp(num2str(t));
     drawnow();
-    writeVideo(vidObj,currFrame);
+    if movWrite
+        writeVideo(vidObj,currFrame);
+    end
 end
 %
+if movWrite
      close(vidObj);
      disp([dd '\' fn(1:end-10) '__synapseOverviewVideo_a' num2str(accuracy) '.avi'])
-     
+end
 %%
-% Animate original to structured synapse view.
+% Animate move original to structured synapse view.
 %%%
-
+movWrite=0;
+if movWrite
     
-vidObj = VideoWriter([dd fn(1:end-13) '__synapseOverviewVideo_a' num2str(accuracy) '.avi']);
+    vidObj = VideoWriter([dd fn(1:end-13) '__synapseOverviewVideo_a' num2str(accuracy) '.avi']);
+    
+    %vidObj = VideoWriter('overviewVideo.avi','MPEG-4');
+    % vidObj = VideoWriter('overviewVideo.avi','Motion JPEG 2000');
+    %vidObj.CompressionRatio=1000;
+    vidObj.Quality=90;
+    open(vidObj);
+end
 
-%vidObj = VideoWriter('overviewVideo.avi','MPEG-4');
-% vidObj = VideoWriter('overviewVideo.avi','Motion JPEG 2000');
-%vidObj.CompressionRatio=1000;
-vidObj.Quality=90;
-open(vidObj);
-
-        
 %
 nX=16;nY=13;
 
 ix=0;iy=0;
-ov=zeros(50*nX,50*nY);
+ov=zeros(elSize*nX,elSize*nY);
 
 f=figure('Name','Synapse Viewer','NumberTitle','off');
 set(f,'color',[0 0 0],'toolbar','none');
@@ -198,7 +203,7 @@ pause
 
 for t=100:-1:1%length(V) %For all frames
     ix=0;iy=0;
-    ov=zeros(50*nX,50*nY);
+    ov=zeros(elSize*nX,elSize*nY);
     
     cf=reshape(U(:,:)*S*V(t,:)',sizeA(1),sizeA(2)); %reconstruct the entire curent frame.
     for i=1:length(d) % for all synapses
@@ -206,17 +211,17 @@ for t=100:-1:1%length(V) %For all frames
         mins = min(d(i).PixelList);
         maxs = max(d(i).PixelList);
         centrs=(maxs-mins)/2+mins;
-        ovk=zeros(50,50);
-        ff=d(i).PixelList+25-floor(centrs);
+        ovk=zeros(elSize,elSize);
+        ff=d(i).PixelList+elSize/2-floor(centrs);
         for j=1:length(ff) % for all pixels
             ovk(ff(j,1),ff(j,2))=U(d(i).PixelIdxList(j),:)*S*V(t,:)';
         end
         
-           lu=floor(centrs)-25;
+           lu=floor(centrs)-elSize/2;
         if 0  % Plot surrounding pixels
          
             try
-                ovk=5*ovk+cf(lu(1)+(1:50),lu(2)+(1:50));
+                ovk=5*ovk+cf(lu(1)+(1:elSize),lu(2)+(1:elSize));
             catch
             end
         end
@@ -226,9 +231,9 @@ for t=100:-1:1%length(V) %For all frames
             iy=iy+1;
             ix=0;
         end
-        %ov((1:50)+50*ix,(1:50)+50*iy)=ovk(:,:);
-        txi=floor((1:50)+(lu(2)+25)*(100-t)/100+(t)/100*50*ix); 
-        tyi=floor((1:50)+(lu(1)+25)*(100-t)/100+(t)/100*50*iy);
+        %ov((1:elSize)+elSize*ix,(1:elSize)+elSize*iy)=ovk(:,:);
+        txi=floor((1:elSize)+(lu(2)+elSize/2)*(100-t)/100+(t)/100*elSize*ix); 
+        tyi=floor((1:elSize)+(lu(1)+elSize/2)*(100-t)/100+(t)/100*elSize*iy);
         ov(txi,tyi)=ov(txi,tyi)+ovk(:,:);
         
         
@@ -243,46 +248,50 @@ for t=100:-1:1%length(V) %For all frames
 
     disp(num2str(t));
     drawnow();
-    writeVideo(vidObj,currFrame);
+    if movWrite
+        writeVideo(vidObj,currFrame);
+    end
 end
 %
+if movWrite
      close(vidObj);
      disp([dd '\' fn(1:end-10) '__synapseOverviewVideo_a' num2str(accuracy) '.avi'])
-
-%% Static Color Viewer
-if 1
-ix=0;iy=0;
-ov=zeros(50*16,50*9,3);
-srcIm1=reshape(U(:,1),sizeA(1:2));
-srcIm2=reshape(U(:,2),sizeA(1:2));
-srcIm3=reshape(U(:,3),sizeA(1:2));
-
-for i=1:length(d)
-%    ll=srcIm1(d(i).PixelIdxList);
-    mins = min(d(i).PixelList);
-    maxs = max(d(i).PixelList);
-    centrs=(maxs-mins)/2+mins;    
-    ovk=zeros(50,50);
-    ff=d(i).PixelList+25-floor(centrs);
-    for j=1:length(ff)
-        ovk(ff(j,1),ff(j,2),1)=srcIm1(d(i).PixelList(j,1),d(i).PixelList(j,2))-2^15;
-        ovk(ff(j,1),ff(j,2),2)=srcIm2(d(i).PixelList(j,1),d(i).PixelList(j,2))-2^15;
-        ovk(ff(j,1),ff(j,2),3)=srcIm3(d(i).PixelList(j,1),d(i).PixelList(j,2))-2^15;
-    end
-    
-    ix=ix+1;
-    if ix>15
-        iy=iy+1;
-        ix=0;
-    end
-    ov((1:50)+50*ix,(1:50)+50*iy,:)=ovk(:,:,:);
 end
-f=figure('Name','Synapse Viewer','NumberTitle','off');
-set(f,'color',[0 0 0],'toolbar','auto');imagesc(permute(ov,[2,1,3]));%colormap gray;
-axis equal
-axis off
-axis tight
-gg=gca;
-gg.Color=[0 0 0];
+
+%% Static Color Viewer:
+if 1
+    ix=0;iy=0;
+    ov=zeros(elSize*16,elSize*9,3);
+    srcIm1=reshape(U(:,1),sizeA(1:2));
+    srcIm2=reshape(U(:,2),sizeA(1:2));
+    srcIm3=reshape(U(:,3),sizeA(1:2));
+    
+    for i=1:length(d)
+        %    ll=srcIm1(d(i).PixelIdxList);
+        mins = min(d(i).PixelList);
+        maxs = max(d(i).PixelList);
+        centrs=(maxs-mins)/2+mins;
+        ovk=zeros(elSize,elSize);
+        ff=d(i).PixelList+elSize/2-floor(centrs);
+        for j=1:length(ff)
+            ovk(ff(j,1),ff(j,2),1)=-(srcIm1(d(i).PixelList(j,1),d(i).PixelList(j,2))-mean(srcIm1(:)))*10000000;
+            ovk(ff(j,1),ff(j,2),2)=(srcIm2(d(i).PixelList(j,1),d(i).PixelList(j,2))-mean(srcIm2(:)))*100;
+            ovk(ff(j,1),ff(j,2),3)=-(srcIm3(d(i).PixelList(j,1),d(i).PixelList(j,2))-mean(srcIm3(:)))*10000;
+        end
+        
+        ix=ix+1;
+        if ix>15
+            iy=iy+1;
+            ix=0;
+        end
+        ov((1:elSize)+elSize*ix,(1:elSize)+elSize*iy,:)=ovk(:,:,:);
+    end
+    f=figure('Name','Synapse Viewer','NumberTitle','off');
+    set(f,'color',[0 0 0],'toolbar','auto');image(permute(ov,[2,1,3]));%colormap gray;
+    axis equal
+    axis off
+    axis tight
+    gg=gca;
+    gg.Color=[0 0 0];
 end
     

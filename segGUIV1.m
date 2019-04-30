@@ -1,6 +1,6 @@
 function segGUIV1(myDir,headless)
 global Version
-Version = 'V0.83-Rel';
+Version = 'V0.84-Rel';
 %% Much better dataviewer
 % full export
 
@@ -632,11 +632,12 @@ end
     function doOverviewGenerator(s,e,h) 
         %goDeep(@overviewGenerator,'\*.png');
         rootdir=uigetdir(defaultDir);
-        goDeep(@overviewGenerator,'\*mask.png',rootdir);
-        goDeep(@overviewGenerator,'\*align.png',rootdir);
-        goDeep(@overviewGenerator,'\*analysis.png',rootdir);
-        goDeep(@overviewGenerator,'\*temp.png',rootdir);
-        goDeep(@overviewGenerator,'\*signals.png',rootdir);
+         goAllSubDir(@overviewGenerator,'\*.png',rootdir);
+%         goDeep(@overviewGenerator,'\*mask.png',rootdir);
+%         goDeep(@overviewGenerator,'\*align.png',rootdir);
+%         goDeep(@overviewGenerator,'\*analysis.png',rootdir);
+%         goDeep(@overviewGenerator,'\*temp.png',rootdir);
+%         goDeep(@overviewGenerator,'\*signals.png',rootdir);
     end
     function doReadResults(s,e,h)
         try
@@ -856,7 +857,8 @@ end
         
     end
     function heatMeMap(source,event,handles)
-        dffSign = dff(smoothM(synsignal,3)');
+        %dffSign = dff(smoothM(synsignal,3)');
+        dffSign = dff(synsignal');
         subplot(4,4,12)
         pause(.5)
         imagesc(dffSign);colormap('hot');
@@ -1981,7 +1983,9 @@ end
             %For when defaultDir is cleared
             [dataDirname] = uigetdir([],'Select dir:');            
         end
-        processDirAndSubDirs(dataDirname);
+        if dataDirname~=0
+            processDirAndSubDirs(dataDirname);
+        end
     end
 
     function processDirAndSubDirs(dataDirname)
@@ -2178,39 +2182,48 @@ end
 
     function moveResults(analysisListName)
         ffname = fname(1:end-4);
-        movefile([dirname fname '*.png'],[dirname analysisListName(1:end-4) '\']);
-        movefile([dirname ffname '*.png'],[dirname analysisListName(1:end-4) '\']);
+        %% SECTION TITLE
+        % DESCRIPTIVE TEXTSECTION TITLE
+        % DESCRIPTIVE TEXT
+        if contains(analysisListName, '.tif')
+            lll=strfind(analysisListName, '.tif');
+            AN = analysisListName(lll+5:end-4);
+        else 
+            AN = analysisListName(1:end-4);
+        end
+        movefile([dirname fname '*.png'],[dirname AN '\']);
+        movefile([dirname ffname '*.png'],[dirname AN '\']);
         try
-            movefile([dirname fname '*.pdf'],[dirname analysisListName(1:end-4) '\']);
+            movefile([dirname fname '*.pdf'],[dirname AN '\']);
         catch
             disp('No pdf files found.')
         end
         try
-            movefile([dirname ffname '*.pdf'],[dirname analysisListName(1:end-4) '\']);
+            movefile([dirname ffname '*.pdf'],[dirname AN '\']);
         catch
             disp('no pdf found');
         end
-        movefile([dirname fname '*.emf'],[dirname analysisListName(1:end-4) '\']);
-        movefile([dirname ffname '*.emf'],[dirname analysisListName(1:end-4) '\']);
+        movefile([dirname fname '*.emf'],[dirname AN '\']);
+        movefile([dirname ffname '*.emf'],[dirname AN '\']);
       
         ffname = fname(1:end-4);
         try
-           movefile([dirname 'output\' ffname '*.*'],[dirname analysisListName(1:end-4) '\output']);
-           movefile([dirname 'output\SynapseDetails\' ffname '*.*'],[dirname analysisListName(1:end-4) '\output\SynapseDetails\']);
+           movefile([dirname 'output\' ffname '*.*'],[dirname AN '\output']);
+           movefile([dirname 'output\SynapseDetails\' ffname '*.*'],[dirname AN '\output\SynapseDetails\']);
        catch 
            disp('one of these files is open and prevents writing: (probably excell)')
            disp(dir([dirname 'output\SynapseDetails\' ffname '*.*']));
            disp(dir([dirname 'output\' ffname '*.*']));
-           disp([dirname analysisListName(1:end-4) '\output\SynapseDetails\']);
+           disp([dirname AN '\output\SynapseDetails\']);
            disp('press any key to try again');
            pause()
-           movefile([dirname 'output\' ffname '*.*'],[dirname analysisListName(1:end-4) '\output']);
-           movefile([dirname 'output\SynapseDetails\' ffname '*.*'],[dirname analysisListName(1:end-4) '\output\SynapseDetails\']);
+           movefile([dirname 'output\' ffname '*.*'],[dirname AN '\output']);
+           movefile([dirname 'output\SynapseDetails\' ffname '*.*'],[dirname AN '\output\SynapseDetails\']);
   
            
        end
        % Put some files back .
-        copyfile([dirname analysisListName(1:end-4) '\' fname '_mask.png'],[dirname]);
+        copyfile([dirname AN '\' fname '_mask.png'],[dirname]);
        
     end
     function loadAnalysis(FNname)
@@ -2863,20 +2876,24 @@ end
         %         part(:,4)=data(OnOffset+3*iSP+(1:iSP));
         %         part(:,5)=data(OnOffset+4*iSP+(1:iSP));
         % figure;
+        
+        if ~strcmp(PhotoBleachingTxt,'auto2exp')
         subplot(4,4,12)
         [spart,~,~,level] = linBleachCorrect(part');
         part = (spart-level)'; %Using Matlab Matrix expansion
         plot(part);
         hold on
+        end
         
         meanData=mean(part,2);
         
-        
-        [meanData,~, ~,baseLevel] = linBleachCorrect(meanData'); % To set the bottom back to zero,
-        meanData = meanData'-baseLevel;
-        plot(meanData,'k','LineWidth',3);
-        hold off
-        pause(.01);
+        if ~strcmp(PhotoBleachingTxt,'auto2exp')
+            [meanData,~, ~,baseLevel] = linBleachCorrect(meanData'); % To set the bottom back to zero,
+            meanData = meanData'-baseLevel;
+            plot(meanData,'k','LineWidth',3);
+            hold off
+            pause(.01);
+        end
         if (exportPlot)
             savesubplot(4,4,12,[pathname '_align']);
         end

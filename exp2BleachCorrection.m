@@ -1,8 +1,19 @@
 function [bcresponse, dff, BC, mstart]=exp2BleachCorrection(signal,avgSampleSize)
+% [bcresponse, dff, BC, mstart] = exp2BleachCorrection(signal,avgSampleSize)
+% Output:
 % bcresponse: Returns Bleach corrected Response 
 % dff: delta f / f
 % BC: bleach correction
 % mstart: the samples used at the start of the exp fit.
+%
+% Input:
+% signal: the siganl for 2 exp fit
+% avgSampleSize: The number of samples to take at the begin and end of the
+% signal to fit the 2exponential. So in total 2 x avgSampleSize number of 
+% samples will be used to fit the 2 exponential.
+%
+%
+
 if nargin<2
     avgSampleSize=30;
 end
@@ -41,28 +52,28 @@ dff=(signal-BC)./(real(a')); % Delta f over f
 
 
 % Debug
-debug = 1;
+debug = 0;
 for n=1:size(signal,1)
-%n=1;
-if debug
-  %figure;
-  subplot(4,4,4)
-  cla
+    %n=1;
+    if debug
+        %figure;
+        subplot(4,4,4)
+        cla
         
-  ls = size(signal,2);
-  hold off
-
-  plot(signal(n,:),'LineWidth',3)
-  hold on
-  plot(BC(n,:),'g','LineWidth',3)
-  
-  %plot(aSS/2, mmend(n),'or','LineWidth',6)
-  plot(1:aSS, mmend(n)*ones(aSS,1),'k','LineWidth',3)
-  plot(ls-aSS/2, mmend(n),'or','LineWidth',6)
- % plot([aSS/2, ls-aSS/2],[mstart(n) mend(n)],'g','LineWidth',3)
-  plot(ls-(aSS-1):ls, mend(n)*ones(aSS,1),'k','LineWidth',3)    
-  
-  subplot(4,4,12)
-end
-pause(.1)
+        ls = size(signal,2);
+        hold off
+        
+        plot(signal(n,:),'LineWidth',3)
+        hold on
+        plot(BC(n,:),'g','LineWidth',3)
+        
+        %plot(aSS/2, mmend(n),'or','LineWidth',6)
+        plot(1:aSS, mmend(n)*ones(aSS,1),'k','LineWidth',3)
+        plot(ls-aSS/2, mmend(n),'or','LineWidth',6)
+        % plot([aSS/2, ls-aSS/2],[mstart(n) mend(n)],'g','LineWidth',3)
+        plot(ls-(aSS-1):ls, mend(n)*ones(aSS,1),'k','LineWidth',3)
+        
+        subplot(4,4,12)
+    end
+    pause(.1)
 end

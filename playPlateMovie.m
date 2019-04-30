@@ -36,7 +36,7 @@ end
 
 if nargin<1 || isempty(dd)
     dd=uigetdir();
-    if isemty(writeMovie)
+    if isempty(writeMovie)
         answer = questdlg('Would you like to write the movie?', ...
             'Write Movie', ...
             'Yes','No','No');
@@ -198,11 +198,11 @@ end
             
             %%
             %P2=rot90(reshape(poster-poster1,512*1,512*2));
-            currFrame =rot90(((poster-poster1)+1000)/128/64);
+            currFrame =rot90(((poster-poster1)+1000)/128/64*2);
             currFrame(currFrame>1)=1;
             currFrame(currFrame<0)=0;
             if headless~=1
-                imagesc(currFrame*128);%2(1:512,1:512)/10);
+                image(currFrame*128);%2(1:512,1:512)/10);
                 
                 %   currFrame = getframe(gcf);
                 % currFrame = getframe(gca);
