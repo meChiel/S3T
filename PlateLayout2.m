@@ -72,7 +72,7 @@ createButtonsUI();
         [filenm,dir]=uigetfile('*.csv',['Select Plate Layout File']);
         conc = csvread([dir '\' filenm ])
         id = strfind(filenm,'_');
-        wellData = filenm(id+1:end-4);
+        wellData = OKname2text(filenm(id+1:end-4));
         set(ptitle,'String',wellData);
         for ii=1:12
             for jj=1:8
@@ -97,7 +97,7 @@ createButtonsUI();
             end
         end
         wellData = get(ptitle,'String');
-        [FileName,PathName,FilterIndex] = uiputfile('*.csv','Save Plate Layout',['plateLayout_' wellData '.csv']);
+        [FileName,PathName,FilterIndex] = uiputfile('*.csv','Save Plate Layout',['plateLayout_' text2OKname(wellData) '.csv']);
         csvwrite([PathName FileName],conc);
         disp(['Layout writen to ' PathName FileName]);
     end

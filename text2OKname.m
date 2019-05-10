@@ -15,6 +15,7 @@ end
 
 oklabel=strrep(oklabel,',','_COMMA_');
 oklabel=strrep(oklabel,'-','_MIN_');
+oklabel=strrep(oklabel,'+','_PLUS_');
 oklabel=strrep(oklabel,'%','_PCT_');
 oklabel=strrep(oklabel,'(','_OB_');
 oklabel=strrep(oklabel,')','_CB_');

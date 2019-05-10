@@ -8,6 +8,7 @@ function label = OKname2text(okname)
     label=strrep(label,'ID_','');
 	label=strrep(label,'_COMMA_',',');
     label=strrep(label,'_MIN_','-');
+    label=strrep(label,'_PLUS_','+');
     label=strrep(label,'_PCT_'	,'%');
     label=strrep(label,'_OB_'	,'(');
     label=strrep(label,'_CB_'	,')');
