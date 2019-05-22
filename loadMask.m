@@ -1,4 +1,4 @@
- function synRegio = loadMask(maskFilePath)
+ function [synRegio, synProb] = loadMask(maskFilePath)
         %ok=0;
         
         if (nargin==0)
@@ -12,6 +12,7 @@
             maskFilePath;
         end
         mask = imread(maskFilePath);
+        synProb = mask*0;
         [wy, wx] = size(mask);
         synRegio2=[];
         sortedValues = sort(mask(:));

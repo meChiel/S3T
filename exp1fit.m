@@ -30,14 +30,17 @@ end
 if isempty(frame80)
 frame80=nan;
 end
-
-switch pointy20
-    case 'first'        
-        frame20 = find(x<=y20, 1,'first');
-    case 'last'
-        frame20 = find(x>y20, 1,'last');
-    case 'firstAfter80'
-        frame20 = frame80+find(x(frame80:end)<=y20(frame80:end), 1,'first');
+if ~isnan(frame80)
+    switch pointy20
+        case 'first'
+            frame20 = find(x<=y20, 1,'first');
+        case 'last'
+            frame20 = find(x>y20, 1,'last');
+        case 'firstAfter80'
+            frame20 = frame80+find(x(frame80:end)<=y20(frame80:end), 1,'first');
+    end
+else
+    frame20=nan;
 end
 if isempty(frame20)
 frame20=nan;

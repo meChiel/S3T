@@ -947,7 +947,7 @@ end
        end
         if tempSig2rb.Value ||  tempSig3rb.Value
             for i=size(a,1):-1:1 %(SYNAPSES,TIME)
-                th=(mean(a(i,1:10))+Nsigma*std(a(i,1:10)));
+                th=(mean(a(i,1:NumbAvgSamples))+Nsigma*std(a(i,1:NumbAvgSamples)));
                 if th>max(a(i,:))
                     removeSynapse();
                 end
@@ -2543,14 +2543,14 @@ end
             
            % 
            if isfile([C10expnm{iii}.folder '\' C10expnm{iii}.name '_mask.png'])
-              synRegio =  loadMask([C10expnm{iii}.folder '\' C10expnm{iii}.name '_mask.png']);
-                 setMask();
+               [synRegio, synProb] =  loadMask([C10expnm{iii}.folder '\' C10expnm{iii}.name '_mask.png']);
+               setMask();
            else
                segment2();
                rmvBkGrnd();
-             detectIslands();
-             doExportMask();
-            setMask();
+               detectIslands();
+               doExportMask();
+               setMask();
            end
             extractSignals();
             signalPlot();
@@ -3017,7 +3017,7 @@ end
                 miSigA(i,j)=miSig;
                 AUC(i,j) = sum((pSignal>0).*pSignal);
                 nAUC(i,j) = sum((pSignal<0).*pSignal);
-                noiseSTD(i,j) = std(signal(1:10)); % Calculate noise power (std). From the start of the signal.
+                noiseSTD(i,j) = std(signal(1:NumbAvgSamples)); % Calculate noise power (std). From the start of the signal.
                 aboveThreshold(i,j) = mSig>(2*noiseSTD(i,j));
                 
                 %     upframes = miSig-stimulationStartFrame;
