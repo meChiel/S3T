@@ -1807,6 +1807,10 @@ end
         if isempty(res)
             res=nan*zeros(16,1);
         end
+         if isempty(S)
+            S=nan*zeros(16,16);
+        end
+        try
         t =array2table([...
             mASR mstdSR miASR  mswASR ...
             miswASR fps UpHalfTime DownHalfTime tau1 amp ...
@@ -1821,6 +1825,9 @@ end
             'RSTABSmean','error','TempSynSTD',...
             'TSpAPA', 'TSpAPAi'...
              imageMetrics.name resNames{:} SNames{:}} );
+        catch
+            error('no analysis file could be created.')
+        end
         %t =array2table([mASR miASR fps UpHalfTime DownHalfTime expEqUp expEqDown error ],'VariableNAmes',{'mASR', 'miASR', 'fps', 'UpHalfTime', 'downHalfTime', 'expEqy0', 'upA1', 'upx0', 'upT1', 'expEqdwny0', 'dwnA1', 'dwnx0', 'dwnT1','error'});
         %t =array2table([mASR miASR fps UpHalfTime DownHalfTime expEqUp expEqDown ],'VariableNAmes',{'mASR', 'miASR', 'fps', 'UpHalfTime', 'downHalfTime', 'expEqy0', 'upA1', 'upx0', 'upT1', 'upA2', 'upT2', 'expEqdwny0', 'dwnA1', 'dwnx0', 'dwnT1', 'dwnA2', 'dwnT2'});
         if ~isdir([dirname 'output\']);
@@ -2922,29 +2929,33 @@ end
         if NOS2==0
             setNOS2(1);
         end
-        part=zeros(iSP,NOS2);
-        for j = 1:NOS2
-            %part(:,j)=signal(m.OnOffset2+(j-1)*iSP+(1:iSP));
-            try
-                part(:,j)=signal(m.OnOffset2+floor((j-1)/sFq2*fps)+(1:iSP)); % Here the rounding is done after the multiplication = better
-            catch e
-                d = dialog('Position',[300 300 250 150],'Name','Wrong Numbers');
-                
-                txt = uicontrol('Parent',d,...
-                    'Style','text',...
-                    'Position',[20 80 210 40],...
-                    'String','The artificial intelligence says the partial analysis numbers are wrong.');
-                
-                btn = uicontrol('Parent',d,...
-                    'Position',[85 20 70 25],...
-                    'String','Close',...
-                    'Callback','delete(gcf)');
-                pause();
+        if NOS2==-1
+            
+        else
+            part=zeros(iSP,NOS2);
+            for j = 1:NOS2
+                %part(:,j)=signal(m.OnOffset2+(j-1)*iSP+(1:iSP));
+                try
+                    part(:,j)=signal(m.OnOffset2+floor((j-1)/sFq2*fps)+(1:iSP)); % Here the rounding is done after the multiplication = better
+                catch e
+                    d = dialog('Position',[300 300 250 150],'Name','Wrong Numbers');
+                    
+                    txt = uicontrol('Parent',d,...
+                        'Style','text',...
+                        'Position',[20 80 210 40],...
+                        'String','The artificial intelligence says the partial analysis numbers are wrong.');
+                    
+                    btn = uicontrol('Parent',d,...
+                        'Position',[85 20 70 25],...
+                        'String','Close',...
+                        'Callback','delete(gcf)');
+                    pause();
+                end
             end
-        end
-        if debug
-            plot(part);
-            pause(.01);
+            if debug
+                plot(part);
+                pause(.01);
+            end
         end
     end
 
