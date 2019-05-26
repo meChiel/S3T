@@ -37,8 +37,13 @@ if ~isnan(frame80)
         case 'last'
             frame20 = find(x>y20, 1,'last');
         case 'firstAfter80'
-            frame20 = frame80+find(x(frame80:end)<=y20(frame80:end), 1,'first');
-    end
+try
+   
+    frame20 = frame80+find(x(frame80:end)<=y20(frame80:end), 1,'first');
+catch
+    error('ff')
+end
+end
 else
     frame20=nan;
 end

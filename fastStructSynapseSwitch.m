@@ -111,6 +111,11 @@ for t=tSeq%length(V) %For all frames
         %ov((1:elSize)+elSize*ix,(1:elSize)+elSize*iy)=ovk(:,:);
         txi=floor((1:elSize)+(lu(2,i)+elSize/2)*(100-t)/100+(t)/100*elSize*ix);
         tyi=floor((1:elSize)+(lu(1,i)+elSize/2)*(100-t)/100+(t)/100*elSize*iy);
+        
+        [Mx, My]=size(ov);
+        txi=(1-(txi>Mx)).*txi+(txi>Mx)*Mx;
+        tyi=(1-(tyi>My)).*tyi+(tyi>My)*My;
+        
         ov(txi,tyi)=ov(txi,tyi)+ovk(:,:,i);        
     end
     currFrame=permute(ov/2000*2,[2,1]);
