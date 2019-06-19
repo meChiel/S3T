@@ -332,7 +332,7 @@ global data;
                 k=strfind(plateDir,'SynapseDetails\'); %find parent directory
                 plateDir=plateDir(1:(k(1)-1));
                 
-                fn=strrep(plateFilename{1},'_PPSynapses','_synapses');
+                fn=strrep(plateFilename{1},'_PPsynapses','_synapses');
                 fn = [fn(1:end-13) '_analysis.txt' ];
                
                 openFiles(fn,plateDir);
@@ -688,6 +688,9 @@ global wellAvg mask
         if strcmp(plateFilename{1}(end-12:end),'_synapses.txt')
             currentLevel='synapseLevel';
         end
+        if strcmp(plateFilename{1}(end-12:end),'_PPsynapses.txt')
+            currentLevel='synapseLevel';
+        end
         if strcmp(plateFilename{1}(end-12:end),'_analysis.txt')
             currentLevel='wellLevel';
         end
@@ -912,17 +915,19 @@ global x y;
                         sel =yy(xcats(i3)==xx);
                         msel=mean(sel);
                         msell(i3)=msel;
-                        ssel=std(sel);
+                        ssel=std(sel)/sqrt(length(sel))*1.96;
                         if logX
                          
                             h=plot([xcats(i3)*(1-1/dx+L),xcats(i3)*(1-1/dx+L),xcats(i3)*(1+1/dx+L),xcats(i3)*(1+1/dx+L),xcats(i3)*(1+1/dx+L),xcats(i3)*(1-1/dx+L)],[msel-ssel,msel+ssel,msel+ssel,msel-ssel,msel-ssel,msel-ssel],'b','LineWidth',lineSize)
                             set(get(get(h,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
                             h=plot([xcats(i3)*(1-1/dx+L),xcats(i3)*(1+1/dx+L)],[msel,msel],'r','LineWidth',lineSize);
                             set(get(get(h,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
+                            text(xcats(i3)*(1-1/dx+L),msel+ssel*1.3,'SEM:95%');
                             
                         else
                             plot([xcats(i3)-1/dx,xcats(i3)-1/dx,xcats(i3)+1/dx,xcats(i3)+1/dx,xcats(i3)+1/dx,xcats(i3)-1/dx],[msel-ssel,msel+ssel,msel+ssel,msel-ssel,msel-ssel,msel-ssel],'b','LineWidth',lineSize)
-                            plot([xcats(i3)-1/dx,xcats(i3)+1/dx],[msel,msel],'r','LineWidth',lineSize)
+                            plot([xcats(i3)-1/dx,xcats(i3)+1/dx],[msel,msel],'r','LineWidth',lineSize);
+                            text(xcats(i3)-1/dx,msel+ssel*1.3,'SEM:95%');
                         end
                         %plot([xcats(i3),xcats(i3)],[msel-ssel,msel+ssel],'r','LineWidth',lineSize)
                        %     boxplot([xcats(i3),xcats(i3)],[msel-ssel,msel+ssel]);%,'r','LineWidth',lineSize)

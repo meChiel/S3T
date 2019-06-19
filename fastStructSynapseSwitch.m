@@ -3,7 +3,7 @@ if ~exist('defaultDir','var')
     defaultDir = 'c:\';
 end
 [mf, md ]=uigetfile('*.png',['Select mask:'],[defaultDir '\']);
-d=loadMask([md mf]);
+maskk=loadMask([md mf]);
 defaultDir =md;
 dd = md;
 
@@ -35,7 +35,7 @@ if movWrite
 end
 
 %
-nX=11;nY=ceil(length(d)/nX);13;
+nX=8;nY=ceil(length(maskk)/nX);13;
 elSize=76;
 ix=0;iy=0;
 ov=zeros(elSize*nX,elSize*nY);
@@ -51,7 +51,7 @@ axis tight
 axis off
 t=10; 
   cf=reshape(U(:,:)*S*V(t,:)',sizeA(1),sizeA(2)); %reconstruct the entire curent frame.
-for i=1:10
+for i=1:1
   imagesc(cf);    
 pause
 
@@ -61,88 +61,99 @@ imagesc(cf+double(ff)/1e2)
 pause
 end
 
-% construct all synapses
-ovk=zeros(elSize,elSize,length(d));
-t=10;
-
-for i=1:length(d) % for all synapses
-    
-    mins = min(d(i).PixelList);
-    maxs = max(d(i).PixelList);
-    centrs=(maxs-mins)/2+mins;
+%%
+for t=1:604
+     cf=reshape(U(:,:)*S*V(t,:)',sizeA(1),sizeA(2)); %reconstruct the entire curent frame.
+    % construct all synapses
+    ovk=zeros(elSize,elSize,length(maskk));
     
     
-    ff=d(i).PixelList+elSize/2-floor(centrs);
-    for j=1:length(ff) % for all pixels
-        ovk(ff(j,1),ff(j,2),i)=U(d(i).PixelIdxList(j),:)*S*V(t,:)';
-    end
-    
-    lu(:,i)=floor(centrs)-elSize/2;
-    if 0  % Plot surrounding pixels
+    for i=1:length(maskk) % for all synapses
         
-        try
-            ovk(:,:,i)=5*ovk(:,:,i)+cf(lu(1)+(1:elSize),lu(2)+(1:elSize));
-        catch
+        mins = min(maskk(i).PixelList);
+        maxs = max(maskk(i).PixelList);
+        centrs=(maxs-mins)/2+mins;
+        
+        ff=maskk(i).PixelList+elSize/2-floor(centrs);
+        for j=1:size(ff,1) % for all pixels of the current synapse
+            ovk(ff(j,1),ff(j,2),i)=U(maskk(i).PixelIdxList(j),:)*S*V(t,:)';
+        end
+        
+        lu(:,i)=floor(centrs)-elSize/2;
+        if 1  % Plot surrounding pixels
+            
+            try
+                ovk(:,:,i)=1*ovk(:,:,i)+2*cf(lu(1)+(1:elSize),lu(2)+(1:elSize));
+            catch
+            end
         end
     end
-end
-%
-for ttttt=1:3
-axis off
-gg=gca;
-tSeq=0:100
-if t==100
-    tSeq=100:-1:0;
-else
-    tSeq=0:1:100;
-end
-
-for t=tSeq%length(V) %For all frames
-    ix=0;iy=0;
-    ov=zeros(elSize*nX,elSize*nY);
-    %  cf=reshape(U(:,:)*S*V(t,:)',sizeA(1),sizeA(2)); %reconstruct the entire curent frame.
-    for i=1:length(d) % for all synapses
-        %%  ll=srcIm1(d(i).PixelIdxList);        
-        ix=ix+1;
-        if ix>(nX-1)
-            iy=iy+1;
-            ix=0;
+    %
+    for ttttt=1:1
+        axis off
+        gg=gca;
+        tSeq=0:100;
+        if t==100
+            tSeq=100:-1:0;
+        else
+            tSeq=0:1:100;
         end
-        %ov((1:elSize)+elSize*ix,(1:elSize)+elSize*iy)=ovk(:,:);
-        txi=floor((1:elSize)+(lu(2,i)+elSize/2)*(100-t)/100+(t)/100*elSize*ix);
-        tyi=floor((1:elSize)+(lu(1,i)+elSize/2)*(100-t)/100+(t)/100*elSize*iy);
         
-        [Mx, My]=size(ov);
-        txi=(1-(txi>Mx)).*txi+(txi>Mx)*Mx;
-        tyi=(1-(tyi>My)).*tyi+(tyi>My)*My;
+        for at=max(0,min(t-200,100))%tSeq%length(V) %For all frames %(at) animation Time
+            ix=0;iy=0;
+            ov=zeros(elSize*nX,elSize*nY);
+            %  cf=reshape(U(:,:)*S*V(t,:)',sizeA(1),sizeA(2)); %reconstruct the entire curent frame.
+            for i=1:length(maskk) % for all synapses
+                %%  ll=srcIm1(d(i).PixelIdxList);
+                ix=ix+1;
+                if ix>(nX-1)
+                    iy=iy+1;
+                    ix=0;
+                end
+                % Calculate pixel coordinate: interpolate between original
+                % position and gallery view
+                
+                %ov((1:elSize)+elSize*ix,(1:elSize)+elSize*iy)=ovk(:,:);
+                txi=floor((1:elSize)+(lu(2,i)+elSize/2)*(100-at)/100+(at)/100*elSize*ix);
+                tyi=floor((1:elSize)+(lu(1,i)+elSize/2)*(100-at)/100+(at)/100*elSize*iy);
+                
+                % Saturate coordinates at border
+                [Mx, My]=size(ov);
+                txi=(1-(txi>Mx)).*txi+(txi>Mx)*Mx;
+                tyi=(1-(tyi>My)).*tyi+(tyi>My)*My;
+                
+                ov(txi,tyi)=ov(txi,tyi)+ovk(:,:,i);
+            end
+            ov(1:size(cf,2),1:size(cf,1))= 1*rot90(fliplr(cf))+6*ov(1:size(cf,2),1:size(cf,1));
+            currFrame=permute(ov/2000*2,[2,1]);
+            % Saturate
+            currFrame(currFrame>1)=1;
+            currFrame(currFrame<0)=0;
+            %gg.XLim=[0 552+0.5*size(cf,1)/100*(at)];
+            gg.XLim=[0 size(cf,1)+0.5*size(cf,1)/100*(at)];
+            gg.YLim=[0 size(cf,2)+0.0*size(cf,2)/100*(at)];
+            imh = imhandles(gcf()); %gets your image handle if you dont know it
+            set(imh,'CData',currFrame*64);
+            %image(currFrame*64);
+            mp=colormap('hot');
+           mp2=[mp(:,2) mp(:,1) mp(:,3)];
+           colormap(mp2);
+            %axis off
+            
+            disp(num2str(t));
+            drawnow();
+            if movWrite
+                writeVideo(vidObj,currFrame);
+            end
+        end
         
-        ov(txi,tyi)=ov(txi,tyi)+ovk(:,:,i);        
-    end
-    currFrame=permute(ov/2000*2,[2,1]);
-    % Saturate
-    currFrame(currFrame>1)=1;
-    currFrame(currFrame<0)=0;
-    gg.XLim=[0 552+0.5*512/100*(t)];
-    gg.YLim=[0 552+0.0*512/100*(t)];
-    imh = imhandles(gcf()); %gets your image handle if you dont know it
-    set(imh,'CData',currFrame*64);
-    %image(currFrame*64);
-    colormap gray;
-    %axis off
-    
-    disp(num2str(t));
-    drawnow();
-    if movWrite
-        writeVideo(vidObj,currFrame);
+        %pause
     end
 end
 %
 if movWrite
     close(vidObj);
     disp([dd '\' fn(1:end-10) '__synapseOverviewVideo_a' num2str(accuracy) '.avi'])
-end
-
-pause
 end
 
 %% Show movie:

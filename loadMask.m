@@ -12,7 +12,7 @@
             maskFilePath;
         end
         mask = imread(maskFilePath);
-        synProb = mask*0;
+        synProb = double(mask*0);
         [wy, wx] = size(mask);
         synRegio2=[];
         sortedValues = sort(mask(:));

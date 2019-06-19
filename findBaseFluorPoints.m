@@ -1,4 +1,4 @@
-function [bcresponse, dff, BC, mstart]=findBaseFluorPoints(seq)
+function [bcresponse, dff, BC, mstart]=findBaseFluorPoints(seq,polyType)
 %% [bcresponse, dff, BC, mstart]=findBaseFluorPoints(seq)
 % 
 %%
@@ -17,13 +17,20 @@ function [bcresponse, dff, BC, mstart]=findBaseFluorPoints(seq)
 % Again look at points within 2 sigma to add/remove from the dataset
 % and fit again.
 % repeat x3
+% polyType: 
+% 1) is a linear fit or a 
+% 2) 2exp fit. (default)
+% A linear fit is a lot faster.
 %%
-
+if nargin<2 
+    polyType=2;
+end
+%%
 for i=1:size(seq,1)
-    [bcresponse(i,:), dff(i,:), BC(i,:), mstart(i)]=singlefit(seq(i,:)');
+    [bcresponse(i,:), dff(i,:), BC(i,:), mstart(i)]=singlefit(seq(i,:)',polyType);
 end
 end
-function [bcresponse, dff, BC, mstart]=singlefit(seq)
+function [bcresponse, dff, BC, mstart]=singlefit(seq,polyType)
 % Debug
 debug = 0;
 
@@ -116,6 +123,7 @@ if debug
     %drawnow();
 end
 
+if polyType==2
 %% Emphasise first points, because photobleaching effect is at the start.
 %
 % 
@@ -207,9 +215,6 @@ end
 %[a,b,c,p,q]=exp2fit(pointsx,minPointsx);
 
 
-
-
-
 for n=1:1%size(seq,1)
     %n=1;
     if debug
@@ -237,8 +242,20 @@ end
 bcresponse=seq-BC;
 dff=(seq-BC)./(B(5));
 mstart=minPointsx(1);
-
+else % polyType==1 autoLinFit
+    BC = mean(minPoints);
+    bcresponse=seq-BC;
+    dff=(seq-BC)./mean(minPoints);
+    mstart=minPoints(1);
+    
+%     BC = LMSrico(2)*allPoints+LMSrico(1);
+%     bcresponse=seq-BC;
+%     dff=(seq-BC)./LMSrico(1);
+%     mstart=minPoints(1);
 end
+end
+
+
 
 function test()
 %Z:\create\_Rajiv_HTS\NS_2019_017131\NS_620190208_105921_20190208_112135 - Copy\01AP_1st_Analysis\output\SynapseDetails
@@ -247,7 +264,7 @@ for i=8;%2:(width(testData))
     aa=testData.(i);
     
     %tpoints=
-    points=findBaseFluorPoints((aa'));
+    points=findBaseFluorPoints((aa'),1);
     %pause(0);
 end
 end

@@ -33,7 +33,9 @@ if iscell(textwithNumbersIn)
     number= r;
 else
     for i=1:length(textwithNumbersIn)
+        if textwithNumbersIn(i)~='i'
         r = [r, num2str(str2num(textwithNumbersIn(i)))];
+        end
     end
 number = real(str2num(r));    
 end

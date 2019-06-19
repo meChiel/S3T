@@ -19,7 +19,10 @@ if BC == 1  %Do Bleach Correction?
             case '2expInt'
                 [~,dff] = exp2BleachCorrection(signal,NumbAvgSamples);warning ('dff hack');
             case 'auto2expInt'
-                [~,dff] = findBaseFluorPoints(signal);
+                [~,dff] = findBaseFluorPoints(signal,2);
+            case 'autoLinInt'
+                [~,dff] = findBaseFluorPoints(signal,1);
+            
             otherwise
                 error('Bleach correction Type not recognised.')
         end

@@ -126,7 +126,7 @@ for t=1:10:length(V) %For all frames
         centrs=(maxs-mins)/2+mins;
         ovk=zeros(elSize,elSize);
         ff=d(i).PixelList+elSize/2-floor(centrs);
-        for j=1:length(ff) % for all pixels
+        for j=1:size(ff,1) % for all pixels
             ovk(0+ff(j,1),0+ff(j,2))=U(d(i).PixelIdxList(j),:)*S*V(t,:)';
         end
         
@@ -213,7 +213,7 @@ for t=100:-1:1%length(V) %For all frames
         centrs=(maxs-mins)/2+mins;
         ovk=zeros(elSize,elSize);
         ff=d(i).PixelList+elSize/2-floor(centrs);
-        for j=1:length(ff) % for all pixels
+        for j=1:size(ff,1) % for all pixels
             ovk(ff(j,1),ff(j,2))=U(d(i).PixelIdxList(j),:)*S*V(t,:)';
         end
         
