@@ -54,7 +54,7 @@ if isfile([dirname fname])
     urls = jsondecode(c);
     wellInfo = jsondecode(urlread([urls.WellDataURL num2str(barcodeNumber)]));
     
-    webread([urls.WellDataURL num2str(barcodeNumber)])
+    %webread([urls.WellDataURL num2str(barcodeNumber)])
     %% Find the different labels:
     A={wellInfo(:).sampleCode};
     % Convert empty cells into 'Empty' to let unique work

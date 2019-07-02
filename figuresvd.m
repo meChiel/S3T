@@ -44,23 +44,33 @@ axis equal, axis off
 
 %%
 %pause
+
+for channel=1:16
+
+%%
+
+
 clf
 movWrite=1;
 if movWrite
     
 accuracy=16;
-vidObj = VideoWriter([PathName FileName(1:end-4) '__SVDVideo_a' num2str(accuracy) '.avi']);
+%vidObj = VideoWriter([PathName FileName(1:end-4) '__SVDVideo_a' num2str(accuracy) '.avi']);
+
+accuracy=1;
+
+vidObj = VideoWriter([PathName FileName(1:end-4) '__SVDVideo_a' num2str(accuracy) '_c' num2str(channel) '.avi'],'Grayscale AVI');
     
     %vidObj = VideoWriter('overviewVideo.avi','MPEG-4');
     % vidObj = VideoWriter('overviewVideo.avi','Motion JPEG 2000');
     %vidObj.CompressionRatio=1000;
-    vidObj.Quality=90;
+    %vidObj.Quality=90;
     open(vidObj);
 end
 
 
-col=colormap('hsv');
-col=colormap('gray');
+%col=colormap('hsv');
+%col=colormap('gray');
 %col=colormap('hot');
 % col=[
 % 2 2 2;...
@@ -84,9 +94,10 @@ col=colormap('gray');
 
 
 bgCol=[0 0 .5]*.6;
-cbCol=[1 0 0]*1;
-Acol=[0 1 0]*1;
-col=[bgCol;cbCol; Acol;...%];
+cbCol=[1 0 0]*2;
+Acol=[0 1 0]*1.3;
+Bcol=[0 1 1]*0.5;
+col=[bgCol;cbCol; Bcol;...%];
     Acol;Acol; Acol;...
     Acol;Acol; Acol;...
     Acol;Acol; Acol;...
@@ -98,33 +109,36 @@ col=[bgCol;cbCol; Acol;...%];
 comp=zeros(sy,sx,3);
 f1=figure(2);
 set(f1,'color',[0 0 0]);
-for h=16:16
-    for t=1:10:size(A,3)
+for h=channel;%16:16
+    for t=1:1:size(A,3)
     t
     fullcomp=zeros(sy,sx,3);    
-    comp=zeros(sy,sx,3);
+    comp=zeros(sy,sx,1);
          % comp=zeros(sy,sx);
-         for hh=1:h
+         for hh=channel;%1:h
              % E=reshape(U(:,hh)*log(S(hh,hh))*V(t,hh)'*col(hh*10,:),[sy,sx,3]);
              %E=reshape(U(:,hh)*sqrt(S(hh,hh))*V(t,hh)'*col(hh*10,:),[sy,sx,3]);
              %E=reshape(U(:,hh)*(S(hh,hh))*.41*col(mod((hh-1)*45,64)+1,:),[sy,sx,3 ]);
-             E=reshape((0+U(:,hh)*(S(hh,hh))*V(t,hh)')*col(hh*1,:),[sy,sx,3 ]);
-             F=reshape((0+U(:,hh)*(S(hh,hh))*V(t,hh)')*[.3 .3 .3],[sy,sx,3 ]);
+             %E=reshape((0+U(:,hh)*(S(hh,hh))*V(t,hh)')*col(hh*1,:),[sy,sx,3 ]);
+             E=reshape((0+U(:,hh)*(S(hh,hh))*V(t,hh)'),[sy,sx,1 ]);
+             
+             % Other
+          %   F=reshape((0+U(:,hh)*(S(hh,hh))*V(t,hh)')*[.3 .3 .3],[sy,sx,3 ]);
              %E=reshape(U(:,hh)*(S(hh,hh))*.1*col(hh*1,:),[sy,sx,3 ]);
              %E=reshape(U(:,hh)*2000*1*col(hh*1,:),[sy,sx,3 ]);
              
               % Saturate E
            % E(E>1)=1;
-           % E(E<0)=0;
+            % E(E<0)=0;
              
              comp=comp+E;
-             fullcomp=fullcomp+F;
+            % fullcomp=fullcomp+F;
          end
     
     figure(2); 
-    %currFrame=comp/60;
+    currFrame=comp/60/4+0.5;
     
-    currFrame = [fullcomp/600 zeros([size(A,1),30,3]) comp/600];
+    %currFrame = [fullcomp/26 zeros([size(A,1),30,3]) comp/26];
     image(currFrame);
     % Saturate
             currFrame(currFrame>1)=1;
@@ -151,7 +165,8 @@ if movWrite
     close(vidObj);
     disp([PathName '\' FileName(1:end-4) '__synapseSVDVideo_a' num2str(accuracy) '.avi'])
 end
-image(comp/60)
+end
+image(comp/20)
 
 %%
 figure;
