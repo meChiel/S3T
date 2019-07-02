@@ -3,10 +3,11 @@ global plateFilename plateDir responses detailFilename defaultDir currentFile ma
 global fittt histtt exporttt currentLevel STToggle seeTraceBtn exportAll selectionOptions AddDataCommandBtn AddDataCommandEdt; 
 global exportAllChk openFilesBtn showButtons logX logY; 
 global bgc
-global seeWellBtn stimLstX stimLstY
+global seeWellBtn stimLstX stimLstY Xtxt Ytxt
 global filterFieldLst lessMoreLst filterThresholdEdt markerSelectionBtn
 global doFilterBtn HistBtn levelDownBtn levelUpBtn ExportBtn fitBtn
-global lineSizeBtn LineStyleBtn logXChk logYChk wowChkBtn wow backgroundImageBtn backgroundImageSelection 
+global lineSizeBtn LineStyleBtn logXChk logYChk wowChkBtn wow backgroundImageBtn backgroundImageSelection
+global useXlabelChk jitterChk  
 global addFileBtn
 
 createButons();
@@ -87,8 +88,6 @@ createButons();
         logY=0;
         wow=0;
        
-          
-        
         logYChk = uicontrol('Visible','off','Style', 'checkbox', 'String','Log Y',...
             'Position', [10 320 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
             'CallBack',@logYToggle);
@@ -104,15 +103,36 @@ createButons();
 %         stimLstX = uicontrol('Style', 'popup', 'String', [selectionOptions, {'fileName'}],...
 %             'Position', [10 60 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
 %             'Visible','off','CallBack',@updatePlot );      
+
+        useXlabelChk = uicontrol('Visible','off','Style', 'checkbox', 'String','selection = X Label',...
+            'Position', [10 380 150 25], 'BackgroundColor',bgc, 'ForegroundColor',[.05 .05 .08],...
+            'CallBack',@useXlabelToggle);
+        
+        jitterChk = uicontrol('Visible','off','Style', 'checkbox', 'String','Jitter',...
+            'Position', [10 360 150 25], 'BackgroundColor',bgc, 'ForegroundColor',[.05 .05 .08],...
+            'CallBack',@jitterToggle);
+        
+        Xtxt = uicontrol('Style', 'text','String', 'X',...
+            'Position', [10 415 150 175],...
+            'BackgroundColor',bgc,...%[.35 .35 .38],... 
+            'ForegroundColor',[.15 .05 .08],...
+            'Visible','off');     
+        
         stimLstX = uicontrol('Style', 'list','Max',10,'Min',1, 'String', [{'fileName'}],...
-            'Position', [10 60 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
+            'Position', [10 400 150 175], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
             'Visible','off','CallBack',@updatePlot );     
+        
+        Ytxt = uicontrol('Style', 'text','String', 'Y',...
+            'Position', [10 615 150 175],...
+            'BackgroundColor',bgc,...%[.35 .35 .38],... 
+            'ForegroundColor',[.15 .05 .08],...
+            'Visible','off');     
         
 %         stimLstY = uicontrol('Style', 'popup', 'String', [selectionOptions , {'fileName'}],...
 %             'Position', [10 80 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
 %             'Visible','off','CallBack',@updatePlot );
         stimLstY = uicontrol('Style', 'list', 'Max',10,'Min',1,'String', [ {'fileName'}],...
-            'Position', [10 80 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
+            'Position', [10 600 150 175], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
             'Visible','off','CallBack',@updatePlot );
         
 %         filterFieldLst = uicontrol('Visible','off','Style', 'popup', 'String', [selectionOptions , {'fileName'}],...
@@ -121,7 +141,6 @@ createButons();
         filterFieldLst = uicontrol('Visible','off','Style', 'popup', 'String', [ {'fileName'}],...
             'Position', [10 200 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
             'CallBack',@updatePlot );
-        
         
         lessMoreLst = uicontrol('Visible','off','Style', 'popup', 'String', [{'is LESS than'} , {'is MORE than'}, {'EQUALS'}, {'EQUALS NOT'} ],...
             'Position', [10 180 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08]);
@@ -165,7 +184,6 @@ createButons();
             'Position', [5+50+50+50 20 50 20],...
             'Backgroundcolor',bgc,...
             'Callback', @getWell);
-        
         
     end
 
@@ -222,9 +240,7 @@ createButons();
         end
     end
 
-
-
-    showButtons=1;
+showButtons=1;
     function hideButtons(T)
         if exist('T','var')
             showButtons=T;
@@ -265,6 +281,10 @@ createButons();
         seeWellBtn.Visible=visTExt; 
         wowChkBtn.Visible=visTExt;
         addFileBtn.Visible = visTExt; 
+        Xtxt.Visible = visTExt; 
+        Ytxt.Visible = visTExt; 
+        useXlabelChk.Visible = visTExt;
+        jitterChk.Visible = visTExt;
         
     end
     function wowToggle(e,d,r)
@@ -281,8 +301,16 @@ createButons();
         end
         updatePlot();
     end
+    function useXlabelToggle(e,d,r)
+        useXlabels=useXlabelChk.Value;
+        updatePlot();
+    end
+function jitterToggle(e,d,r)
+        addJitter=jitterChk.Value;
+        updatePlot();
+    end
 
-  function logYToggle(e,d,r)
+    function logYToggle(e,d,r)
         logY=logYChk.Value;
         if logY==1
             dd=gca();
@@ -294,10 +322,8 @@ createButons();
         updatePlot();
     end
 
-
 global data;
-
- function levelDown(d,f,e)
+    function levelDown(d,f,e)
          switch currentLevel
             case 'synapseLevel'
                 % Open Well data
@@ -434,41 +460,134 @@ global wellAvg mask
         %avgAx.Position=avgAx.Position + [-.10 -0.15 .15 .15];
         
     end
+    function  [currentDataX,currentDataY] = makeRenderData(i)
+        animValue=0; af=0; oldX=0; oldY=0;
+        lwow=0; %local wow
+        [currentDataX, currentDataY,~,~]=makeRenderData2(i,animValue,af,oldX, oldY, lwow);
+        
+%         
+%         if strcmp(stimLstX.String(stimLstX.Value),'fileName') % Special case: selection of fileName.
+%             currentDataX = i + pseudoRandom(length(data{i}.(text2OKname(stimLstY.String{stimLstY.Value}))));%1:size(plateFilename,2);
+%         else
+%             if length(stimLstX.Value)==1
+%                 currentDataX = data{i}.(text2OKname(stimLstX.String{stimLstX.Value}));
+%             else % Multiple select
+%                 for ms=1:length(stimLstX.Value)
+%                     currentDataX(:,ms) = data{i}.(text2OKname(stimLstX.String{stimLstX.Value(ms)}));
+%                 end
+%             end
+%         end
+%         
+%         if length(stimLstY.Value)==1
+%             currentDataY =data{i}.(text2OKname(stimLstY.String{stimLstY.Value}));
+%         else % Multiple select
+%             for ms=1:length(stimLstY.Value)
+%                 currentDataY(:,ms) = data{i}.(text2OKname(stimLstY.String{stimLstY.Value(ms)}));
+%             end
+%         end
+    end
+
+    function [currentDataX, currentDataY,xlabelText,XTL]=makeRenderData2(i,animValue,af,oldX, oldY, lwow)
+    % OLD code: y{i}=currentDataY; x{i}=currentDataX
+        if ~strcmp(stimLstX.String(stimLstX.Value),'fileName')
+            if ~lwow % Normal case/ geen animatie
+                if length(stimLstX.Value)==1 % Single selection
+                    ppp=data{i}.(text2OKname(stimLstX.String{stimLstX.Value}));
+                    currentDataX=ppp(:); % To make sure this is a collumn
+                    XTL=(text2OKname(stimLstX.String{stimLstX.Value}));
+                else % Multiple select
+                    XTL=[]; % Multiple selection: X Tick Labels
+                    for ms=1:length(stimLstX.Value)
+                        if useXlabels
+                            currentDataX(:,ms)=(ms-1)+0*data{i}.(text2OKname(stimLstX.String{stimLstX.Value(ms)}));
+                            XTL{ms}=text2OKname(stimLstX.String{stimLstX.Value(ms)});
+                        else % Use x values for correlations
+                            currentDataX(:,ms)=data{i}.(text2OKname(stimLstX.String{stimLstX.Value(ms)}));
+                        end
+                    end
+                    
+                end
+            else % Animation case
+                XTL=[];%temp hack, to supress error
+                % tempX=data{i}.(stimLstX.Value);
+                tempX=data{i}.(text2OKname(stimLstX.String{stimLstX.Value}));
+                if exist('oldX','var')
+                    try
+                        ppp=tempX+animValue(af)*(oldX{i}(:)-tempX);
+                        currentDataX=ppp(:);
+                    catch
+                        
+                        try
+                            currentDataX=zeros(size(tempX));
+                        catch
+                            x=[];
+                            warning('error in animation!');
+                        end
+                        currentDataX=tempX(:);
+                    end
+                else
+                    currentDataX=tempX(:);
+                end
+            end
+            xlabelText = stimLstX.String(stimLstX.Value);
+        else % Special selection: fileName
+            %x{i}(:)=i + rand(length(data{i}.(stimLstY.Value)),1)*0.5;%1:size(plateFilename,2);
+            x=[];
+            ppp=i + pseudoRandom(length(data{i}.(text2OKname(stimLstY.String{stimLstY.Value}))));%1:size(plateFilename,2);
+            currentDataX=ppp(:);
+            xlabelText = 'File Name';
+        end
+        if ~lwow
+            if length(stimLstY.Value)==1
+                %y{i}(:)=data{i}.(stimLstY.Value);
+                ppp=data{i}.(text2OKname(stimLstY.String{stimLstY.Value}));
+                currentDataY=ppp(:);
+            else %multiple things selected
+                for ms=1:length(stimLstY.Value)
+                    %y{i}(:,ms)=data{i}.(stimLstY.Value(ms));
+                    currentDataY(:,ms)=data{i}.(text2OKname(stimLstY.String{stimLstY.Value(ms)}));
+               end
+            end
+            
+        else % Animation
+            tempY=data{i}.(text2OKname(stimLstY.String{stimLstY.Value}));
+            if exist('oldY','var')
+                try
+                    ppp=tempY+animValue(af)*(oldY{i}(:)-tempY);
+                    currentDataY=ppp(:);
+                catch e
+                    try
+                        currentDataY=zeros(size(tempY));
+                    catch
+                        y=[];
+                        warning('error in animation!');
+                    end
+                    warning(e.message);
+                    currentDataY=tempY(:);
+                end
+            else
+                currentDataY=tempY(:);
+            end
+        end
+    end
 
     function seeTrace(d,f,e)
         STToggle=~STToggle;
         while (STToggle) %See Trace Toggle
             STToggle=0;
             set(seeTraceBtn, 'Backgroundcolor',[.65 0.15 0.15]);
-            [x, y]=ginput(1);
+            [x, y]=ginput(1); % get mouse coordinates
             tmaxx =-inf;
             tminx=inf;
             
             tmaxy =-inf;
             tminy=inf;
-            for (i=1:size(plateFilename,2))
-                if strcmp(stimLstX.String(stimLstX.Value),'fileName')
-                    currentDataX =i + pseudoRandom(length(data{i}.(text2OKname(stimLstY.String{stimLstY.Value}))));%1:size(plateFilename,2);
-                else
-                    if length(stimLstX.Value)==1
-                        currentDataX =data{i}.(text2OKname(stimLstX.String{stimLstX.Value}));
-                    else %multiple select
-                        for ms=1:length(stimLstX.Value)
-                            currentDataX(:,ms) =data{i}.(text2OKname(stimLstX.String{stimLstX.Value(ms)}));
-                        end
-                    end
-                    
-                end
+            %% Find the synapse:
+            %% Find the outer limits
+            for (i=1:size(plateFilename,2)) % For all loaded files
+                [currentDataX,currentDataY]=makeRenderData(i);
                 
-                if length(stimLstY.Value)==1
-                    currentDataY =data{i}.(text2OKname(stimLstY.String{stimLstY.Value}));
-                else %multiple select
-                    for ms=1:length(stimLstY.Value)
-                        currentDataY(:,ms) =data{i}.(text2OKname(stimLstY.String{stimLstY.Value(ms)}));
-                    end
-                end
-                
-                
+                % Find overall max and min.
                 tmaxx = max([tmaxx max(currentDataX)]);
                 tminx = min([tminx min(currentDataX)]);
                 
@@ -479,30 +598,10 @@ global wellAvg mask
             dx=tmaxx-tminx;
             dy=tmaxy-tminy;
             
-            for (i=1:size(plateFilename,2))
-                if strcmp(stimLstX.String(stimLstX.Value),'fileName')
-                    currentDataX =i + pseudoRandom(length(data{i}.(text2OKname(stimLstY.String{stimLstY.Value}))));%1:size(plateFilename,2);
-                else
-                    if length(stimLstX.Value)==1
-                        currentDataX =data{i}.(text2OKname(stimLstX.String{stimLstX.Value}));
-                    else %multiple select
-                        for ms=1:length(stimLstX.Value)
-                            currentDataX(:,ms) =data{i}.(text2OKname(stimLstX.String{stimLstX.Value(ms)}));
-                        end
-                    end
-                    
-                    
-                end
-                
-                if length(stimLstY.Value)==1
-                    currentDataY =data{i}.(text2OKname(stimLstY.String{stimLstY.Value}));
-                else %multiple select
-                    for ms=1:length(stimLstX.Value)
-                        currentDataY(:,ms) =data{i}.(text2OKname(stimLstY.String{stimLstY.Value(ms)}));
-                    end
-                end
-                
-                try
+            %% Find the File, synapseNumber, ... closest to the mouse cursor:
+            for (i=1:size(plateFilename,2)) % For all loaded files
+                   [currentDataX,currentDataY]=makeRenderData(i);
+                 try
                     distances=(((x-currentDataX)/dx).^2 + ((y-currentDataY)/dy).^2); %distance matrix: horizontal=multiple selections, vertical = multiple files
                     if size(distances,2)>1 % when multiple selections, rows are from the same file, so search for min distance of each file 
                         distances=min(distances,[],2);
@@ -518,32 +617,13 @@ global wellAvg mask
             tmi =mi(fi); %tmi: total minima index
             
             if any(strcmp('synapseNbr',fieldnames(data{fi})))  % check if well or plate level
-                % At Synapse or AllSynapse level.
+                %% At Synapse or AllSynapse level.
+                
+                % showSynapse
                 
                 syNbr = data{fi}.synapseNbr(tmi);
-                if strcmp(stimLstX.String(stimLstX.Value),'fileName')
-                    currentDataX =fi + pseudoRandom(length(data{fi}.(text2OKname(stimLstY.String{stimLstY.Value}))));%1:size(plateFilename,2);
-                else
-                    if length(stimLstX.Value)==1
-                        currentDataX =data{fi}.(text2OKname(stimLstX.String{stimLstX.Value}));
-                    else %multiple select
-                        for ms=1:length(stimLstX.Value)
-                            currentDataX(:,ms) =data{fi}.(text2OKname(stimLstX.String{stimLstX.Value(ms)}));
-                        end
-                    end
-                    
-                end
-                
-                if length(stimLstY.Value)==1
-                    currentDataY =data{fi}.(text2OKname(stimLstY.String{stimLstY.Value}));
-                else %multiple select
-                    for ms=1:length(stimLstY.Value)
-                        currentDataY(:,ms) =data{fi}.(text2OKname(stimLstY.String{stimLstY.Value(ms)}));
-                    end
-                end
-%                     
-%                     
-%                     
+                [currentDataX,currentDataY]=makeRenderData(i);
+                   
 %                     currentDataX =data{fi}.(stimLstX.Value);
 %                 end
                 %           currentDataX =data{fi}.(stimLstX.Value);
@@ -576,7 +656,7 @@ global wellAvg mask
                 tempTraceFilename=strrep(tempTraceFilename,'_synapses','_synTraces'); % To work with _synapes.txt and _synapes.csv 
                 tempTraceFilename = [ tempTraceFilename(1:end-3) 'csv'];
                 
-                %%% Read the responses
+                %% Read the responses
                 try
                     responses = table2array(readtable([plateDir tempTraceFilename]));
                 catch % Legacy 2018
@@ -658,8 +738,12 @@ global wellAvg mask
     end
 
 
-    function r=pseudoRandom(n)
+    function r=pseudoRandom(n,m)
+        if nargin >1
+        r = repmat(mod((1:n)*6.3,5)'/10,1,m);
+        else
         r = mod((1:n)*6.3,5)'/10;
+        end
     end
     function doOpenFiles(d,f,e)
         if ~exist('defaultDir','var')
@@ -793,215 +877,188 @@ global wellAvg mask
         end
         updatePlot();
     end
-global x y;
+global x y useXlabels addJitter;
+useXlabels = 0;
+addJitter = 0;
     function updatePlot(e,g,h)
+        
         subplot(4,4,[2:3,6:7,10:11,14:15])
         if wow
-        animationNumber=50;
-        animValue=[1:50]/animationNumber;
-        animValue=[(tanh(linspace(-pi,pi,animationNumber))+1)/2];
-        animValue=1-animValue;
-        oab=axis();
+            animationNumber=50;
+            animValue=[1:50]/animationNumber;
+            animValue=[(tanh(linspace(-pi,pi,animationNumber))+1)/2];
+            animValue=1-animValue;
+            oab=axis();
         else
             animationNumber=1;
             animValue=0;
         end
         for af=1:animationNumber
-        hold off;
-        switch backgroundImageSelection
-            case 'none'
-            case 'avg'
-                imagesc(wellAvg);colormap('gray');
-                hold on;
-            case 'mask'
-                imagesc(mask);colormap('gray');
-                hold on;
-        end
-        
-        if ~wow
-             x=[];y=[];
-        end
-        for (i=1:size(plateFilename,2))
-            if ~strcmp(stimLstX.String(stimLstX.Value),'fileName') 
-                
-                if ~wow % Normal case
-                    if length(stimLstX.Value)==1
-                        x{i}(:)=data{i}.(text2OKname(stimLstX.String{stimLstX.Value}));
-                    else %multiple select
-                        for ms=1:length(stimLstX.Value)
-                        x{i}(:,ms)=data{i}.(text2OKname(stimLstX.String{stimLstX.Value(ms)}));
-                        end
-                    end
-                else % Animation
-                    %tempX=data{i}.(stimLstX.Value);
-                    tempX=data{i}.(text2OKname(stimLstX.String{stimLstX.Value}));
-                    if exist('x','var')
-                        try
-                            x{i}(:)=tempX+animValue(af)*(x{i}(:)-tempX);
-                        catch
-                             
-                             try
-                                 x{i}=zeros(size(tempX));
-                             catch
-                                 x=[];
-                                 warning('error in animation!');
-                             end
-                            x{i}(:)=tempX;
-                        end
-                    else
-                        x{i}(:)=tempX;
-                    end
-                end
-                xlabelText = stimLstX.String(stimLstX.Value);
-            else %Special fileName Case
-                %x{i}(:)=i + rand(length(data{i}.(stimLstY.Value)),1)*0.5;%1:size(plateFilename,2);
-                 x=[];
-                x{i}(:)=i + pseudoRandom(length(data{i}.(text2OKname(stimLstY.String{stimLstY.Value}))));%1:size(plateFilename,2);
-                xlabelText = 'File Name'; 
+            hold off;
+            switch backgroundImageSelection
+                case 'none'
+                case 'avg'
+                    imagesc(wellAvg);colormap('gray');
+                    hold on;
+                case 'mask'
+                    imagesc(mask);colormap('gray');
+                    hold on;
             end
+            
             if ~wow
-                if length(stimLstY.Value)==1
-                    %y{i}(:)=data{i}.(stimLstY.Value);
-                    y{i}(:)=data{i}.(text2OKname(stimLstY.String{stimLstY.Value}));
-                else %multiple things selected
-                    for ms=1:length(stimLstY.Value)
-                        %y{i}(:,ms)=data{i}.(stimLstY.Value(ms));
-                        y{i}(:,ms)=data{i}.(text2OKname(stimLstY.String{stimLstY.Value(ms)}));
-                        
-                    end
-                end
-                
-            else
-                tempY=data{i}.(text2OKname(stimLstY.String{stimLstY.Value}));
-                if exist('y','var')
-                    try
-                    y{i}(:)=tempY+animValue(af)*(y{i}(:)-tempY);
-                    catch e
-                        
-                        try
-                            y{i}=zeros(size(tempY));
-                        catch
-                            y=[];
-                            warning('error in animation!');
-                        end
-                        warning(e.message);
-                        y{i}(:)=tempY;
-                    end
-                else
-                    y{i}(:)=tempY;
-                end
+                x=[];y=[];
             end
+            %[xd, yd] =  makeRenderData(i);
             
-            barplot=0;
-            if barplot
-                bar(x{i},y{i});
-            else
-                xnoise=0;rand(size(x{i})).*0.2-0.1;
-                
-              %  plot(x{i}+xnoise,y{i},'Marker',marker,'LineWidth',lineSize,'LineStyle', LineStyle );
-                if logX
-                L=(i-1)*.3; %Shift between files
-                xnoise=rand(size(x{i}))*.10-0.05;
-                plot(x{i}.*(1+xnoise+L),y{i},'Marker',marker,'LineWidth',lineSize,'LineStyle', LineStyle )
-                else
-                    plot(x{i}+xnoise,y{i},'Marker',marker,'LineWidth',lineSize,'LineStyle', LineStyle );
-                end
-                ,hold on;
-                
-              
-                if (fittt==1) % Plot a piecewise fit
-                    xcats=unique(x{i});
-                    yy=y{i};
-                    xx=x{i};
-                    dx=max(x{i})-min(x{i});
-                        
-                    for i3=1:length(xcats)
-                        sel =yy(xcats(i3)==xx);
-                        msel=mean(sel);
-                        msell(i3)=msel;
-                        ssel=std(sel)/sqrt(length(sel))*1.96;
-                        if logX
-                         
-                            h=plot([xcats(i3)*(1-1/dx+L),xcats(i3)*(1-1/dx+L),xcats(i3)*(1+1/dx+L),xcats(i3)*(1+1/dx+L),xcats(i3)*(1+1/dx+L),xcats(i3)*(1-1/dx+L)],[msel-ssel,msel+ssel,msel+ssel,msel-ssel,msel-ssel,msel-ssel],'b','LineWidth',lineSize)
-                            set(get(get(h,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
-                            h=plot([xcats(i3)*(1-1/dx+L),xcats(i3)*(1+1/dx+L)],[msel,msel],'r','LineWidth',lineSize);
-                            set(get(get(h,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
-                            text(xcats(i3)*(1-1/dx+L),msel+ssel*1.3,'SEM:95%');
-                            
-                        else
-                            plot([xcats(i3)-1/dx,xcats(i3)-1/dx,xcats(i3)+1/dx,xcats(i3)+1/dx,xcats(i3)+1/dx,xcats(i3)-1/dx],[msel-ssel,msel+ssel,msel+ssel,msel-ssel,msel-ssel,msel-ssel],'b','LineWidth',lineSize)
-                            plot([xcats(i3)-1/dx,xcats(i3)+1/dx],[msel,msel],'r','LineWidth',lineSize);
-                            text(xcats(i3)-1/dx,msel+ssel*1.3,'SEM:95%');
-                        end
-                        %plot([xcats(i3),xcats(i3)],[msel-ssel,msel+ssel],'r','LineWidth',lineSize)
-                       %     boxplot([xcats(i3),xcats(i3)],[msel-ssel,msel+ssel]);%,'r','LineWidth',lineSize)
-                    end
-                   % boxplot(xx,yy);%,'r','LineWidth',lineSize)
-                   
-                   
-                  h= plot(xcats,msell,'k','LineWidth',lineSize);
-                  set(get(get(h,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
-                    
-                    
-                end
-                
-            end
-        end
-      
-        ca=gca();
-        
-        ylabelText = stimLstY.String(stimLstY.Value);
-        if exporttt
-            t=[];
             for (i=1:size(plateFilename,2))
-               t= [t;x{i}(:) y{i}(:) ones(length(y{i}(:)),1)*i];
-            end
-            if (~exportAll)
-                tt = array2table(t,'VariableNames',{text2OKname(xlabelText{1}) text2OKname(ylabelText{1}) 'color'});
-            else
-                tt = data{i};
+                
+                [currentDataX, currentDataY, xlabelText,XTL]=makeRenderData2(i,animValue,af,x, y, wow);
+                x{i}=currentDataX;
+                y{i}=currentDataY;
+                
+                barplot=0;
+                if barplot
+                    bar(x{i},y{i});
+                else % No barPlot
+                    xnoise=0;rand(size(x{i})).*0.2-0.1;
+                    %  plot(x{i}+xnoise,y{i},'Marker',marker,'LineWidth',lineSize,'LineStyle', LineStyle );
+                    
+                    if logX
+                        if useXlabels
+                            L=(i-1)*.3; %Shift between files
+                        else
+                            L=0;
+                        end
+                        if addJitter
+                            xnoise=pseudoRandom(size(x{i}))*.10-0.05;
+                        else % No jitter
+                            xnoise=pseudoRandom(size(x{i}))*0;
+                        end
+                        plot(x{i}.*(1+xnoise+L),y{i},'Marker',marker,'LineWidth',lineSize,'LineStyle', LineStyle )
+                    else
+                        if addJitter
+                            xnoise=pseudoRandom(size(x{i},1),size(x{i},2))*0.09;
+                        else % No jitter
+                            xnoise=pseudoRandom(size(x{i},1),size(x{i},2))*0;
+                        end
+                        % The real plot command:
+                        plot(x{i}+xnoise,y{i},'Marker',marker,'LineWidth',lineSize,'LineStyle', LineStyle );
+                    end
+                    hold on;
+                    if useXlabels
+                        xticklabels(XTL);
+                        xticks(0:(length(XTL)-1))
+                    end
+                    
+                    %% Plot a piecewise fit.
+                    if (fittt==1)
+                        pp=x{i};
+                        pp(isnan(x{i}))=[]; %remove NaN
+                        xcats=unique(pp);
+                        yy=y{i};
+                        xx=x{i};
+                        dx=max(max(x{i}))-min(min(x{i}));
+                        if dx==0
+                            dx=3;
+                        end
+                        
+                        for i3=1:length(xcats) % For all unique X values
+                            if useXlabels
+                                sel = yy(~isnan(xx(:,i3)));
+                            else
+                                sel = yy(xcats(i3)==xx);
+                            end
+                            msel=mean(sel);
+                            msell(i3)=msel;
+                            P95=0;% Show P95% S.E.M.
+                            if P95
+                                ssel=std(sel)/sqrt(length(sel))*1.96;
+                            else % Show STD
+                                ssel=std(sel);%
+                            end
+                            if logX
+                                h=plot([xcats(i3)*(1-1/dx+L),xcats(i3)*(1-1/dx+L),xcats(i3)*(1+1/dx+L),xcats(i3)*(1+1/dx+L),xcats(i3)*(1+1/dx+L),xcats(i3)*(1-1/dx+L)],[msel-ssel,msel+ssel,msel+ssel,msel-ssel,msel-ssel,msel-ssel],'b','LineWidth',lineSize)
+                                set(get(get(h,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
+                                h=plot([xcats(i3)*(1-1/dx+L),xcats(i3)*(1+1/dx+L)],[msel,msel],'r','LineWidth',lineSize);
+                                set(get(get(h,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
+                                if P95
+                                    text(xcats(i3)*(1-1/dx+L),msel+ssel*1.3,'SEM:95%');
+                                else
+                                    % text(xcats(i3)*(1-1/dx+L),msel+ssel*1.3,'St.Dev.');
+                                end
+                            else % linear X, not logX
+                                plot([xcats(i3)-1/dx,xcats(i3)-1/dx,xcats(i3)+1/dx,xcats(i3)+1/dx,xcats(i3)+1/dx,xcats(i3)-1/dx],...
+                                    [msel-ssel,msel+ssel,msel+ssel,msel-ssel,msel-ssel,msel-ssel]...
+                                    ,'b','LineWidth',lineSize); %Draw box
+                                plot([xcats(i3)-1/dx,xcats(i3)+1/dx],[msel,msel],'r','LineWidth',lineSize); %Draw mean line
+                                if P95
+                                    text(xcats(i3)-1/dx,msel+ssel*1.3,'SEM:95%');
+                                else
+                                    %text(xcats(i3)-1/dx,msel+ssel*1.3,'St.Dev.');
+                                end
+                            end
+                            %plot([xcats(i3),xcats(i3)],[msel-ssel,msel+ssel],'r','LineWidth',lineSize)
+                            %     boxplot([xcats(i3),xcats(i3)],[msel-ssel,msel+ssel]);%,'r','LineWidth',lineSize)
+                        end
+                        % boxplot(xx,yy);%,'r','LineWidth',lineSize)
+                        h= plot(xcats,msell,'k','LineWidth',lineSize); %Draw black connection line
+                        set(get(get(h,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
+                    end
+                end
             end
             
-            [filename, pathname] = uiputfile([plateDir 'analysis_data.csv'], 'Export to file ...');
-            exporttt=0;
-            writetable(tt,[pathname filename]);
-          
-        end
-        if histtt
-%             for i=1:size(y,2)
-%                 updateHist(y{i},ca,i);
-%                 hold on;
-%             end
-            updateHist(y{currentFile},ca,currentFile);
-        else
-            subplot(4,4,[4,8,12,16])
-            cla;
-            aa =gca();
-            aa.Visible='off';
-            subplot(4,4,[2:3,6:7,10:11,14:15]);
-        end
-        xlabel(OKname2text(xlabelText),'FontName','Helvetica','FontSize',18);
-        ylabel(OKname2text(ylabelText),'FontName','Helvetica','FontSize',18);
-        if logX==1
-          set(ca,'XSCale','Log');
-        end
-        if logY==1
-          set(ca,'YSCale','Log');
-        end
-        if (ca.XLim ==[0 1])
-            ca.XLim =[-0.2 1.2];
-        end
-        if wow
-        axis(oab); %
-        drawnow();
-        %disp(af);
-        pause(.05);
-        end
-%        for i=1:length()
-        %leg{}=leg{};
-%        end
-        
-        legend(plateFilename);
+            ca=gca();
+            
+            ylabelText = stimLstY.String(stimLstY.Value);
+            if exporttt
+                t=[];
+                for (i=1:size(plateFilename,2))
+                    t= [t;x{i}(:) y{i}(:) ones(length(y{i}(:)),1)*i];
+                end
+                if (~exportAll)
+                    tt = array2table(t,'VariableNames',{text2OKname(xlabelText{1}) text2OKname(ylabelText{1}) 'color'});
+                else
+                    tt = data{i};
+                end
+                
+                [filename, pathname] = uiputfile([plateDir 'analysis_data.csv'], 'Export to file ...');
+                exporttt = 0;
+                writetable(tt,[pathname filename]);
+                
+            end
+            if histtt
+                updateHist(y{currentFile},ca,currentFile);
+            else % No Histogram/ clear histogram
+                subplot(4,4,[4,8,12,16])
+                cla;
+                aa =gca();
+                aa.Visible='off';
+                subplot(4,4,[2:3,6:7,10:11,14:15]);
+            end
+            if ~useXlabels
+                xlabel(OKname2text(xlabelText),'FontName','Helvetica','FontSize',18);
+            end
+            ylabel(OKname2text(ylabelText),'FontName','Helvetica','FontSize',18);
+            if logX==1
+                set(ca,'XSCale','Log');
+            end
+            if logY==1
+                set(ca,'YSCale','Log');
+            end
+            if (ca.XLim ==[0 1])
+                ca.XLim =[-0.2 1.2];
+            end
+            if wow
+                axis(oab); %
+                drawnow();
+                %disp(af);
+                pause(.05);
+            end
+            %        for i=1:length()
+            %leg{}=leg{};
+            %        end
+            
+            legend(plateFilename);
         end
     end
 
@@ -1016,6 +1073,7 @@ global x y;
     end
 
     function updateHist(hdata,ca,colorsNum)
+        % Plots 1 or more histograms on the right side of the plot area.
         subplot(4,4,[4,8,12,16])
         
         %histogram(y{i},100,min(x{i})+(1:100)*dx/100,'orientation','horizontal');
