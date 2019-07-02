@@ -8,6 +8,7 @@ function [t,rootNode]=structViewer(s,rootName,f,rootDir,uia,t,rootNode)
 if nargin<3
     f = uifigure;
 end
+disp(ctfroot)
 if nargin<2
     rootName='struct';
 end
@@ -22,8 +23,11 @@ end
 %c3 = ;
 
 
-
-set(rootNode,'Icon','my_icon.png')
+try
+    set(rootNode,'Icon',[ctfroot '\S3T\my_icon.png'])
+catch
+    set(rootNode,'Icon',['my_icon.png'])
+end
 if length(s)~=1
     s3=s;
     for pk=1:length(s3)
@@ -87,18 +91,34 @@ end
 
 % If node is a leave display the leave
     function showLeave(parentNode,s2,fnj)%s2=s.(fn{j}),fn{j}
+        try ctfroot()
+        catch
+            ctfroot=pwd;
+        end
         if (isstr(s2))
             leaveNode = uitreenode(parentNode,'Text',[OKname2text(fnj) ': ' s2],'NodeData',[s2]);
         else
             if (isnumeric(s2))
                 if strcmp(fnj,'processed')
                     if s2==0
-                        set(parentNode,'Icon','unprocesssed_icon.png');
+                        try
+                            set(parentNode,'Icon',[ctfroot '\S3T\unprocesssed_icon.png']);
+                        catch
+                            set(parentNode,'Icon',['unprocesssed_icon.png']);
+                        end
                     else
                         if s2==1
-                            set(parentNode,'Icon','processsed_icon.png');
+                            try 
+                                set(parentNode,'Icon',[ctfroot '\S3T\processsed_icon.png']);
+                            catch
+                                set(parentNode,'Icon',['processsed_icon.png']);
+                            end
                         else
-                            set(parentNode,'Icon','partiallyprocesssed_icon.png');
+                            try
+                                set(parentNode,'Icon',[ctfroot '\S3T\partiallyprocesssed_icon.png']);
+                            catch
+                                set(parentNode,'Icon',['partiallyprocesssed_icon.png']);
+                            end
                         end
                     end
                 end 

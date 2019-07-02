@@ -32,7 +32,7 @@ start();
         f.Name='S3T: Project Viewer';
         label1 = uilabel(f,...
             'Text', ['Files loading:'],...
-            'Position', [20 20 200 20] );
+            'Position', [20 20 280 20] );
         refreshBtn = uibutton(f,'push','text','updating ...','Position',[220 20 100 20],'ButtonPushedFcn', @doRefresh2);%(btn,event) refresh(btn,ax));
         refreshBtn2 = uibutton(f,'push','text','Full update','Position',[220 0 100 20],'ButtonPushedFcn', @refresh);%(btn,event) refresh(btn,ax));
         %%
@@ -46,7 +46,7 @@ start();
         uia=uiaxes(f,'Position',[820 200 500 500]);
         %plot(uia,[2:200]);
 %        imagesc(uia,imread('F:\share\data\Rajiv\2018\02-03-2018\plate1\Protocol11220180302_110630_20180302_112921\1AP_Analysis\Protocol11220180302_110630_e0002.tif_avg.png'));
-        colormap('hot');
+        colormap(uia,'hot');
         axis(uia,'equal');
         axis(uia,'off');
         t = uitree(f,'Position',[20 150 550 550]);

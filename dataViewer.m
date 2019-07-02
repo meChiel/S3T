@@ -70,8 +70,12 @@ createButons();
         lessMoreLst=[];
         
         javaFrame = get(f3,'JavaFrame');
-        javaFrame.setFigureIcon(javax.swing.ImageIcon('PlateLayout_icon.png'));
-        
+        %
+		try
+        	javaFrame.setFigureIcon(javax.swing.ImageIcon([ctfroot '\S3T\PlateLayout_icon.png']));
+   		catch
+			javaFrame.setFigureIcon(javax.swing.ImageIcon('PlateLayout_icon.png'));
+		end     
         LineStyle='-';
         marker = '.';
         lineSize = 1;

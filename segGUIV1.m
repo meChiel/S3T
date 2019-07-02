@@ -1,11 +1,12 @@
 function fhandles=segGUIV1(myDir,headless)
 global Version
-Version = 'V0.86-Rel';
+Version = 'V0.88-dev';
 %% Much better dataviewer
 % full export
 
-fhandles{1}=@foldData;
-fhandles{2}=@foldData2;
+fhandles.foldData=@foldData;
+fhandles.foldData2=@foldData2;
+fhandles.multiResponseto1=@multiResponseto1;
 %% Feature requests:
 % AllSynapse file.
 % export % - explanation of the SVD components
@@ -64,6 +65,7 @@ global debug
 global dataFrameSelectionTxt PhotoBleachingTxt reloadMovie writeSVD skipMovie;
 global TSpAPA TSpAPAi
 global synSTD; 
+global noSynapsesFound;
 
 % For experiment:
 global C1Data C1pathname C1fname C1dirname                                 % Control 1AP
@@ -94,6 +96,7 @@ fps = 33;
 dt = 1/fps;
 debug = 0;
 dutyCycleOnFrames = 0;
+dutyCycleOnFrames2 = 0;
 setNumbAvgSamples(30);
 setPhotoBleachingTxt('linInt');
 setwriteSVD(1);
@@ -103,7 +106,8 @@ setwriteSVD(1);
 stimFreq2 = 0;
 NOS2 = 0; % Number of stimuli
 m.OnOffset2 = 0;
-
+m.OnOffsettxt2 = [];
+noSynapsesFound=false;
 
 %% Create a figure and axes
 if ~exist('headless','var')
@@ -115,7 +119,9 @@ else
 end
 %pause(5);
 if nargin>0
-    processDirAndSubDirs(myDir);
+    if ~isempty(myDir)
+        processDirAndSubDirs(myDir);
+    end
 end
     function startUp()
         fullVersion = 0;
@@ -129,14 +135,29 @@ end
         %set(f2,'MenuBar', 'none');
         %set(f2, 'ToolBar', 'auto');
         %set(f2, 'ToolBar', 'none');
-        %%%    javaFrame = get(f2,'JavaFrame');
-        %%%   javaFrame.setFigureIcon(javax.swing.ImageIcon('my_icon.png'));
+        try disp(ctfroot)    
+        catch
+        end
+        javaFrame = get(f2,'JavaFrame');
+        try
+            javaFrame.setFigureIcon(javax.swing.ImageIcon([ctfroot '\S3T\my_icon.png']));
+        catch
+            javaFrame.setFigureIcon(javax.swing.ImageIcon(['my_icon.png']));
+        end
         
-    pp= uicontrol('Style', 'Frame', 'String', ' ',...
-        'Position', [10 by(-9.2) 170 140],...
-        'BackgroundColor',bgc, 'ForegroundColor',[.05 .05 .08]);% ,...
-    %'EdgeColor',[.15 .05 .08] );
-    
+        mmenu = uimenu('Text','Create Sample');
+        mitem = uimenu(mmenu,'Text','Create Sample Recordings');
+        mitem.MenuSelectedFcn = @doCreateSpineMovie;
+        
+        function doCreateSpineMovie(e,f,s)
+            createSpineMovie();
+        end
+        
+        pp = uicontrol('Style', 'Frame', 'String', ' ',...
+            'Position', [10 by(-9.2) 170 140],...
+            'BackgroundColor',bgc, 'ForegroundColor',[.05 .05 .08]);% ,...
+        %'EdgeColor',[.15 .05 .08] );
+        
     
     pp= uicontrol('Style', 'Frame', 'String', ' ',...
         'Position', [10 by(1.5) 170 190],...
@@ -805,6 +826,9 @@ end
         dutyCycleOnFrames=a;
     end
 
+    function setDutyCycleOnFrames2(a)
+        dutyCycleOnFrames2=a;
+    end
 
     function doSetCellBody(h,g,f)
         setCellBody(segmentCellBodiesChkButton.Value);
@@ -935,6 +959,7 @@ end
             synProbSTD(:,j) = std(rsynProb(pixlid));
             laplaceSynProbSTD(:,j) = std(rlpsynProb(pixlid));
         end
+        noSynapsesFound=false;
         if length(s2)==0
             disp('No synapses found, combining all pixels into 1 big synapse.');
             rframes=reshape(data,wx*wy,[]);
@@ -945,6 +970,7 @@ end
             meanSpaceTimeSTD = std(mean(ss,1));
             synProbSTD = std(rsynProb(:));
             laplaceSynProbSTD = std(rlpsynProb(:));
+            noSynapsesFound=true;
         end
         synSTD.spaceTimeSTD = spaceTimeSTD;
         synSTD.spaceMeanTimeSTD = spaceMeanTimeSTD;
@@ -995,9 +1021,10 @@ end
         if ~isdir([dirname 'output\SynapseDetails\'])
             mkdir([dirname 'output\SynapseDetails\']);
         end
-        
-        [dfftempThresSignals, thresKeepIdx] = tempThreshold(dff(synsignal')); % For synapse Traces
-        synsignal = synsignal(:,thresKeepIdx); % Here synsignal is Thresholded.
+        if ~noSynapsesFound %don't threshold when all pixels are combined already
+            [dfftempThresSignals, thresKeepIdx] = tempThreshold(dff(synsignal')); % For synapse Traces
+            synsignal = synsignal(:,thresKeepIdx); % Here synsignal is Thresholded.
+        end
         synSTD.laplaceSynProbSTD=synSTD.laplaceSynProbSTD(thresKeepIdx);
         synSTD.meanSpaceTimeSTD=synSTD.meanSpaceTimeSTD(thresKeepIdx);
         synSTD.spaceMeanTimeSTD=synSTD.spaceMeanTimeSTD(thresKeepIdx);
@@ -1346,7 +1373,9 @@ end
         imagesc(reshape(U(:,3),size(data,1),size(data,2)));colormap('gray');
         title('eig 3')
         subplot(4,4,15);
-        imagesc(reshape(U(:,4),size(data,1),size(data,2)));colormap('gray');
+        if size(U,2)>3
+            imagesc(reshape(U(:,4),size(data,1),size(data,2)));colormap('gray');
+        end
         title('eig 4')
         
         subplot(4,4,4);
@@ -2234,6 +2263,8 @@ end
                                 else
                                     %error
                                     warning('Sorry could not find analysis file.\n Processing aborted...');
+                                    segment2(); 
+                                    warning('Sorry could not find analysis file.\n Processing aborted...');
                                     disp(['   ' pathname(1:end)]);
                                     pause(10);
                                     analysisList=[];
@@ -2410,7 +2441,7 @@ end
      
                 %EVN=1; warning ('eigenvalue hacked 2->1');
                 warning('processMovie hacked for neuron body processing' )
-            else
+            else % Synapses
                 segment2(); % [synapseBW, synProb] = f(data)
                 rmvBkGrnd(); % synapseBW = f(synapseBW, synProb) 2sigma is done
             end
@@ -2963,29 +2994,42 @@ end
     function doMultiResponseto1(s,e,h)
         ASR = multiResponseto1(ASR);
         AR = multiResponseto1(AR);
-        
     end
 
-    function part = foldData(data)
+    function part = foldData(data,settings)
+        
+        if nargin<2
+            s.stimFreq = stimFreq;
+            s.fps=fps;
+            s.dCOF=dutyCycleOnFrames;
+            s.dCOF2=dutyCycleOnFrames2;
+            s.NOS=NOS;
+            s.OnOffset=OnOffset;
+        else
+            s=settings;
+        end
+        s.dutyCycleOnFrames = s.dCOF;
+        s.dutyCycleOnFrames2 = s.dCOF2;
+        
         % stimFreq = 0.125;%Hz
         % Number of Stimuli
         % NOS = 3; % Number of Stimuli
-        interStimPeriod = 1/stimFreq*fps; %Do not floor here but only after multiplication.
+        interStimPeriod = 1/s.stimFreq*s.fps; %Do not floor here but only after multiplication.
         iSP = interStimPeriod;
-        dCOF=dutyCycleOnFrames; % DutyCycleOnFrames.  |--dCOF--|____|-----|____
+        dCOF=s.dutyCycleOnFrames; % DutyCycleOnFrames.  |--dCOF--|____|-----|____
         if (dCOF==0 || dCOF>iSP)
             dCOF = floor(iSP);
         end
         
         %dCOF = floor(iSP); %dutyCycleOnFrames.
-        part = zeros(dCOF,NOS);
-        for iii = 1:NOS
+        part = zeros(dCOF,s.NOS);
+        for iii = 1:s.NOS
             try
-                part(:,iii)=data(OnOffset+floor((iii-1)*iSP)+(1:dCOF));
+                part(:,iii)=data(s.OnOffset+floor((iii-1)*iSP)+(1:dCOF));
             catch e
-                disp(['size(data) = ' num2str(size(data)) ', OnOffset= ' num2str(OnOffset) ', iSP =' num2str(iSP) ', dCOF= ' num2str(dCOF) ]);
+                disp(['size(data) = ' num2str(size(data)) ', OnOffset= ' num2str(s.OnOffset) ', iSP =' num2str(iSP) ', dCOF= ' num2str(dCOF) ]);
                 disp('Multi Response to 1 error, press any key to crash, or set a breakpoint to investigate')
-                 pause;
+                 %pause;
                 disp(['error: ' pathname]);
                 disp('run analysisCfgGenerator(), to resolve analysis errors');
                 error(e.message);
@@ -2994,12 +3038,27 @@ end
         end
         
     end
-    function meanData = multiResponseto1(data,exportPlot)
+    function meanData = multiResponseto1(data,exportPlot,settings)
+        
+        if nargin<3
+            s.stimFreq = stimFreq;
+            s.stimFreq2 = stimFreq2;
+            s.fps = fps;
+            s.dCOF = dutyCycleOnFrames;
+            s.dCOF2 = dutyCycleOnFrames2;
+            s.NOS = NOS;
+            s.NOS2 = NOS2;
+            s.OnOffset = OnOffset;
+            s.OnOffset2 = m.OnOffset2;
+        else
+            s = settings;
+        end
+        
         if nargin==1
             exportPlot=1;
         end
         
-        part = foldData(data);
+        part = foldData(data,s);
 
         %         part(:,2)=data(OnOffset+1*iSP+(1:iSP));
         %         part(:,3)=data(OnOffset+2*iSP+(1:iSP));
@@ -3008,11 +3067,11 @@ end
         % figure;
         
         if  ~(strcmp(PhotoBleachingTxt,'auto2exp') || strcmp(PhotoBleachingTxt,'autoLinInt'))
-        subplot(4,4,12)
-        [spart,~,~,level] = linBleachCorrect(part');
-        part = (spart-level)'; %Using Matlab Matrix expansion
-        plot(part);
-        hold on
+            subplot(4,4,12)
+            [spart,~,~,level] = linBleachCorrect(part');
+            part = (spart-level)'; %Using Matlab Matrix expansion
+            plot(part);
+            hold on
         end
         
         meanData=mean(part,2);
@@ -3033,33 +3092,55 @@ end
     end
 
 
-    function part = foldData2(signal)    % Check if the partial interval is bigger than the interval
+    function part = foldData2(signal,settings)    % Check if the partial interval is bigger than the interval
         % itself.
-        if (stimFreq2<stimFreq) && (stimFreq2~=0)
-            stimFreq2=stimFreq;
-            warning(['stimFreq2 adjusted to: ' num2str(stimFreq) 'to fit interval.']);
-            warning(['Continue on your own risk by pressing a key ' ]);
-            pause();
+        
+        if nargin<2
+            s.stimFreq = stimFreq;
+            s.stimFreq2=stimFreq2;
+            s.fps=fps;
+            s.dCOF=dutyCycleOnFrames;
+            s.dCOF2=dutyCycleOnFrames2;
+            s.NOS=NOS;
+            s.NOS2=NOS2;
+            s.OnOffset=OnOffset;
+            s.OnOffset2=m.OnOffset2;
+        else
+            s=settings;
         end
         
-        if stimFreq2==0
-            sFq2=stimFreq;
-        else
-            sFq2=stimFreq2;
+        if (s.stimFreq2<s.stimFreq) && (s.stimFreq2~=0)
+            s.stimFreq2=s.stimFreq;
+            warning(['stimFreq2 adjusted to: ' num2str(s.stimFreq) 'to fit interval.']);
+            warning(['Continue on your own risk by pressing a key ' ]);
+           % pause();
         end
-        interStimPeriod = floor(1/sFq2*fps);
+        
+        if s.stimFreq2==0
+            sFq2=s.stimFreq;
+        else
+            sFq2=s.stimFreq2;
+        end
+        interStimPeriod = floor(1/sFq2*s.fps);
         iSP = interStimPeriod;
-        if NOS2==0
+           dCOF=s.dCOF2;%utyCycleOnFrames2; % DutyCycleOnFrames.  |--dCOF--|____|-----|____
+        if (dCOF==0 || dCOF>iSP)
+            dCOF = floor(iSP);
+        end
+        
+        
+        
+        if s.NOS2==0
             setNOS2(1);
         end
-        if NOS2==-1
+        if s.NOS2==-1
             
         else
-            part=zeros(iSP,NOS2);
-            for j = 1:NOS2
+            part=zeros(dCOF,s.NOS2);
+            for j = 1:s.NOS2
                 %part(:,j)=signal(m.OnOffset2+(j-1)*iSP+(1:iSP));
                 try
-                    part(:,j)=signal(m.OnOffset2+floor((j-1)/sFq2*fps)+(1:iSP)); % Here the rounding is done after the multiplication = better
+                    part(:,j)=signal(s.OnOffset2+floor((j-1)/sFq2*s.fps)+(1:dCOF)); % Here the rounding is done after the multiplication = better
                 catch e
                     d = dialog('Position',[300 300 250 150],'Name','Wrong Numbers');
                     
@@ -3319,6 +3400,7 @@ end
         setPhotoBleachingTxt(analysisCfg.PhotoBleachingTxt);
         setNumbAvgSamples(analysisCfg.NumAvgSamples);
         setDutyCycleOnFrames(analysisCfg.dutyCycle);
+        setDutyCycleOnFrames2(analysisCfg.dutyCycle2);
         setmaskTimeProjectionMethod(analysisCfg.maskTimeProjectionMethod);
         if isfield (analysisCfg,'preCommand')
             setPreCommand(analysisCfg.preCommand);

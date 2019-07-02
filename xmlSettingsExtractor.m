@@ -154,7 +154,7 @@ else
         
         ss2=strfind(aa(rr(1)+(ss(1)):end),sprintf('\r'));
         
-        if ((rr(1)+ss(1)+ss2(1)-0))<length(aa)
+        if ~isempty(ss2)%((rr(1)+ss(1)+ss2(1)-0))<length(aa)
             imagePeriod=str2num(aa(rr(1)+ss(1)+2:rr(1)+ss(1)+ss2(1)-0));
         else % In case no newline @EOF
             imagePeriod=str2num(aa((rr(1)+ss(1)+2):end));
@@ -215,11 +215,11 @@ else
         end
         ss=strfind(aa(rr(1):end),'<Val>');
         ss2=strfind(aa(rr(1)+(ss(1)):end),'</Val>');
-        dutyCycle=str2num((aa(rr(1)+ss(1)+4:rr(1)+ss(1)+ss2(1)-2)));
+        dutyCycle2=str2num((aa(rr(1)+ss(1)+4:rr(1)+ss(1)+ss2(1)-2)));
         
     else
         disp('Did not find Partial Duty Cycle, Partial Duty Cycle set to 0. ')
-        dutyCycle = 0;
+        dutyCycle2 = 0;
     end
     
     %%  skipMovie
@@ -413,6 +413,7 @@ stimCfg.fastLoad = fastLoad;
 stimCfg.eigenvalueNumber = eigenvalueNumber;
 stimCfg.skipMovie = skipMovie;
 stimCfg.dutyCycle = dutyCycle;
+stimCfg.dutyCycle2 = dutyCycle2;
 stimCfg.maskTimeProjectionMethod = maskTimeProjection;%'SVD';
 stimCfg.MPreC=MPreC;
 stimCfg.MPostC=MPostC;

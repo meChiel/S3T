@@ -34,8 +34,10 @@ catch e
 end
 %%
 
-figure('Name','Plate Trace Viewer');
-%f = uifigure('Name','Plate Trace Viewer');
+fTrace = figure('Name','Plate Trace Viewer');
+javaFrame = get(fTrace,'JavaFrame');
+javaFrame.setFigureIcon(javax.swing.ImageIcon([ctfroot '\S3T\PlateLayout_icon.png']));
+    
 
 statusDisp = uicontrol('Style', 'text', 'String', ['OK'],...
     'Position', [0 0 75 25]);

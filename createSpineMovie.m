@@ -1,7 +1,8 @@
 % This creates a full 96 well plate of data.
-% The well on teh boundaries are not used, and not iamged and so do not 
+% The well on the boundaries are not used, and not imaged and so do not 
 % have data.
-close all;clear all
+%close all;clear all
+function createSpineMovie()
 
 plateOnOff = [...
     0 0 0 0 0 0 0 0 0 0 0 0;
@@ -15,17 +16,17 @@ plateOnOff = [...
     ];
 %
 
-plateOnOff = [...
-    0 0 0 0 0 0 0 0 0 0 0 0;
-    0 1 0 0 0 0 0 0 0 0 0 0;
-    0 0 0 0 0 0 0 0 0 0 0 0;
-    0 0 0 0 0 0 0 0 0 0 0 0;
-    0 0 0 0 0 0 0 0 0 0 0 0;
-    0 0 0 0 0 0 0 0 0 0 0 0;
-    0 0 0 0 0 0 0 0 0 0 0 0;
-    0 0 0 0 0 0 0 0 0 0 0 0;
-    ]; % Transpose to make the serialisation from left to right is done
-    %later with rot90.
+% plateOnOff = [...
+%     0 0 0 0 0 0 0 0 0 0 0 0;
+%     0 1 0 0 0 0 0 0 0 0 0 0;
+%     0 0 0 0 0 0 0 0 0 0 0 0;
+%     0 0 0 0 0 0 0 0 0 0 0 0;
+%     0 0 0 0 0 0 0 0 0 0 0 0;
+%     0 0 0 0 0 0 0 0 0 0 0 0;
+%     0 0 0 0 0 0 0 0 0 0 0 0;
+%     0 0 0 0 0 0 0 0 0 0 0 0;
+%     ]; % Transpose to make the serialisation from left to right is done
+%     %later with rot90.
 %  
 %%
 
@@ -38,7 +39,7 @@ plateNoise = [...
     0 0.0001 0.001 .01 .1 1 10 100 1000 10000 100000 0;
     0 0.0001 0.001 .01 .1 1 10 100 1000 10000 100000 0;
     0 0 0 0 0 0 0 0 0 0 0 0;
-    ];
+    ]*0+.001;
 
 %% Plate Photo Bleaching Amplitude
 platePBA = [...
@@ -50,7 +51,58 @@ platePBA = [...
     0, 1 	1 		1 		1 		1 		1 		1 		1 		1 		1 		0 ;		
     0, 10 	10 		10 		10 		10 		10 		10 		10 		10 		10 		0 ;		
     0, 0 	0 		0 		0 		0 		0 		0 		0 		0 		0 		0 ;		
-    ]*0+.0; %x0 disables photbleach
+    ]*0.0+.001; %x0 disables photobleach
+
+%% Simulated synapse amplitude
+plateAmplitude = [...
+    0, 0 	0 		0 		0 		0 		0 		0 		0 		0 		0 		0 ;		
+    0, 1 	1 		1 		1 		1 		1 		1 		1 		1 		1 		0 ;		
+    0, 1 	1 		1 		1 		1 		1 		1 		1 		1 		1 		0 ;		
+    0, 1 	1 		1 		1 		1 		1 		1 		1 		1 		1 		0 ;		
+    0, 1 	1.1 	1.2		1.3 	1.4 	1.5 	1.6 	1.70	1.8000	1 		0 ;		
+    0, 1 	1.1 	1.2		1.3 	1.4 	1.5 	1.6 	1.70	1.8000	1 		0 ;		
+    0, 1 	1.1 	1.2		1.3 	1.4 	1.5 	1.6 	1.70	1.8000	1 		0 ;		
+    0, 0 	0 		0 		0 		0 		0 		0 		0 		0 		0 		0 ;		
+    ]*1+.0; %
+%% Simulated synapse decay constant
+
+plateDecay = 0.75./[...
+    0, 0 	0 		0 		0 		0 		0 		0 		0 		0 		0 		0 ;		
+    0, 1 	1.1 	1.2		1.3 	1.4 	1.5 	1.6 	1.70	1.8000	1 		0 ;		
+    0, 1 	1.1 	1.2		1.3 	1.4 	1.5 	1.6 	1.70	1.8000	1 		0 ;		
+    0, 1 	1.1 	1.2		1.3 	1.4 	1.5 	1.6 	1.70	1.8000	1 		0 ;		
+    0, 1 	1 		1 		1 		1 		1 		1 		1 		1 		1 		0 ;		
+    0, 1 	1 		1 		1 		1 		1 		1 		1 		1 		1 		0 ;		
+    0, 1 	1 		1 		1 		1 		1 		1 		1 		1 		1 		0 ;		
+    0, 0 	0 		0 		0 		0 		0 		0 		0 		0 		0 		0 ;		
+    ]*1+.0; %
+
+%% Compound 1 conc.
+plateComp1 = [...
+    0, 0 	0 		0 		0 		0 		0 		0 		0 		0 		0 		0 ;		
+    0, 0 	0.01 	0.1		1 		10 		100 	1000	10000	100000	0 		0 ;		
+    0, 0 	0.01 	0.1		1 		10 		100 	1000	10000	100000	0 		0 ;		
+    0, 0 	0.01 	0.1		1 		10 		100 	1000	10000	100000	0 		0 ;		
+    0, 0 	0 		0 		0 		0 		0 		0 		0 		0 		0 		0 ;		
+    0, 0 	0 		0 		0 		0 		0 		0 		0 		0 		0 		0 ;		
+    0, 0 	0 		0 		0 		0 		0 		0 		0 		0 		0 		0 ;		
+    0, 0 	0 		0 		0 		0 		0 		0 		0 		0 		0 		0 ;		
+    ]*1+.0; %
+
+
+%% Compound 2 conc.
+plateComp2 = [...
+    0, 0 	0 		0 		0 		0 		0 		0 		0 		0 		0 		0 ;		
+    0, 0 	0 		0 		0 		0 		0 		0 		0 		0 		0 		0 ;		
+    0, 0 	0 		0 		0 		0 		0 		0 		0 		0 		0 		0 ;		
+    0, 0 	0 		0 		0 		0 		0 		0 		0 		0 		0 		0 ;		
+    0, 0 	0.01 	0.1		1 		10 		100 	1000	10000	100000	0 		0 ;		
+    0, 0 	0.01 	0.1		1 		10 		100 	1000	10000	100000	0 		0 ;		
+    0, 0 	0.01 	0.1		1 		10 		100 	1000	10000	100000	0 		0 ;		
+    0, 0 	0 		0 		0 		0 		0 		0 		0 		0 		0 		0 ;		
+    ]*1+.0; %
+
+
 
 %%
 
@@ -71,34 +123,38 @@ storD=uigetdir([],'Select directory to store artificial data.');
 rPlateOnOff=rot90(plateOnOff,-1);
 rPlatePBA=rot90(platePBA,-1);
 rPlateNoise=rot90(plateNoise,-1);
+rPlateAmplitude=rot90(plateAmplitude,-1);
+rPlateDecay=rot90(plateDecay,-1);
 idx = find(rPlateOnOff==1);
 %% Start simulation:
 
 for jj=0:(numOfWells-1)
+    Amp = rPlateAmplitude(idx(jj+1));
+    Decay = rPlateDecay(idx(jj+1));
     nSpikes = 3;
     freqSpikes = 0.2;
     Nspines = 20; % Active spines
     Nspines2 = 0; % Non-active spines
     pos=ceil(512*rand(Nspines,2)); % Spine positions
+    pos=ceil(412*rand(Nspines,2))+50; % Spine positions not at border
     pba=rPlatePBA(idx(jj+1));  disp(['Photo Bleaching amplitude: ' num2str(pba)]);
     noiseLevel = rPlateNoise(idx(jj+1)); disp(['Noise:' num2str(noiseLevel)]);
-    PB=ones(Nspines,1); % Photo Bleach
-    PB2=ones(Nspines,1); % Photo Bleach
+    PB=pba * ones(Nspines,1); % Photo Bleach
+    PB2=pba * ones(Nspines,1); % Photo Bleach
     
     bgF=500*ones(Nspines,1); % Background Fluorescence active spines
     bgF2=500*ones(Nspines2,1); % Background Fluorescence non-active spines
     pos2=ceil(512*rand(Nspines2,2)); % Postion of non-active spines
-    spiketimes = 1.2*ones(Nspines,1)+0.00*randn(Nspines,1); % SpikeTime + random delay
-    spiketimes2 = 6.2*ones(Nspines,1)+0.00*randn(Nspines,1); % SpikeTime + random delay
-    spiketimes3 = 11.2*ones(Nspines,1)+0.00*randn(Nspines,1); % SpikeTime + random delay
+    
+    spiketimes = 2.2*ones(Nspines,1)+0.00*randn(Nspines,1); % SpikeTime + random delay
+    spiketimes2 = 7.2*ones(Nspines,1)+0.00*randn(Nspines,1); % SpikeTime + random delay
+    spiketimes3 = 12.2*ones(Nspines,1)+0.00*randn(Nspines,1); % SpikeTime + random delay
     %spiketimes3 = 0*ones(Nspines,1)+0.00*randn(Nspines,1); % SpikeTime + random delay
     
-    
-    
-    spikeAmplitude = 500*ones(Nspines,1); % The same amplitude
-    spikeAmplitude2 = 500*ones(Nspines,1); % The same amplitude
-    spikeAmplitude3 = 1500*ones(Nspines,1); % The same amplitude
-    decaytime= 0.75*ones(Nspines,1)-.000*rand(Nspines,1); % Almost all the same decay time
+    spikeAmplitude = Amp*ones(Nspines,1); % Amplitude for all synapses of spike 1
+    spikeAmplitude2 = Amp*ones(Nspines,1); % Amplitude for all synapses of spike 2
+    spikeAmplitude3 = Amp*3*ones(Nspines,1); % Amplitude for all synapses of spike 3
+    decaytime= Decay*ones(Nspines,1)-.000*rand(Nspines,1); % Almost all the same decay time
     decaytime2= 0.96*ones(Nspines,1)-.000*rand(Nspines,1); % Photo - bleach decay time.
     %dy=-0.05*y=> exp(-0.5*t/pi)
     backSeed=rand(516,516);
@@ -140,32 +196,36 @@ for jj=0:(numOfWells-1)
         end
         for i=1:length(pos) % For active spines
             %images(pos(i,1),pos(i,2))=images(pos(i,1),pos(i,2))+bgF(i);
-            images(pos(i,1),pos(i,2)) = images(pos(i,1),pos(i,2))+spikeAmplitude(i)*(tFrame/2>abs(f*tFrame-spiketimes(i)));
-            images(pos(i,1),pos(i,2)) = images(pos(i,1),pos(i,2))+spikeAmplitude2(i)*(tFrame/2>abs(f*tFrame-spiketimes2(i)));
-            images(pos(i,1),pos(i,2)) = images(pos(i,1),pos(i,2))+spikeAmplitude3(i)*(tFrame/2>abs(f*tFrame-spiketimes3(i)));
-            images(pos(i,1),pos(i,2)) = (bgF(i)+(images(pos(i,1),pos(i,2)) - bgF(i) - PB(i))*decaytime(i))+PB(i);
+            images(pos(i,1),pos(i,2)) = images(pos(i,1),pos(i,2))+spikeAmplitude(i)*(tFrame/2>abs(f*tFrame-spiketimes(i))); %First spike
+            images(pos(i,1),pos(i,2)) = images(pos(i,1),pos(i,2))+spikeAmplitude2(i)*(tFrame/2>abs(f*tFrame-spiketimes2(i))); %Second spike
+            images(pos(i,1),pos(i,2)) = images(pos(i,1),pos(i,2))+spikeAmplitude3(i)*(tFrame/2>abs(f*tFrame-spiketimes3(i))); %Thirth spike
+            images(pos(i,1),pos(i,2)) = (bgF(i)+(images(pos(i,1),pos(i,2)) - bgF(i) - PB(i))*decaytime(i))+PB(i); % Background fluoresence + photobleaching
             PB(i)= PB(i)*decaytime2(i);
         end
         image2(:,:,f) = conv2(spineshape,images);     
-       % image2(:,:,f) = image2(:,:,f)+background+1*pba*background*PB(i); % PB(i) is buffer going exp from 1 to 0 ;
-       % image2(:,:,f) = image2(:,:,f).*(1+noiseLevel/10*randn(size(image2(:,:,f)))/pi);
+        image2(:,:,f) = image2(:,:,f)+background+1*pba*background*PB(i); % PB(i) is buffer going exp from 1 to 0 ;
+        image2(:,:,f) = image2(:,:,f).*(1+noiseLevel/10*randn(size(image2(:,:,f)))/pi);
         image3(:,:,f) = image2(1:512,1:512,f);
     end
 %    figure(1);colormap gray;
 %     
-%      for f=1:totFrames
-%         image(image2(:,:,f)*.10);
-%         pause(.0285);
-%      end
+    hold off
+     for f=1:totFrames
+        image(image3(:,:,f)*.10);
+        title(['creating movie: ' num2str(jj) ' frame:' num2str(f) '/' num2str(totFrames)]);
+        pause(.0285);
+     end
 %     
     %%
-    figure(2)
+    %figure(2)
     hold off
     % Plot the response of the first synapse centre
     plot((1:totFrames)*tFrame, squeeze(image2(pos(1,1)+conn(1)/2,pos(1,2)+conn(2)/2,:)));
     hold on;
     % Decay time:
-    t=0:0.032:8;plot(t,5*exp(-0.5*(t-1)*pi))
+   % t=0:0.032:8;plot(t,5*exp(-0.5*(t-1)*pi))
+    
+    pause(0.5);
     %% Export the movie:
     %image2=conv2(images,spineshape);
     ID = num2str(10000+jj);
@@ -227,9 +287,11 @@ toc
 %'folder=../folder1 parameters=a.properties output=../samples/Output'
 
 %% Create Meta data files
-csvwrite([storD '\PlateLayout_PBA.csv'],platePBA);
-csvwrite([storD '\PlateLayout_Noise.csv'],plateNoise);
+%csvwrite([storD '\PlateLayout_PBA.csv'],platePBA);
+%csvwrite([storD '\PlateLayout_Noise.csv'],plateNoise);
 csvwrite([storD '\PlateLayout_On.csv'],plateOnOff);
+csvwrite([storD '\PlateLayout_Compound1.csv'],plateComp1);
+csvwrite([storD '\PlateLayout_Compound2.csv'],plateComp2);
 
 %% Create Andor Meta data file.
 
@@ -248,4 +310,78 @@ end
 fid = fopen([storD '\NS_120181002_1046.txt'],'w');
 fprintf(fid,andorText,'%s');
 fclose(fid);
+
+%% Create Analysis file
+
+
+
+anTxt=[...
+'<Name>Stimulation Frequency (Hz)</Name>\n'...
+'<Val>0.2</Val>\n'...
+'\n'...
+'<Name>Delay Time (ms)</Name>\n'...
+'<Val>1000</Val>\n'...
+'\n'...
+'<Name>Pulse count</Name>\n'...
+'<Val>2</Val>\n'...
+'\n'...
+'<Name>Partial Stimulation Frequency (Hz)</Name>\n'...
+'<Val>0</Val>\n'...
+'\n'...
+'<Name>Partial Delay Time (ms)</Name>\n'...
+'<Val>0</Val>\n'...
+'\n'...
+'<Name>Partial Pulse count</Name>\n'...
+'<Val>1</Val>\n'...
+'\n'...
+'<Name>Frame Selection</Name>\n'...
+'<Val>[1:end]</Val>\n'...
+'\n'...
+'<Name>Mask Creation Time Projection</Name>\n'...
+'<Val>SVD</Val>\n'...
+'\n'...
+'<Name>Eigenvalue Number</Name>\n'...
+'<Val>2</Val>\n'...
+'\n'...
+'<Name>Reuse Mask</Name>\n'...
+'<Val>0</Val>\n'...
+'\n'...
+'<Name>Reload Movie</Name>\n'...
+'<Val>1</Val>\n'...
+'\n'...
+'<Name>Fast Load</Name>\n'...
+'<Val>0</Val>\n'...
+'\n'...
+'<Name>Photo Bleaching</Name>\n'...
+'<Val>linInt</Val>\n'...
+'\n'...
+'<Name>Write SVD</Name>\n'...
+'<Val>1</Val>\n'...
+'\n'...
+'<Name>duty Cycle (frames)</Name>\n'...
+'<Val>0</Val>\n'...
+'\n'...
+'<Name>Partial Duty Cycle (frames)</Name>\n'...
+'<Val>0</Val>\n'...
+'\n'...
+'<Name>Skip Movie</Name>\n'...
+'<Val>0</Val>\n'...
+'\n'...
+'<Name>Cell Body Type</Name>\n'...
+'<Val>0</Val>\n'...
+'\n'...
+'<Name>Analysis Type</Name>\n'...
+'<Val>0</Val>\n'...
+'\n\n'...
+'<Name>Number Average Samples</Name>\n\n'...
+'<Val></Val>\n'...
+...
+...%'Camera Exposure Time (s) - 0.03030\n'...
+]
+
+   analysisText = [anTxt '\r\n \r\nCamera Exposure Time (s) - ' num2str(1/fs) ];
+fid = fopen([storD '\1AP_Analysis.xml'],'w');
+fprintf(fid,analysisText,'%s');
+fclose(fid);
+
     

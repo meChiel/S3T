@@ -1,4 +1,4 @@
-function analysisCfgGenerator  ()
+function ffhandles=analysisCfgGenerator()
 global ptitle3 NOStxt3 stimFreqtxt3 OnOffsettxt3 fpsTxt3 DCOFtxt3 DCOF2txt NOS2txt  stimFreq2txt data trace ...
     OnOffsettxt2;
 global frameSelectionTxt frameSelection maskTimeProjLst SVDLst SVDtxt ...
@@ -8,6 +8,7 @@ global frameSelectionTxt frameSelection maskTimeProjLst SVDLst SVDtxt ...
 global CellBodytype skipMovie WriteSVD;
 stimCfgFN.folder='c:\';
 
+ffhandles.generate=@generate;
 
 NOS3=1;
 NOS2=1;
@@ -22,11 +23,11 @@ SVDNumber = 2;
 maskTimeProj='SVD';
 PhotoBleach='linInt'; %linInt or 2expInt
 FastLoad=0;ReloadMovie=1;ReuseMask=0;
-Analysistype='0'; %Still to decide but is idea to have 10AP, 5x1AP, options 
+Analysistype='0'; %Still to decide but is idea to have 10AP, 5x1AP, options
 % or sponatinous vs stimulated?
-CellBodytype=0; 
+CellBodytype=0;
 skipMovie=0;
-WriteSVD=1; 
+WriteSVD=1;
 
 bgc=[.35 .35 .38];
 %bgc=[.95 .95 .95];
@@ -35,7 +36,13 @@ f2 = figure('Visible','on','name','S3T: analysis Configuration tool',...
     'NumberTitle','off');
 set(f2,'MenuBar', 'figure');
 javaFrame = get(f2,'JavaFrame');
-javaFrame.setFigureIcon(javax.swing.ImageIcon('PlateLayout_icon.png'));
+try
+    javaFrame.setFigureIcon(javax.swing.ImageIcon([ctfroot '\S3T\PlateLayout_icon.png']));
+catch
+    javaFrame.setFigureIcon(javax.swing.ImageIcon(['PlateLayout_icon.png']));
+end
+
+
 createInputFields();
     function createInputFields()
         NOStxt3 = uicontrol('Style', 'Edit', 'String', num2str(NOS3),...
@@ -184,7 +191,7 @@ createButtonsUI();
     function createButtonsUI()
         uicontrol('Style', 'pushbutton', 'String', 'Generate',...
             'Position', [400 30+100 150 100],...
-            'Callback', @generate);
+            'Callback', @doGenerate);
         uicontrol('Style', 'pushbutton', 'String', 'Load',...
             'Position', [400 30+200 150 20],...
             'Callback', @loadSettings);
@@ -197,7 +204,6 @@ createButtonsUI();
             'Callback', @loadMovie);
         
     end
-
     function loadMovie(e,r,t)
         [fn, di, pn]=uigetfile([stimCfgFN.folder '*.tif']);
         if di
@@ -218,55 +224,120 @@ createButtonsUI();
     function a=by(a)
         a=200-20*a;
     end
-
     function doUpdateFold(d,f,t)
-        settings.NOS=NOS3;
-        settings.dCOF=dutyCycleOnFrames3;
-        settings.dCOF2=dutyCycleOnFrames2;
-        settings.OnOffset=  OnOffset3;
-        settings.OnOffset2=  OnOffset2;
-        settings.NOS2 =NOS2;
-        settings.fps=fps3;
-        settings.stimFreq=stimFreq3;
-        settings.stimFreq2=stimFreq2;
+        settings.NOS = NOS3;
+        settings.dCOF = dutyCycleOnFrames3;
+        settings.dCOF2 = dutyCycleOnFrames2;
+        settings.OnOffset = OnOffset3;
+        settings.OnOffset2 = OnOffset2;
+        settings.NOS2 = NOS2;
+        settings.fps = fps3;
+        settings.stimFreq = stimFreq3;
+        settings.stimFreq2 = stimFreq2;
         
         updateFold(settings);
+    end
+    function drawLines1(settings)
+        s=settings;
+        subplot(4,4,1);
+        hold off;
+        plot(trace);
+        mt=min(trace);
+        Mt=max(trace);
+        title('Original trace')
+        hold on
+      %  plot(s.OnOffset *[1 1],[mt Mt],'r');
+      
+      
+      if dutyCycleOnFrames3==0
+          dcof3=s.fps/s.stimFreq ;
+      else
+          dcof3 = dutyCycleOnFrames3;
+      end
+        for ii=0:(s.NOS-1)
+            plot(s.OnOffset *[1 1]+(ii)*s.fps/s.stimFreq ,[mt Mt],'r'); % first |
+            
+            plot([s.OnOffset *[1]+(ii)*s.fps/s.stimFreq ...
+                s.OnOffset *[1]+(ii)*s.fps/s.stimFreq + dcof3 ],...
+                [Mt Mt],'r'); % on frames 
+            
+            plot(s.OnOffset *[1 1]+(ii)*s.fps/s.stimFreq + dcof3 ,...
+            [mt Mt],'r'); % on to off | 
+             
+%             plot([s.OnOffset *[1]+(ii)*s.fps/s.stimFreq ...
+%                 s.OnOffset *[1]+(ii)*s.fps/s.stimFreq + dcof3 ],...
+%                 [mt mt],'r'); % off frames
+            
+            plot([s.OnOffset *[1]+(ii+1)*s.fps/s.stimFreq ...
+                s.OnOffset *[1]+(ii)*s.fps/s.stimFreq  ],...
+                [mt mt],'r'); % off frames
+            
+            
+            plot(s.OnOffset *[1 1]+(ii+1)*s.fps/s.stimFreq ,[Mt Mt],'r'); % end |
+        end
+        
+        % Black lines for partial processing
+        
+        if dutyCycleOnFrames2==0
+            dcof2=min(dutyCycleOnFrames3,s.fps/s.stimFreq2) ;
+        else
+            dcof2 = dutyCycleOnFrames2;
+        end
+        
+       % plot(s.OnOffset *[1 1],[mt mt+0.9*(Mt-mt)],'k');
+        for ii=0:(s.NOS-1)
+            for iii=0:(s.NOS2-1)
+                plot(s.OnOffset *[1 1]+s.OnOffset2 *[1 1]+(ii)*s.fps/s.stimFreq+(iii)*s.fps/s.stimFreq2 ,[mt mt+0.95*(Mt-mt)],'k');
+                
+                plot(s.OnOffset *[1 1]+s.OnOffset2 *[1 1]+(ii)*s.fps/s.stimFreq+(iii)*s.fps/s.stimFreq2 + dcof2 ,[mt mt+0.95*(Mt-mt)],'k'); % On to off |
+                
+                plot(s.OnOffset *[1 1]+s.OnOffset2 *[1 1]+(ii)*s.fps/s.stimFreq+(iii+1)*s.fps/s.stimFreq2 ,[mt mt+0.95*(Mt-mt)],'k'); % On to off |
+                
+                plot([s.OnOffset *[1]+s.OnOffset2 *[1]+(ii)*s.fps/s.stimFreq+(iii)*s.fps/s.stimFreq2 ...
+                    s.OnOffset *[1]+s.OnOffset2 *[1]+(ii)*s.fps/s.stimFreq+(iii)*s.fps/s.stimFreq2 + dcof2],...
+                    mt+0.95*(Mt-mt)*[1 1],'k'); % On to off |
+            end
+        end
+        %   NOS=1;
+        %   stimFreq=.2;
+        %   OnOffset=33;
     end
     function updateFold(settings)
         subplot(4,4,1);
         plot(trace);
-        title('Original trace')
+        title('Original trace');
+        drawLines1(settings);
         subplot(4,4,5);
         traceFrames=[];
         eval(['traceFrames=trace(' frameSelection ');']);
         plot(traceFrames);
-        title('trace Frames')
+        title('trace Frames');
         
         subplot(4,4,2);
         part = foldData(traceFrames,settings);
-        subplot(4,4,6)
+        subplot(4,4,6);
         plot(part);
-        title('Avg trace folding')
-        subplot(4,4,3)
-        part2 = multiResponseto1(part,0,settings);
-        subplot(4,4,7)
+        title('Avg trace folding');
+        subplot(4,4,3);
+        part2 = multiResponseto1(traceFrames,0,settings);
+        subplot(4,4,7);
         
         plot(part2);
-        subplot(4,4,4)
-        part3 = foldData2(traceFrames,settings);
-        title('partial trace folding')
-        subplot(4,4,8)
+        subplot(4,4,4);
+        part3 = foldData2(part2,settings);
+        title('partial trace folding');
+        subplot(4,4,8);
         plot(part3);
     end
-
-
+    function doGenerate(e,g,h)
+        generate;
+    end
     function generate(e,g,h)
         
         %   NOS=1;
         %   stimFreq=.2;
         %   OnOffset=33;
         
-       
         analysisName = get(ptitle3,'String');
         if ~isfield(stimCfgFN,'name')
             stimCfgFN.name='';
@@ -275,11 +346,10 @@ createButtonsUI();
         if specificAnalysis
             [FileName,PathName,FilterIndex] = uiputfile([stimCfgFN.folder '*.xml'],'Save Analysis Configuration: specify file',[stimCfgFN.folder '\' stimCfgFN.name '_' analysisName '_Analysis.xml']);
         else
-        [FileName,PathName,FilterIndex] = uiputfile([stimCfgFN.folder '*.xml'],'Save Analysis Configuration',[stimCfgFN.folder analysisName '_Analysis.xml']);
+            [FileName,PathName,FilterIndex] = uiputfile([stimCfgFN.folder '*.xml'],'Save Analysis Configuration',[stimCfgFN.folder analysisName '_Analysis.xml']);
         end
         if PathName
             stimCfgFN.folder=PathName;
-          
             fid = fopen([PathName FileName],'w');
             
             %'<Name>Frequency (Hz)</Name>\n<Val>0.20000000000000</Val>'
@@ -290,7 +360,6 @@ createButtonsUI();
             %'<Name>Pulse width (ms)</Name>\r\n<Val>1.00000000000000</Val>'
             %         dd2='\r\n\r\n<Name>Pulse width (ms)</Name>\r\n<Val>%5.13f</Val>';
             %         fprintf(fid,dd2,stimFreq);
-            
             
             i=1;
             field(i).Name = 'Stimulation Frequency (Hz)';
@@ -309,54 +378,50 @@ createButtonsUI();
             field(i).Value = num2str(OnOffset2/fps3*1000);
             i=i+1;
             field(i).Name = 'Partial Pulse count';
-            field(i).Value =  num2str(NOS2);
+            field(i).Value = num2str(NOS2);
             i=i+1;
             field(i).Name = 'Frame Selection';
-            field(i).Value =  frameSelectionTxt.String;
+            field(i).Value = frameSelectionTxt.String;
             i=i+1;
             field(i).Name = 'Mask Creation Time Projection';
-            field(i).Value =  maskTimeProj;
+            field(i).Value = maskTimeProj;
             i=i+1;
             field(i).Name = 'Eigenvalue Number';
-            field(i).Value =  num2str(SVDNumber);
+            field(i).Value = num2str(SVDNumber);
             i=i+1;
             field(i).Name = 'Reuse Mask';
-            field(i).Value =  num2str(ReuseMask);
+            field(i).Value = num2str(ReuseMask);
             i=i+1;
             field(i).Name = 'Reload Movie';
-            field(i).Value =  num2str(ReloadMovie);
+            field(i).Value = num2str(ReloadMovie);
             i=i+1;
             field(i).Name = 'Fast Load';
-            field(i).Value =  num2str(FastLoad);
+            field(i).Value = num2str(FastLoad);
             i=i+1;
             field(i).Name = 'Photo Bleaching';
-            field(i).Value =  num2str(PhotoBleach);
+            field(i).Value = num2str(PhotoBleach);
             i=i+1;
             field(i).Name = 'Write SVD';
-            field(i).Value =  num2str(WriteSVD);
+            field(i).Value = num2str(WriteSVD);
             i=i+1;
             field(i).Name = 'duty Cycle (frames)';
-            field(i).Value =  num2str(dutyCycleOnFrames3);
+            field(i).Value = num2str(dutyCycleOnFrames3);
             i=i+1;
             field(i).Name = 'Partial Duty Cycle (frames)';
-            field(i).Value =  num2str(dutyCycleOnFrames2);
+            field(i).Value = num2str(dutyCycleOnFrames2);
             i=i+1;
             field(i).Name = 'Skip Movie';
-            field(i).Value =  num2str(skipMovie);
+            field(i).Value = num2str(skipMovie);
             i=i+1;
             field(i).Name = 'Cell Body Type';
-            field(i).Value =  num2str(CellBodytype);
+            field(i).Value = num2str(CellBodytype);
             i=i+1;
             field(i).Name = 'Analysis Type';
-            field(i).Value =  num2str(Analysistype);
+            field(i).Value = num2str(Analysistype);
             i=i+1;
             field(i).Name = 'Number Average Samples';
-            field(i).Value =  num2str(NumAvgSamples);
+            field(i).Value = num2str(NumAvgSamples);
             i=i+1;
-            
-            
-            
-            
             
             for i=1:length(field)
                 dd4=['\r\n\r\n<Name>'   field(i).Name '</Name>\r\n<Val>%s</Val>'];
@@ -372,7 +437,6 @@ createButtonsUI();
             disp(['Analysis write cancelled.']);
         end
     end
-
     function loadSettings(e,g,h)
         [ stimCfgFN.name, folerReturn] = uigetfile([stimCfgFN.folder '*.xml']);
         if folerReturn
@@ -388,82 +452,64 @@ createButtonsUI();
         setStimFreq(stimCfg.stimFreq);
         setStimFreq2(stimCfg.stimFreq2);
     end
-
     function doSetReuseMask(s,e,h)
         setReuseMask(ReuseMaskChkBx.Value);
     end
-
     function setReuseMask(method)
         ReuseMask = method;
         ReuseMaskChkBx.Value=method;
     end
-
     function doSetReloadMovie(s,e,h)
         setReloadMovie(ReloadMovieChkBx.Value);
     end
-
     function setReloadMovie(method)
         ReloadMovie = method;
         ReloadMovieChkBx.Value=method;
     end
-
     function doSetFastLoad(s,e,h)
-           setFastLoad(FastLoadChkBx.Value);
+        setFastLoad(FastLoadChkBx.Value);
     end
-
     function setFastLoad(method)
         FastLoad = method;
         FastLoadChkBx.Value=method;
     end
-
     function doSetPhotoBleach(s,e,h)
-           setPhotoBleach(PhotoBleachLst.String{PhotoBleachLst.Value});
+        setPhotoBleach(PhotoBleachLst.String{PhotoBleachLst.Value});
     end
-
     function setPhotoBleach(method)
         PhotoBleach = method;
     end
-
     function doSetAnalysistype(s,e,h)
-            setAnalysistype((AnalysistypeLst.String{AnalysistypeLst.Value}));
+        setAnalysistype((AnalysistypeLst.String{AnalysistypeLst.Value}));
     end
-
     function setAnalysistype(tAnalysistype)
         Analysistype =tAnalysistype;
-        AnalysistypeLst.Value=find(strcmp(AnalysistypeLst.String,Analysistype));        
+        AnalysistypeLst.Value=find(strcmp(AnalysistypeLst.String,Analysistype));
     end
-
-
-function doSetCellBodytype(s,e,h)
-            setCellBodytype((CellBodytypeLst.String{CellBodytypeLst.Value}));
+    function doSetCellBodytype(s,e,h)
+        setCellBodytype((CellBodytypeLst.String{CellBodytypeLst.Value}));
     end
-
     function setCellBodytype(tCellBodytype)
         CellBodytype =tCellBodytype;
-        CellBodytypeLst.Value=CellBodytype+1;        
+        CellBodytypeLst.Value=CellBodytype+1;
         %0 =synapse
         %1 =cellbody
         %2 =future
     end
-
     function doSetSkipMovie(s,e,h)
-            setSkipMovie(skipMovieChkBx.Value);
+        setSkipMovie(skipMovieChkBx.Value);
     end
-
     function setSkipMovie(tskipMovie)
         skipMovie =tskipMovie;
-        skipMovieChkBx.Value=skipMovie;        
+        skipMovieChkBx.Value=skipMovie;
     end
-
     function doSetWriteSVD(s,e,h)
-            setWriteSVD(WriteSVDChkBx.Value);
+        setWriteSVD(WriteSVDChkBx.Value);
     end
-
     function setWriteSVD(tWriteSVD)
         WriteSVD =tWriteSVD;
-        WriteSVDChkBx.Value=WriteSVD;       
+        WriteSVDChkBx.Value=WriteSVD;
     end
-
     function doSetSVDNumber(s,e,h)
         if strcmp(SVDLst.String{SVDLst.Value},'Pop-up')
             setSVDNumber(0); % set SVDNumber to 0 for interactive popup question.
@@ -471,7 +517,6 @@ function doSetCellBodytype(s,e,h)
             setSVDNumber(str2num(SVDLst.String{SVDLst.Value}));
         end
     end
-
     function setSVDNumber(number)
         SVDNumber = number;
         SVDLst.Value=number;
@@ -479,12 +524,10 @@ function doSetCellBodytype(s,e,h)
             error ('SVDNumber mismatch')
         end
     end
-
     function doSetMaskTimeProj(s,e,h)
         setMaskTimeProj((maskTimeProjLst.String{maskTimeProjLst.Value}));
         
     end
-
     function setMaskTimeProj(st)
         maskTimeProj= st;
         if strcmp(st,'SVD')
@@ -493,8 +536,6 @@ function doSetCellBodytype(s,e,h)
             SVDLst.Visible='off';
         end
     end
-
-
     function doSetOnOffset(s,e,h)
         setOnOffset(str2double(OnOffsettxt3.String));
         doUpdateFold();
@@ -503,9 +544,6 @@ function doSetCellBodytype(s,e,h)
         OnOffset3= OnOffset1;
         OnOffsettxt3.String = num2str(OnOffset3);
     end
-
-
-
     function doSetOnOffset2(s,e,h)
         setOnOffset2(str2double(OnOffsettxt2.String));
         doUpdateFold();
@@ -514,8 +552,6 @@ function doSetCellBodytype(s,e,h)
         OnOffset2= OonOffset2;
         OnOffsettxt2.String = num2str(OnOffset2);
     end
-
-
     function doSetStimFreq(s,e,h)
         setStimFreq(str2double(stimFreqtxt3.String));
         doUpdateFold();
@@ -524,33 +560,24 @@ function doSetCellBodytype(s,e,h)
         setNOS( str2double(NOStxt3.String));
         doUpdateFold();
     end
-
     function setNOS(NOS2) % Number of Stimuli
         NOS3 = NOS2;
         NOStxt3.String = num2str(NOS3);
         
     end
-
-
-
-
     function doSetNOS2(s,e,h) % Number of Stimuli
         setNOS2( str2double(NOS2txt.String));
         doUpdateFold();
     end
-
     function setNOS2(nNOS2) % Number of Stimuli
         NOS2 = nNOS2;
         NOS2txt.String = num2str(NOS2);
         
     end
-
-
-function doSetFrameSelection(s,e,h) % Number of Stimuli
+    function doSetFrameSelection(s,e,h) % Number of Stimuli
         setFrameSelection( frameSelectionTxt.String);
         doUpdateFold();
     end
-
     function setFrameSelection(fs) % Number of Stimuli
         frameSelection = fs;
         try
@@ -560,27 +587,18 @@ function doSetFrameSelection(s,e,h) % Number of Stimuli
         end
         frameSelectionTxt.String = frameSelection;
     end
-
-
-
-
-
-function doSetNumAvgSamples(s,e,h)
+    function doSetNumAvgSamples(s,e,h)
         setNumAvgSamples(str2double(numAvgSamplesTxt.String));
         doUpdateFold();
     end
-
     function setNumAvgSamples(num)
         NumAvgSamples=num;
         numAvgSamplesTxt.String = num2str(NumAvgSamples);
     end
-
-
     function doSetFPS(s,e,h)
         setFPS(str2double(fpsTxt3.String));
         doUpdateFold();
     end
-
     function setFPS(fps2)
         fps3=fps2;
         dt=1/fps3;
@@ -590,170 +608,190 @@ function doSetNumAvgSamples(s,e,h)
         stimFreq3= stimFreq2;
         stimFreqtxt3.String = num2str(stimFreq3);
     end
-
     function doSetStimFreq2(d,f,r)
         setStimFreq2(str2num(stimFreq2txt.String));
         doUpdateFold();
     end
-
     function setStimFreq2(stimmFreq2)
         stimFreq2= stimmFreq2;
         stimFreqtxt2.String = num2str(stimFreq2);
     end
-
     function doSetDCOF(d,f,r)
         setDCOF(str2num(DCOFtxt3.String));
         doUpdateFold();
     end
-
     function setDCOF(DCOF2)
         dutyCycleOnFrames3= DCOF2;
         DCOFtxt3.String = num2str(dutyCycleOnFrames3);
     end
-
     function doSetDCOF2(d,f,r)
         setDCOF2(str2num(DCOF2txt.String));
         doUpdateFold();
     end
-
     function setDCOF2(DCOF2)
         dutyCycleOnFrames2= DCOF2;
         DCOF2txt.String = num2str(dutyCycleOnFrames2);
     end
 
-
 % copy from segGUIV1: Try to keep copy up to date.
     function part = foldData(data,settings)
-        NOS=settings.NOS;
-        dCOF=settings.dCOF;
-        fps=settings.fps;
-        stimFreq=settings.stimFreq;
-        OnOffset=settings.OnOffset;
-        nNOS2=settings.NOS2;
-        sstimFreq2=settings.stimFreq2;
-        ddCOF2=settings.dCOF2;
-        % stimFreq = 0.125;%Hz
-        % Number of Stimuli
-        % NOS = 3; % Number of Stimuli
-        interStimPeriod = 1/stimFreq*fps; %Do not floor here but only after multiplication.
-        iSP = interStimPeriod;
-        dCOF=dCOF; % DutyCycleOnFrames.  |--dCOF--|____|-----|____
-        if (dCOF==0 || dCOF>iSP)
-            dCOF = floor(iSP);
+        [fhandles]=segGUIV1([],1);
+        foldData = fhandles.foldData;
+        try
+            part = foldData(data,settings);
+            title('settings 1 OK')
+        catch
+            title('error!!')
+            part=zeros(2000,1);
         end
         
-        %dCOF = floor(iSP); %dutyCycleOnFrames.
-        part = zeros(dCOF,NOS);
-        for iii = 1:NOS
-            try
-                part(:,iii)=data(OnOffset+floor((iii-1)*iSP)+(1:dCOF));
-            catch e
-                disp(['size(data) = ' num2str(size(data)) ', OnOffset= ' num2str(OnOffset) ', iSP =' num2str(iSP) ', dCOF= ' num2str(dCOF) ]);
-                disp('Multi Response to 1 error, press any to crash, or set a breakpoint to investigate')
-                % pause;
-                error(e.message);
-            end
-        end
-        
+        %         NOS=settings.NOS;
+        %         dCOF=settings.dCOF;
+        %         fps=settings.fps;
+        %         stimFreq=settings.stimFreq;
+        %         OnOffset=settings.OnOffset;
+        %         nNOS2=settings.NOS2;
+        %         sstimFreq2=settings.stimFreq2;
+        %         ddCOF2=settings.dCOF2;
+        %         % stimFreq = 0.125;%Hz
+        %         % Number of Stimuli
+        %         % NOS = 3; % Number of Stimuli
+        %         interStimPeriod = 1/stimFreq*fps; %Do not floor here but only after multiplication.
+        %         iSP = interStimPeriod;
+        %         dCOF=dCOF; % DutyCycleOnFrames.  |--dCOF--|____|-----|____
+        %         if (dCOF==0 || dCOF>iSP)
+        %             dCOF = floor(iSP);
+        %         end
+        %
+        %         %dCOF = floor(iSP); %dutyCycleOnFrames.
+        %         part = zeros(dCOF,NOS);
+        %         for iii = 1:NOS
+        %             try
+        %                 part(:,iii)=data(OnOffset+floor((iii-1)*iSP)+(1:dCOF));
+        %             catch e
+        %                 disp(['size(data) = ' num2str(size(data)) ', OnOffset= ' num2str(OnOffset) ', iSP =' num2str(iSP) ', dCOF= ' num2str(dCOF) ]);
+        %                 disp('Multi Response to 1 error, press any to crash, or set a breakpoint to investigate')
+        %                 % pause;
+        %                 error(e.message);
+        %             end
+        %         end
+        %
         
     end
 
 % copy from segGUIV1
     function meanData = multiResponseto1(data,exportPlot,settings)
-        if nargin==1
-            exportPlot=1;
-        end
         
-        part = foldData(data,settings);
-        
-        %         part(:,2)=data(OnOffset+1*iSP+(1:iSP));
-        %         part(:,3)=data(OnOffset+2*iSP+(1:iSP));
-        %         part(:,4)=data(OnOffset+3*iSP+(1:iSP));
-        %         part(:,5)=data(OnOffset+4*iSP+(1:iSP));
-        % figure;
-        subplot(4,4,12)
-        [spart,~,~,level] = linBleachCorrect(part');
-        part = (spart-level)'; %Using Matlab Matrix expansion
-        plot(part);
-        hold on
-        
-        meanData=mean(part,2);
-        
-        
-        [meanData,~, ~,baseLevel] = linBleachCorrect(meanData'); % To set the bottom back to zero,
-        meanData = meanData'-baseLevel;
-        plot(meanData,'k','LineWidth',3);
-        
-        
-        hold off
-        pause(.01);
-        if (exportPlot)
-            savesubplot(4,4,12,[pathname '_align']);
-        end
-        
-        
-        % ASR = meanData;
+        fhandles=segGUIV1([],1);
+        meanData = fhandles.multiResponseto1(data,exportPlot,settings);
+        %         if nargin==1multiResponseto1
+        %             exportPlot=1;
+        %         end
+        %
+        %         part = foldData(data,settings);
+        %
+        %         %         part(:,2)=data(OnOffset+1*iSP+(1:iSP));
+        %         %         part(:,3)=data(OnOffset+2*iSP+(1:iSP));
+        %         %         part(:,4)=data(OnOffset+3*iSP+(1:iSP));
+        %         %         part(:,5)=data(OnOffset+4*iSP+(1:iSP));
+        %         % figure;
+        %         subplot(4,4,12)
+        %         [spart,~,~,level] = linBleachCorrect(part');
+        %         part = (spart-level)'; %Using Matlab Matrix expansion
+        %         plot(part);
+        %         hold on
+        %
+        %         meanData=mean(part,2);
+        %
+        %
+        %         [meanData,~, ~,baseLevel] = linBleachCorrect(meanData'); % To set the bottom back to zero,
+        %         meanData = meanData'-baseLevel;
+        %         plot(meanData,'k','LineWidth',3);
+        %
+        %
+        %         hold off
+        %         pause(.01);
+        %         if (exportPlot)
+        %             savesubplot(4,4,12,[pathname '_align']);
+        %         end
+        %
+        %
+        %         % ASR = meanData;
     end
 
 
 % Copy from segGUIV1
     function part = foldData2(signal,settings)    % Check if the partial interval is bigger than the interval
         % itself.
-        nNOS2=settings.NOS2;
-        fps=settings.fps;
-        stimFreq=settings.stimFreq;
-        sstimFreq2=settings.stimFreq2;
-        oOnOffset2=settings.OnOffset2;
-        ddCOF2=settings.dCOF2;
         
-        debug=0;
-        if (sstimFreq2<stimFreq) && (sstimFreq2~=0)
-            sstimFreq2=stimFreq;
-            setStimFreq2(sstimFreq2);
-            warning(['stimFreq2 adjusted to: ' num2str(stimFreq) 'to fit interval.']);
-            warning(['Continue on your own risk by pressing a key ' ]);
-            % pause();
-        end
-        
-        if sstimFreq2==0
-            sFq2=stimFreq;
-        else
-            sFq2=sstimFreq2;
-        end
-        interStimPeriod = floor(1/sFq2*fps);
-        iSP = interStimPeriod;
-        if nNOS2==0
-            setNOS2(1);
-        end
-           dCOF2=ddCOF2; % DutyCycleOnFrames.  |--dCOF--|____|-----|____
-        if (dCOF2==0 || dCOF2>iSP)
-            dCOF2 = floor(iSP);
-        end
-        
-        part=zeros(dCOF2,nNOS2);
-        
-        for j = 1:nNOS2
-            %part(:,j)=signal(OnOffset2+(j-1)*iSP+(1:iSP));
-            try
-                part(:,j)=signal(oOnOffset2+floor((j-1)/sFq2*fps)+(1:dCOF2)); % Here the rounding is done after the multiplication = better
-            catch e
-                d = dialog('Position',[300 300 250 150],'Name','Wrong Numbers');
-                
-                txt = uicontrol('Parent',d,...
-                    'Style','text',...
-                    'Position',[20 80 210 40],...
-                    'String','The artificial intelligence says the partial analysis numbers are wrong.');
-                
-                btn = uicontrol('Parent',d,...
-                    'Position',[85 20 70 25],...
-                    'String','Close',...
-                    'Callback','delete(gcf)');
-                error(e.message);
-            end
-        end
-        if debug
-            plot(part);
-            pause(.01);
-        end
+                [fhandles]=segGUIV1([],1);
+                rfoldData2 = fhandles.foldData2;
+                try
+                    part = rfoldData2(signal,settings);
+                    title('settings 1 OK');
+                catch
+                    title('error!!');
+                    part=nan*zeros(2000,1);
+                end
+        %
+        %         nNOS2=settings.NOS2;
+        %         fps=settings.fps;
+        %         stimFreq=settings.stimFreq;
+        %         sstimFreq2=settings.stimFreq2;
+        %         oOnOffset2=settings.OnOffset2;
+        %         ddCOF2=settings.dCOF2;
+        %
+        %
+        %
+        %
+        %         debug=0;
+        %         if (sstimFreq2<stimFreq) && (sstimFreq2~=0)
+        %             sstimFreq2=stimFreq;
+        %             setStimFreq2(sstimFreq2);
+        %             warning(['stimFreq2 adjusted to: ' num2str(stimFreq) 'to fit interval.']);
+        %             warning(['Continue on your own risk by pressing a key ' ]);
+        %             % pause();
+        %         end
+        %
+        %         if sstimFreq2==0
+        %             sFq2=stimFreq;
+        %         else
+        %             sFq2=sstimFreq2;
+        %         end
+        %         interStimPeriod = floor(1/sFq2*fps);
+        %         iSP = interStimPeriod;
+        %         if nNOS2==0
+        %             setNOS2(1);
+        %         end
+        %            dCOF2=ddCOF2; % DutyCycleOnFrames.  |--dCOF--|____|-----|____
+        %         if (dCOF2==0 || dCOF2>iSP)
+        %             dCOF2 = floor(iSP);
+        %         end
+        %
+        %         part=zeros(dCOF2,nNOS2);
+        %
+        %         for j = 1:nNOS2
+        %             %part(:,j)=signal(OnOffset2+(j-1)*iSP+(1:iSP));
+        %             try
+        %                 part(:,j)=signal(oOnOffset2+floor((j-1)/sFq2*fps)+(1:dCOF2)); % Here the rounding is done after the multiplication = better
+        %             catch e
+        %                 d = dialog('Position',[300 300 250 150],'Name','Wrong Numbers');
+        %
+        %                 txt = uicontrol('Parent',d,...
+        %                     'Style','text',...
+        %                     'Position',[20 80 210 40],...
+        %                     'String','The artificial intelligence says the partial analysis numbers are wrong.');
+        %
+        %                 btn = uicontrol('Parent',d,...
+        %                     'Position',[85 20 70 25],...
+        %                     'String','Close',...
+        %                     'Callback','delete(gcf)');
+        %                 error(e.message);
+        %             end
+        %         end
+        %         if debug
+        %             plot(part);
+        %             pause(.01);
+        %         end
     end
 end

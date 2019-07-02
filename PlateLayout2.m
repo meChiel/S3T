@@ -15,7 +15,11 @@ createPlateUI([],[],[]);
        % set(f2,'MenuBar', 'none');
        % set(f2, 'ToolBar', 'auto');
         javaFrame = get(f2,'JavaFrame');
-        javaFrame.setFigureIcon(javax.swing.ImageIcon('PlateLayout_icon.png'));
+		try 
+        	javaFrame.setFigureIcon(javax.swing.ImageIcon([ctfroot '\S3T\PlateLayout_icon.png']));
+       catch
+			javaFrame.setFigureIcon(javax.swing.ImageIcon('PlateLayout_icon.png'));
+        end
     end
     function createPlateUI(o,e,h)
         % H Labels
