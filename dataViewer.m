@@ -1,6 +1,6 @@
-function dataViewer()
+function dataViewer(inputFile)
 global plateFilename plateDir responses detailFilename defaultDir currentFile marker lineSize LineStyle;
-global fittt histtt exporttt currentLevel STToggle seeTraceBtn exportAll selectionOptions AddDataCommandBtn AddDataCommandEdt; 
+global fittt histtt exporttt currentLevel STToggle seeTraceBtn exportAll selectionOptions AddDataCommandBtn AddDataCommandEdt dirTxt; 
 global exportAllChk openFilesBtn showButtons logX logY; 
 global bgc
 global seeWellBtn stimLstX stimLstY Xtxt Ytxt
@@ -9,8 +9,17 @@ global doFilterBtn HistBtn levelDownBtn levelUpBtn ExportBtn fitBtn
 global lineSizeBtn LineStyleBtn logXChk logYChk wowChkBtn wow backgroundImageBtn backgroundImageSelection
 global useXlabelChk jitterChk  
 global addFileBtn
-
 createButons();
+if nargin>0
+    g=strfind(inputFile,'\');
+    plateFilename2 = inputFile((g(end)+1):end);
+    plateDir=(inputFile(1:g(end)));
+    openFiles(plateFilename2,plateDir)
+    pause(1);
+    hideButtons();%
+end
+
+
     function createButons()
         bgc=[0.5 0.5 0.5];
         STToggle=0;
@@ -35,13 +44,16 @@ createButons();
             'Backgroundcolor',bgc,...
             'Callback', @seeTrace);
         
-        
+        dirTxt = uicontrol('Style', 'Text', 'String', 'no files loaded',...
+            'Position', [10 930 800 25] , 'HorizontalAlignment','left','BackgroundColor',bgc...%, 'ForegroundColor',[.05 .05 .08]...
+            );
+
         AddDataCommandEdt = uicontrol('Visible','off','Style', 'edit', 'String', 'data{1}=[data{1} array2table(data{1}.(1)./data{1}.(2), ''VariableNames'' ,{''div''})]',...
-            'Position', [5+50+500 20 500 20],...
+            'Position', [5+50+500+700 930 500 20],...
             'Backgroundcolor',bgc)
         
         AddDataCommandBtn = uicontrol('Visible','off','Style', 'pushbutton', 'String', 'Do',...
-            'Position', [5+50+500+500 20 50 20],...
+            'Position', [5+50+500+500+700 930 50 20],...
             'Backgroundcolor',bgc,...
             'Callback', @doAddDataCommand);
         
@@ -746,9 +758,7 @@ global wellAvg mask
         end
     end
     function doOpenFiles(d,f,e)
-        if ~exist('defaultDir','var')
-            defaultDir='';
-        end
+       
         [plateFilename, plateDir] = uigetfile({'*.txt', 'Analysis File';...
             '*.csv', 'Trace File' ...
             ;'*_traces.csv' 'Well Avg Trace';...
@@ -756,32 +766,36 @@ global wellAvg mask
             '*_RawSynTraces.csv' 'Raw Synapse Traces';...
             '*.*' '(*.*) All files'...
             },['Select data File'],[defaultDir '\'],'MultiSelect','on');
-        defaultDir = plateDir;
+      
         openFiles(plateFilename,plateDir);
         hideButtons();%
     end
     function openFiles(plateFilename2,plateDir)
+         if ~exist('defaultDir','var')
+            defaultDir='';
+         end
+        defaultDir = plateDir;
         currentFile = 1;
         eigData=0;
+        dirTxt.String=[plateDir plateFilename2];
         if ~iscell(plateFilename2)
             a=plateFilename2;
             plateFilename=[];
             plateFilename{1}=a;
         else
             plateFilename = plateFilename2;
-            
         end
         
         if (length(plateFilename{1})>13)
-        if strcmp(plateFilename{1}(end-12:end),'_synapses.txt')
-            currentLevel='synapseLevel';
-        end
-        if strcmp(plateFilename{1}(end-12:end),'_PPsynapses.txt')
-            currentLevel='synapseLevel';
-        end
-        if strcmp(plateFilename{1}(end-12:end),'_analysis.txt')
-            currentLevel='wellLevel';
-        end
+            if strcmp(plateFilename{1}(end-12:end),'_synapses.txt')
+                currentLevel='synapseLevel';
+            end
+            if strcmp(plateFilename{1}(end-12:end),'_PPsynapses.txt')
+                currentLevel='synapseLevel';
+            end
+            if strcmp(plateFilename{1}(end-12:end),'_analysis.txt')
+                currentLevel='wellLevel';
+            end
         end
         if strcmp(plateFilename{1}(1:end),'AllWells.txt')
             currentLevel='plateLevel';
@@ -806,7 +820,7 @@ global wellAvg mask
             selectionOptions=[];
             for (i=1:size(plateFilename,2))
                 hold off;
-                 r(:,i) = csvread([plateDir plateFilename{i}]);
+                r(:,i) = csvread([plateDir plateFilename{i}]);
                 selectionOptions{i}=text2OKname(plateFilename{i});
             end
             data{1} = array2table([(1:size(r,1))' r],'VariableNames',{ 'sampleNR', selectionOptions{:}});
@@ -815,26 +829,18 @@ global wellAvg mask
             plateFilename{1}=t; % Make 1 platefilename of selection of files.
             
         end
+                
+        selectionOptions=data{1}.Properties.VariableNames;
+        for i=1:length(selectionOptions)
+            selectionOptions{i}=OKname2text(selectionOptions{i});
+        end
         
-            %         for (i=1:size(plateFilename,2))
-            %             x{i}(:)=data{i}.miASR;
-            %             y{i}(:)=data{i}.peakAmp;
-            %             subplot(1,2,2);
-            %             plot(x{i},y{i},'.'), hold on;
-            %         end
-            
-            selectionOptions=data{1}.Properties.VariableNames;
-            for i=1:length(selectionOptions)
-                selectionOptions{i}=OKname2text(selectionOptions{i});
-            end
-      
-        
-       stimLstX.Value=1;
-       stimLstY.Value=1;
-       filterFieldLst.Value=1;
-            stimLstX.String=[selectionOptions, {'fileName'}];
-            stimLstY.String=[selectionOptions, {'fileName'}];
-            filterFieldLst.String=[selectionOptions, {'fileName'}];
+        stimLstX.Value=1;
+        stimLstY.Value=1;
+        filterFieldLst.Value=1;
+        stimLstX.String=[selectionOptions, {'fileName'}];
+        stimLstY.String=[selectionOptions, {'fileName'}];
+        filterFieldLst.String=[selectionOptions, {'fileName'}];
     end
 
     function export(d,f,e)

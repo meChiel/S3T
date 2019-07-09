@@ -3,12 +3,22 @@ function [t,rootNode]=structViewer(s,rootName,f,rootDir,uia,t,rootNode)
 % rootName: Name of the rootNode
 % f is the uifigure handle, if not, a new figure will be created.
 % If a dir is shown, the rootDir;
-
+% t is an existing tree, if not a new tree is created
+%
+global currentPath
+global tifViewMode
+tifViewMode='avg';
+global displayNodeFct;
+displayNodeFct =@displayNode;
 
 if nargin<3
     f = uifigure;
 end
-disp(ctfroot)
+% try
+%     disp(ctfroot);
+% catch
+%     disp(pwd);
+% end
 if nargin<2
     rootName='struct';
 end
@@ -133,7 +143,7 @@ end
         end
         
     end
-
+global isPlaying
     function nodechange(src,event)
         %check here if the particular node has some more information, which
         %can be retreived.
@@ -153,15 +163,152 @@ end
             thePath=strrep(thePath,rootName,rootDir);
         end
         thePath=strrep(thePath,rootName,rootDir);
+        currentPath = thePath;
+        displayNode(thePath,node.Text);
+    end
+
+    function displayNode(thePath, nodeText)
         %imagesc(uia,imread(['F:\share\data\Rajiv\2018\02-03-2018\plate1\Protocol11220180302_110630_20180302_112921\1AP_Analysis\' node.Text '_avg.png']));
         maskFile=[thePath '_mask.png'];
         if exist(maskFile,'file')
-            imagesc(uia,imread(maskFile));
+            %             tifViewMode='mask'
+            %             tifViewMode='avg'
+            %             tifViewMode='play'
+            %             tifViewMode='analysis'
+            %             tifViewMode='temp'
+            tifViewMode=tifViewMode; %comes from global variable in projViewer
+            switch tifViewMode
+                case 'mask'
+                    imagesc(uia,imread(maskFile));
+                    % uia.Position=[700,200,512,512 ];
+                    uia.Position=[700,-10,512*2,512*2 ];   
+                case 'avg'
+                    %t = dir([rootDir '/**/' node.Text '*_avg.png' ]);
+                    
+                    gg=strfind(thePath,'\');
+                    ttt=dir([thePath(1:gg(end)) '*_Analysis']); % This takes a few ms which can be avoided, but is OK for now.
+                    io=1;
+                    %ttt(io).folder= 'D:\data\Rajiv\m Galenea\Galenea\28-02-2019\NS_320190228_111224_20190228_113209\01AP_1st_Analysis';
+                    %ttt(io).folder= thePath(1:gg(end))'D:\data\Rajiv\m Galenea\Galenea\28-02-2019\NS_320190228_111224_20190228_113209\01AP_1st_Analysis';
+                    %ttt(1).folder
+                    ttt(io).folder=[ttt(io).folder '\' ttt(io).name]
+                    ttt(io).name=thePath(gg(end)+1:end);%nodeText;
+                    if ~isempty(ttt)
+                        for io=1:1%size(t,1)
+                        avgFile=[ttt(io).folder '\' ttt(io).name];
+                        avgFile=[ttt(io).folder '\' ttt(io).name '_avg.png'];
+                        imagesc(uia,imread(avgFile));
+                        uia.Position=[700,-10,512*2,512*2 ];    
+                        end
+                    end
+                %    imagesc(uia,imread(maskFile));
+                %    uia.Position=[700,200,512,512 ];
+                case 'play'
+                    M = loadTiff(thePath,1);
+                    speed=60;
+                    isPlaying=1;
+                    for i=1:speed:(size(M,3)-speed)
+                        imagesc(uia,max(M(:,:,i+(0:speed)),[],3));
+                        uia.Position=[700,-10,512*2,512*2 ]; 
+                        drawnow();
+                        if isPlaying==0 % Disable continued play when switched before end of movie.
+                            break;
+                        end
+                    end
+                    isPlaying=0;
+                                    
+                case 'analysis'
+                    gg=strfind(thePath,'\');
+                    % Find the _Analysis folders/xml files.
+                    ttt=dir([thePath(1:gg(end)) '*_Analysis']); % This takes a few ms which can be avoided, but is OK for now.
+                    io=1;
+                    ttt(io).folder = [ttt(io).folder '\' ttt(io).name];
+                    ttt(io).name=thePath(gg(end)+1:end);;
+                    if ~isempty(ttt)
+                        for io=1:1%size(t,1)
+                        avgFile=[ttt(io).folder '\' ttt(io).name];
+                        avgFile=[ttt(io).folder '\' ttt(io).name '_Analysis.png'];
+                        imagesc(uia,imresize(imread(avgFile),'OutputSize',[512,512]));
+                        uia.Position=[700,-10,512*2,512*2 ];    
+                        end
+                    end
+               
+                case 'temp'
+                    gg=strfind(thePath,'\');
+                    % Find the _Analysis folders/xml files.
+                    ttt=dir([thePath(1:gg(end)) '*_Analysis']); % This takes a few ms which can be avoided, but is OK for now.
+                    io=1;
+                    ttt(io).folder = [ttt(io).folder '\' ttt(io).name];
+                    ttt(io).name=thePath(gg(end)+1:end);;
+                    if ~isempty(ttt)
+                        for io=1:1%size(t,1)
+                        avgFile=[ttt(io).folder '\' ttt(io).name];
+                        avgFile=[ttt(io).folder '\' ttt(io).name '_temp.png'];
+                        imagesc(uia,imresize(imread(avgFile),'OutputSize',[512,512]));
+                        uia.Position=[700,-10,512*2,512*2 ];    
+                        end
+                    end
+ 
+            end
         else
             overviewFile=[thePath '\mask_overview.png'];
             if exist(overviewFile,'file')
-                 imagesc(uia,imread(overviewFile));
-                 uia.Position=[560,0,800,1100];
+                currentPath = thePath;
+                switch tifViewMode
+                    case 'mask'
+                        imagesc(uia,imresize(imread(overviewFile),'OutputSize',[3102/2.3,5170/2.3]));
+                        uia.Position=[560,-600,3102/2.3,5170/2.3 ];
+                    case 'analysis'
+                        gg=strfind(thePath,'\');
+                        % Find the _Analysis folders/xml files.
+                        ttt=dir([thePath '\*_Analysis']); % This takes a few ms which can be avoided, but is OK for now.
+                        io=1;
+                        ttt(io).folder = [ttt(io).folder '\' ttt(io).name];
+                       % ttt(io).name=nodeText;
+                        if ~isempty(ttt)
+                            for io=1:1%size(t,1)
+                                %avgFile=[ttt(io).folder '\' ttt(io).name];
+                                avgFile=[ttt(io).folder '\' 'analysis_overview.png'];
+                                imagesc(uia,imresize(imread(avgFile),'OutputSize',[3102/2.3,5170/2.3 ]));
+                                %uia.Position=[700,-10,512*2,512*2 ];
+                                uia.Position=[560,-600,3102/2.3,5170/2.3 ]
+                            end
+                        end
+                    case 'avg'
+                        ttt=dir([thePath '\*_Analysis']); % This takes a few ms which can be avoided, but is OK for now.
+                        io=1;
+                        ttt(io).folder = [ttt(io).folder '\' ttt(io).name];
+                        %ttt(io).name=nodeText;
+                        if ~isempty(ttt)
+                            for io=1:1%size(t,1)
+                               % avgFile=[ttt(io).folder '\' ttt(io).name];
+                                avgFile=[ttt(io).folder '\' 'avg_overview.png'];
+                                imagesc(uia,imresize(imread(avgFile),'OutputSize',[3102/2.3,5170/2.3 ]));
+                                %uia.Position=[700,-10,512*2,512*2 ];
+                                uia.Position=[560,-600,3102/2.3,5170/2.3 ]
+                            end
+                        end
+                            case 'temp'
+                        ttt=dir([thePath '\*_Analysis']); % This takes a few ms which can be avoided, but is OK for now.
+                        io=1;
+                        ttt(io).folder = [ttt(io).folder '\' ttt(io).name];
+                        %ttt(io).name=nodeText;
+                        if ~isempty(ttt)
+                            for io=1:1%size(t,1)
+                               % avgFile=[ttt(io).folder '\' ttt(io).name];
+                                avgFile=[ttt(io).folder '\' 'temp_overview.png'];
+                                imagesc(uia,imresize(imread(avgFile),'OutputSize',[3102/2.3,5170/2.3 ]));
+                                %uia.Position=[700,-10,512*2,512*2 ];
+                                uia.Position=[560,-600,3102/2.3,5170/2.3 ]
+                            end
+                        end
+                        
+                    case 'play'
+                         image(uia,imresize(zeros(3102,5170),'OutputSize',[3102/2.3,5170/2.3 ]));
+                         uia.Position=[560,-600,3102/2.3,5170/2.3 ]
+                         drawnow();
+                        playPlateMovie(thePath,0,3,0,8,uia,3);
+                end
             end
         end
     end

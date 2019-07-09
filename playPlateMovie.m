@@ -1,4 +1,4 @@
-function playPlateMovie(dd,writeMovie,accuracy,headless,outputDownsampleFactor)
+function playPlateMovie(dd,writeMovie,accuracy,headless,outputDownsampleFactor,f,speed)
 %% playPlateMovie(dir,writeMovie,accuracy)
 %
 % with dir, the dir, if not a dialog opens to specify.
@@ -16,6 +16,20 @@ function playPlateMovie(dd,writeMovie,accuracy,headless,outputDownsampleFactor)
 %%
 
 %%
+if nargin<6
+    f=figure('units','normalized','outerposition',[0 0 1 1], 'keypressfcn',@keyPress,'Name',dd);
+    set(f,'MenuBar', 'none');
+    set(f,'toolBar', 'none');
+    set(f,'NumberTitle','off');
+    
+    %set(gcf, 'Position', get(0, 'Screensize'));
+    set(f,'Color',[0 0 0]);
+    fig=gcf;
+    fig.Units='normalized';
+    fig.OuterPosition=[0 0 1 1];
+    maximizeFigure();
+end
+
 if nargin<5
     outputDownsampleFactor = 8;%0  
 end
@@ -57,14 +71,15 @@ U=[];
 S=[];
 V=[];
 tic
-fname=dir([dd '\*.tif']);
+fname=dir([dd '\*.tif_mask.png']);
 fname=natsort(fname);
 nTifFiles=length(fname); %60
 if nTifFiles>9 && isdir([dd '\eigs'])%only create overview movie if there are at least 10 movies
     for i=1:nTifFiles
         disp(['fast loading: ' fname(i).name]);
         try
-            [~, u, s, v, sizeA] = fastLoadTiff([fname(i).folder '\' fname(i).name] ,1,accuracy);
+            [endPos]=strfind(fname(i).name,'f_mask.png')
+            [~, u, s, v, sizeA] = fastLoadTiff([fname(i).folder '\' fname(i).name(1:endPos)] ,1,accuracy);
             if i==1
                 movieLenght = size(v,1);
             end
@@ -115,7 +130,7 @@ if nTifFiles>9 && isdir([dd '\eigs'])%only create overview movie if there are at
     for L=1:nTifFiles
         US(:,:,L)=U(:,:,L)*S(:,:,L);
     end
-    
+   
     %%
     k=1
     for L=1:6 % for all wells
@@ -146,19 +161,13 @@ if nTifFiles>9 && isdir([dd '\eigs'])%only create overview movie if there are at
     if headless~=1
     %f=figure;
     %f=figure('units','normalized','outerposition',[-0.10 -0.10 1.5 1.5])
-    f=figure('units','normalized','outerposition',[0 0 1 1], 'keypressfcn',@keyPress,'Name',dd)
+    %f=figure('units','normalized','outerposition',[0 0 1 1], 'keypressfcn',@keyPress,'Name',dd)
+%         fig=gcf;
+%     fig.Units='normalized';
+%     fig.OuterPosition=[0 0 1 1];
+%     maximizeFigure();
     
-    
-    set(f,'MenuBar', 'none');
-    set(f,'toolBar', 'none');
-    set(f,'NumberTitle','off');
-    
-    %set(gcf, 'Position', get(0, 'Screensize'));
-    set(f,'Color',[0 0 0]);
-    fig=gcf;
-    fig.Units='normalized';
-    fig.OuterPosition=[0 0 1 1];
-    maximizeFigure();
+
     end
     %
     
@@ -179,15 +188,15 @@ end
     function playMovie()
         %%
         tic
-        for k=1:1:size(V,1) % Movie frames
+        for k=1:speed:(size(V,1)-speed) % Movie frames
             r=1;
             
             for L=1:6 % for all wells
                 for M=1:10 % for all wells
-                    if r<size(US,3)
-                        P1=US(:,:,r)*V(k,:,r)';
+                    if r<size(US,3) 
+                        P1=US(:,:,r)*max(V(k+(0:speed),:,r)',[],2);
                         poster((M-1)*512/d+(1:512/d),(L-1)*512/d+(1:512/d))=reshape(P1,512/d,512/d);
-                    else
+                    else % fill trailing empty plate spots as black
                         P1=zeros(512/d*512/d,1);
                         poster((M-1)*512/d+(1:512/d),(L-1)*512/d+(1:512/d))=reshape(P1,512/d,512/d);
                     end
@@ -198,11 +207,21 @@ end
             
             %%
             %P2=rot90(reshape(poster-poster1,512*1,512*2));
-            currFrame =rot90(((poster-poster1)+1000)/128/64*2);
+            dI=(poster-poster1);
+            if k==1
+                %dIm=min(dI(:));
+                %dIM=max(dI(:));
+                pdI =prctile(dI(:),[2.5 97.5]);
+                dIm=pdI(1);
+                dIM=pdI(2);
+            end
+            %currFrame =rot90(((poster-poster1)+100)/128/64*2*1);
+            currFrame =rot90(((dI-dIm+(dIM-dIm)*0.10))/(2*(dIM-dIm)));
+            %currFrame =rot90(((poster)-USm-(USM-USm)*.1)/(1*(USM-USm)));
             currFrame(currFrame>1)=1;
             currFrame(currFrame<0)=0;
             if headless~=1
-                image(currFrame*128);%2(1:512,1:512)/10);
+                image(f,currFrame*64);%2(1:512,1:512)/10);
                 
                 %   currFrame = getframe(gcf);
                 % currFrame = getframe(gca);

@@ -6,18 +6,18 @@ end
 dcs=dir([inputDir '\*.csv']); % Directory Csv'S
 
 for i=1:length(dcs)
-    daTab{i}=readtable([inputDir '\' dcs(i).name]);
-    dataT(:,:,i)= table2array(daTab{i});
+    daTab{i} = readtable([inputDir '\' dcs(i).name]);
+    dataT(:,:,i) = table2array(daTab{i});
 end
 try
-    aw=readtable([inputDir '\' 'AllWells.txt']);
-    as=readtable([inputDir '\' 'AllSynapses.txt']);
+    aw = readtable([inputDir '\' 'AllWells.txt']);
+    as = readtable([inputDir '\' 'AllSynapses.txt']);
 %     plate.plateValues=reshape(1:96,12,8)'; %logical=Matlab subplot numbering
 %     plate.expwells=aw.AndorWellNumber([aw.FileNumber]+1); % The file2wellnumbers
 %     logicalPosition = getPlateValue(plate,extractNumber({dcs.name})); % For all files, extract filename and get logical plateNumber
     % logicalPosition gives the logical postion of the data on a 96 well plate. dataIndex=>logicalPlatePostion 
-    [r,c]=find(aw.FileNumber==extractNumber({dcs(:).name}));
-    aw2=aw(r,:);
+    [r,c] = find(aw.FileNumber==extractNumber({dcs(:).name}));
+    aw2 = aw(r,:);
     try
     logicalPosition = aw2.logicalWellIndex;
     catch
@@ -36,16 +36,28 @@ end
 
 fTrace = figure('Name','Plate Trace Viewer');
 javaFrame = get(fTrace,'JavaFrame');
-javaFrame.setFigureIcon(javax.swing.ImageIcon([ctfroot '\S3T\PlateLayout_icon.png']));
-    
+try
+    javaFrame.setFigureIcon(javax.swing.ImageIcon([ctfroot '\S3T\PlateLayout_icon.png']));
+catch
+    javaFrame.setFigureIcon(javax.swing.ImageIcon([pwd '\PlateLayout_icon.png']));
+end
 
 statusDisp = uicontrol('Style', 'text', 'String', ['OK'],...
     'Position', [0 0 75 25]);
 
 
 autoscaleOn=1;
-tmax=4;max(max(max(dataT(:,2:end,:))));
+tmax=max(max(max(dataT(:,2:end,:))));
 tmin=min(min(min(dataT(:,2:end,:))));
+
+dirTxt = uicontrol('Style', 'Text', 'String', inputDir,...
+    'Position', [10 910 800 25] , 'HorizontalAlignment','left'...%'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08]...
+    );
+
+dataViewerBtn = uicontrol('Style', 'pushbutton', 'String', 'Data Viewer',...
+    'Position', [20 890 160 25] , 'HorizontalAlignment','left',...%'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08]...
+    'Callback', @openDataViewer);
+
 
 plotType = uicontrol('Style', 'popup', 'String', {'normal', 'hist','boxplot'},...
     'Position', [10 400 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
@@ -124,6 +136,10 @@ updatePlot();
     function updateWellViewNb(f,d,e)
         wellViewNumber = str2num(wellViewNbField.String{wellViewNbField.Value});
         updatePlot();
+    end
+
+    function openDataViewer(f,d,e)
+        dataViewer([inputDir '\AllWells.txt']);
     end
 
     function imageView()

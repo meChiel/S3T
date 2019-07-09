@@ -1,6 +1,12 @@
 function ss=projViewer(tifDir)
 global nopf notf oldNopf uia
-global defaultdir t rootNode f label1 refreshBtn refreshBtn2
+global defaultdir t rootNode f label1 refreshBtn refreshBtn2 tifViewModeLst
+global tifViewMode
+global isPlaying
+global currentPath
+global displayNodeFct;
+displayNodeFct=@(x) disp(x); % Temporary implementation to be overwritten by structViewer immplementation.
+
 if nargin==0
     d=uigetdir('defaultdir');
     d=[d '\'];
@@ -11,17 +17,9 @@ else
         d=[tifDir '\']
     end
 end
-defaultdir=d;
-% d='Y:\data\rajiv\';
-% d='Y:\data\Rajiv\2018\02-03-2018\plate1\Protocol11220180302_110630_20180302_112921\';
-% d='Y:\data\Rajiv\';
-% d='Y:\data\Rajiv\20171027\';
-%d='Y:\data\Rajiv\';
 
-% projViewer_OpeningFcn;
-%     function projViewer_CreateFcn(hObject, eventdata, handles, varargin)
-%
-%     end
+defaultdir=d;
+
 %%
 start();
 %%
@@ -32,28 +30,68 @@ start();
         f.Name='S3T: Project Viewer';
         label1 = uilabel(f,...
             'Text', ['Files loading:'],...
-            'Position', [20 20 280 20] );
+            'Position', [20 20 200 20] );
         refreshBtn = uibutton(f,'push','text','updating ...','Position',[220 20 100 20],'ButtonPushedFcn', @doRefresh2);%(btn,event) refresh(btn,ax));
+        openBtn = uibutton(f,'push','text','Open','Position',[468 130 100 20],'ButtonPushedFcn', @openData);%(btn,event) refresh(btn,ax));
+        explorerBtn = uibutton(f,'push','text','Explorer','Position',[468 110 100 20],'ButtonPushedFcn', @openExplorer);%(btn,event) refresh(btn,ax));
+        processBtn = uibutton(f,'push','text','PROCESS','Position',[468 90 100 20],'ButtonPushedFcn', @openProc);%(btn,event) refresh(btn,ax));
+        reprocessBtn = uibutton(f,'push','text','rePROCESS','Position',[468 70 100 20],'ButtonPushedFcn', @reProcess);%(btn,event) refresh(btn,ax));
         refreshBtn2 = uibutton(f,'push','text','Full update','Position',[220 0 100 20],'ButtonPushedFcn', @refresh);%(btn,event) refresh(btn,ax));
         %%
         pp{1}=d;
+        
         
        % refreshBtn3 = uibutton(f,'push','text','Full update','Position',[220 30 100 20],'ButtonPushedFcn', @setIcon);%(btn,event) refresh(btn,ax));
         
         
         %% Old recursive implementation: does not work
         %[ss, tifdirs]=structSubDir(pp);
-        uia=uiaxes(f,'Position',[820 200 500 500]);
+        uia=uiaxes(f,'Position',[820 200 500 500]); % The figure area
         %plot(uia,[2:200]);
 %        imagesc(uia,imread('F:\share\data\Rajiv\2018\02-03-2018\plate1\Protocol11220180302_110630_20180302_112921\1AP_Analysis\Protocol11220180302_110630_e0002.tif_avg.png'));
         colormap(uia,'hot');
         axis(uia,'equal');
         axis(uia,'off');
         t = uitree(f,'Position',[20 150 550 550]);
+        tifViewModeLst = uilistbox(f,'Value',{'avg'},'Items',{'mask','avg','play','analysis','temp'},'Position',[20 130 100 20],'ValueChangedFcn', @changeTifViewMode);
         fullUpdate();
         
        
     end
+
+    function openExplorer(e,f,g)
+      eval(['!explorer.exe /select,"'  currentPath '" &']);
+    end
+
+    function openData(e,f,g)
+        chooseAnalysis(currentPath);
+    end
+
+
+    function openProc(e,f,g)
+        segGUIV1(currentPath);
+    end
+
+    function reProcess(e,f,g)
+        if isdir(currentPath)
+            if isdir([currentPath '\process\'])
+                rmdir([ currentPath '\process\' ],'s');
+            else
+                 disp('No process dir found.');
+            end
+        else
+            gg= strfind(currentPath,'\');
+            delete([currentPath(1:gg(end)) 'process\process_' currentPath((gg(end)+1):end) '.txt']);
+        end
+        segGUIV1(currentPath);
+    end
+
+
+    function changeTifViewMode(e,f,g)
+        tifViewMode = tifViewModeLst.Value; 
+        displayNodeFct(currentPath);
+    end
+
     function setIcon(hObject, eventdata, handles, varargin)
         %% DOES NOT WORK
         %handles= guidata(gcbo)

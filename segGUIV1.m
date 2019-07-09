@@ -1,4 +1,19 @@
 function fhandles=segGUIV1(myDir,headless)
+% Segmentation GUI V1
+% segGUIV1()
+% Starts the main S³T GUI and allows you to process automatically all tif files the dir and/or subdir.
+% This dir can be defined with a GUI.
+%
+% segGUIV1(myDir)
+% When myDir is supplied, processing starts automatically, and will process
+% all tif files in that directory and all of its subdir.
+% myDir can also be the path to a file, then only that file is processed
+%
+% segGUIV1('path/to/myFile.tif')
+% First argument, myDir can also be the path to a file, then only that file is processed
+%
+% segGUIV1(myDir,headless=1)
+% Headless: will limit the GUI output. (default==0) 
 global Version
 Version = 'V0.88-dev';
 %% Much better dataviewer
@@ -120,7 +135,14 @@ end
 %pause(5);
 if nargin>0
     if ~isempty(myDir)
-        processDirAndSubDirs(myDir);
+        if isdir(myDir)
+            processDirAndSubDirs(myDir);
+        else % it is a file
+            gg = strfind(myDir,'\');
+            fname = myDir((gg(end)+1):end);
+            datadirname = myDir(1:gg(end));
+           processDir(datadirname,fname);
+        end
     end
 end
     function startUp()
@@ -2205,15 +2227,19 @@ end
         fclose(fid);
     end
 
-    function processDir(datadirname)
-        % [C10dirname] = uigetdir(defaultDir,'Select control 10AP dir:');
-        defaultDir =  [datadirname '\..'];
-        experiments = dir([datadirname '\*.tif']);
-        
+    function processDir(datadirname,lfname)
+        if nargin>1
+            defaultDir =  [datadirname];
+            experiments = dir([datadirname '\' lfname]);
+        else
+            % [C10dirname] = uigetdir(defaultDir,'Select control 10AP dir:');
+            defaultDir =  [datadirname '\..'];
+            experiments = dir([datadirname '\*.tif']);
+        end
         experiments=experiments(~([experiments.isdir])); %remove dir called *.tif from list
         if ~isempty(experiments) % only process when tif files are found
             dNmTxt.String = datadirname;
-            for ii = 1:length(experiments )
+            for ii = 1:length(experiments ) % For all tif files
                 %ee = num2str(100+experiments(ii));ee = ee(2:3); % To make 01,02, 03, .. 10, 11
                 expnm{ii} = dir ([datadirname '\' experiments(ii).name]);
             end
@@ -2297,7 +2323,7 @@ end
                                 if ~skipMovie
                                     pause(0.05);
                                     processMovie(pathname);
-                                    moveResults(analysisList(i).name);
+                                    moveResults(analysisList(i).name, getFN(pathname));
                                     writeProcessEnd(expnm,EID);
                                 end
                                 try
@@ -2341,8 +2367,16 @@ end
         end
     end
 
-    function moveResults(analysisListName)
-        ffname = fname(1:end-4);
+    function moveResults(analysisListName,ifname)
+        if nargin>1
+            ifname=ifname;
+        else
+            ifname=fname;
+            warning('segGUIV1:moveResults:2375: using old code, please provide name of files to move');            
+        end
+           
+        
+        ffname = ifname(1:end-4);
         %% SECTION TITLE
         % DESCRIPTIVE TEXTSECTION TITLE
         % DESCRIPTIVE TEXT
@@ -2352,10 +2386,10 @@ end
         else 
             AN = analysisListName(1:end-4);
         end
-        movefile([dirname fname '*.png'],[dirname AN '\']);
+        movefile([dirname ifname '*.png'],[dirname AN '\']);
         movefile([dirname ffname '*.png'],[dirname AN '\']);
         try
-            movefile([dirname fname '*.pdf'],[dirname AN '\']);
+            movefile([dirname ifname '*.pdf'],[dirname AN '\']);
         catch
             disp('No pdf files found.')
         end
@@ -2364,10 +2398,10 @@ end
         catch
             disp('no pdf found');
         end
-        movefile([dirname fname '*.emf'],[dirname AN '\']);
+        movefile([dirname ifname '*.emf'],[dirname AN '\']);
         movefile([dirname ffname '*.emf'],[dirname AN '\']);
       
-        ffname = fname(1:end-4);
+        ffname = ifname(1:end-4);
         try
            movefile([dirname 'output\' ffname '*.*'],[dirname AN '\output']);
            movefile([dirname 'output\SynapseDetails\' ffname '*.*'],[dirname AN '\output\SynapseDetails\']);
@@ -2384,7 +2418,7 @@ end
            
        end
        % Put some files back .
-        copyfile([dirname AN '\' fname '_mask.png'],[dirname]);
+        copyfile([dirname AN '\' ifname '_mask.png'],[dirname]);
        
     end
     function loadAnalysis(FNname)
