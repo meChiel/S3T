@@ -1,7 +1,7 @@
 function ss=projViewer(tifDir)
 global nopf notf oldNopf uia
 global defaultdir t rootNode f label1 refreshBtn refreshBtn2 tifViewModeLst
-global tifViewMode
+global tifViewMode analysisLst currentAnalysis
 global isPlaying
 global currentPath
 global displayNodeFct;
@@ -53,10 +53,21 @@ start();
         axis(uia,'equal');
         axis(uia,'off');
         t = uitree(f,'Position',[20 150 550 550]);
-        tifViewModeLst = uilistbox(f,'Value',{'avg'},'Items',{'mask','avg','play','analysis','temp'},'Position',[20 130 100 20],'ValueChangedFcn', @changeTifViewMode);
+        tifViewModeLst = uilistbox(f,'Value',{'avg'},'Items',{'mask','avg','play','analysis','signals','temp'},'Position',[20 130 100 20],'ValueChangedFcn', @changeTifViewMode);
+        AL=getAnalysises(currentPath);
+        analysisLst = uilistbox(f,'Items',AL,'Position',[120 130 200 20],'ValueChangedFcn', @changeAnalysis);
         fullUpdate();
         
        
+    end
+
+    function AL = getAnalysises(currentPath)
+        gg=strfind(currentPath,'\');
+        % Find the _Analysis folders/xml files.
+        ttt=dir([currentPath(1:gg(end)) '*_Analysis']); % This takes a few ms which can be avoided, but is OK for now.
+        for i=1:size(ttt,1)
+            AL{i} = ttt(i).name(1:end-9);
+        end
     end
 
     function openExplorer(e,f,g)
@@ -85,6 +96,12 @@ start();
         end
         segGUIV1(currentPath);
     end
+
+    function changeAnalysis(e,f,g)
+        currentAnalysis = analysisLst.Value; 
+        displayNodeFct(currentPath);
+    end
+
 
 
     function changeTifViewMode(e,f,g)
@@ -166,7 +183,7 @@ start();
         label1.Text=['Counting files...!' ];
         drawnow();
         notf=dir([d '\**\*.tif']); % Number of tif files
-        nopf=dir([d '\**\process_*.tif.txt']); % Number of processed files
+        nopf=dir([d '\**\process\process_*.tif.txt']); % Number of processed files
         
         
         notf=notf(~[notf.isdir]); %remove dir called *.tif

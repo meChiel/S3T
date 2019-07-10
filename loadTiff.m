@@ -1,3 +1,4 @@
+% [A, fname, FileName, PathName, U, S, V, error]=loadTiff(fname,fastload,frameNumbers)
 %fname = '../../data/Experiment 1_iglu spontaneous.tif';
 %fname = '../../data/data_endoscope.tif';
 

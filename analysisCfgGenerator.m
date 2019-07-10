@@ -1,7 +1,7 @@
 function ffhandles=analysisCfgGenerator()
 global ptitle3 NOStxt3 stimFreqtxt3 OnOffsettxt3 fpsTxt3 DCOFtxt3 DCOF2txt NOS2txt  stimFreq2txt data trace ...
     OnOffsettxt2;
-global frameSelectionTxt frameSelection maskTimeProjLst SVDLst SVDtxt ...
+global frameSelectionTxt frameSelection maskTimeProjLst SVDLst SVDtxt createDictBtn createDicttxt ...
     PhotoBleachLst PhotoBleach ...
     ReuseMaskChkBx ReloadMovieChkBx FastLoadChkBx CellBodytypeLst ...
     skipMovieChkBx WriteSVDChkBx AnalysistypeLst NumAvgSamples numAvgSamplesTxt;
@@ -113,7 +113,7 @@ createInputFields();
             'Position', [20+50 by(6) 200 20],...
             'Callback', @doSetNumAvgSamples);
         
-        maskTimeProjLst = uicontrol('Style', 'popup', 'String', {'SVD','STD','SVM','NN','NMF'},...
+        maskTimeProjLst = uicontrol('Style', 'popup', 'String', {'SVD','STD','SVM','NN','NMF','DICT'},...
             'Position', [20 by(3) 50 20],...
             'Callback', @doSetMaskTimeProj);
         
@@ -126,6 +126,15 @@ createInputFields();
         SVDtxt = uicontrol('Style', 'text', 'String', 'Set the SVD number',...
             'Position', [20+50 by(4) 200 20]);
         
+        createDictBtn = uicontrol('Style', 'pushbutton', 'String', 'Gen. Temp. Ref.',...
+            'Position',  [20 by(4) 50 20],...
+            'Callback', @doCreateRef);
+        
+        createDicttxt = uicontrol('Style', 'text', 'String', 'Create temporal Reference Dictionaire',...
+            'Position', [20+50 by(4) 200 20]);
+        
+         createDictBtn.Visible='off';
+         createDicttxt.Visible='off';
         
         PhotoBleachLst = uicontrol('Style', 'popup', 'String', {'linInt','2expInt','auto2expInt','autoLinInt'},...
             'Position', [20 by(5) 50 20],...
@@ -189,6 +198,9 @@ createTitleUI()
     end
 createButtonsUI();
     function createButtonsUI()
+        
+      
+        
         uicontrol('Style', 'pushbutton', 'String', 'Generate',...
             'Position', [400 30+100 150 100],...
             'Callback', @doGenerate);
@@ -510,6 +522,11 @@ createButtonsUI();
         WriteSVD =tWriteSVD;
         WriteSVDChkBx.Value=WriteSVD;
     end
+
+    function doCreateRef(s,e,h)
+        createRef();
+    end
+
     function doSetSVDNumber(s,e,h)
         if strcmp(SVDLst.String{SVDLst.Value},'Pop-up')
             setSVDNumber(0); % set SVDNumber to 0 for interactive popup question.
@@ -532,9 +549,20 @@ createButtonsUI();
         maskTimeProj= st;
         if strcmp(st,'SVD')
             SVDLst.Visible='on';
+            SVDtxt.Visible='on';
         else
             SVDLst.Visible='off';
+            SVDtxt.Visible='off';
         end
+        
+        if strcmp(st,'DICT')
+            createDictBtn.Visible='on';
+            createDicttxt.Visible='on';
+        else
+            createDictBtn.Visible='off';
+            createDicttxt.Visible='off';
+        end
+        
     end
     function doSetOnOffset(s,e,h)
         setOnOffset(str2double(OnOffsettxt3.String));

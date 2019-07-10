@@ -1046,6 +1046,9 @@ end
         if ~noSynapsesFound %don't threshold when all pixels are combined already
             [dfftempThresSignals, thresKeepIdx] = tempThreshold(dff(synsignal')); % For synapse Traces
             synsignal = synsignal(:,thresKeepIdx); % Here synsignal is Thresholded.
+        else % Just keep the one combined signal.
+            thresKeepIdx = 1;
+            dfftempThresSignals = dff(synsignal');
         end
         synSTD.laplaceSynProbSTD=synSTD.laplaceSynProbSTD(thresKeepIdx);
         synSTD.meanSpaceTimeSTD=synSTD.meanSpaceTimeSTD(thresKeepIdx);
@@ -1277,6 +1280,14 @@ end
         %  s  = regionprops(synapseBW(:,:),'PixelList','PixelIdxList');
             case 'STD'
                 synProb= std(data,0,3);
+                S=zeros(32:32);
+            case 'DICT'
+                %dictname
+                Vref = table2array(readtable([dirname '\Vref.csv']));
+                us = reshape(data,[size(data,1)*size(data,2) size(data,3)])/Vref';
+                us2 = reshape(us,[size(data,1) size(data,2) size(Vref,2)]);
+                synProb = us2(:,:,1); % Use the first one to create the mask;
+                synProb = synProb.*(synProb>0);
                 S=zeros(32:32);
         end    
     end
@@ -2462,10 +2473,10 @@ end
     function processMovie(pathname)
         
         eval(['data=data(:,:,' dataFrameSelectionTxt ');']);
-        if (reuseMaskChkButton.Value==1)
+        if (reuseMaskChkButton.Value==1) % Load the mask
               [synRegio, synProb] =  loadMask([pathname(1:end) '_mask.png']);
               setMask();
-        else
+        else % Create a new mask:
             if  segmentCellBodies
                 meanZ();
                 synProb = imsharpen(synProb,'Radius',16,'Amount',40);% ,'roberts');
@@ -2740,7 +2751,7 @@ end
            if isfile([C10expnm{iii}.folder '\' C10expnm{iii}.name '_mask.png'])
                [synRegio, synProb] =  loadMask([C10expnm{iii}.folder '\' C10expnm{iii}.name '_mask.png']);
                setMask();
-           else
+           else % create new mask
                segment2();
                rmvBkGrnd();
                detectIslands();

@@ -362,7 +362,7 @@ rr = strfind(aa,'<Name>Mask Creation Time Projection</Name>');
         ss2=strfind(aa(rr(1)+(ss(1)):end),'</Val>');
         maskTimeProjection=(aa(rr(1)+ss(1)+4:rr(1)+ss(1)+ss2(1)-2));
         mTP = maskTimeProjection;
-        if (strcmp(mTP,'SVD') || strcmp(mTP,'STD') || strcmp(mTP,'SVM') || strcmp(mTP,'NN') || strcmp(mTP,'NMF'))
+        if (strcmp(mTP,'SVD') || strcmp(mTP,'STD') || strcmp(mTP,'SVM') || strcmp(mTP,'NN') || strcmp(mTP,'NMF') || strcmp(mTP,'DICT'))
         else
             error (['Mask Creation Time Projection: ' mTP ' does not exist. Solve problem in Analysis.xml conf. file.!']);
         end

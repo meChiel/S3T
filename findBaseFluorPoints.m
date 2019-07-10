@@ -27,7 +27,7 @@ if nargin<2
 end
 %%
 for i=1:size(seq,1)
-    [bcresponse(i,:), dff(i,:), BC(i,:), mstart(i)]=singlefit(seq(i,:)',polyType);
+    [bcresponse(i,:), dff(i,:), BC(i,:), mstart(i)] = singlefit(seq(i,:)',polyType);
 end
 end
 function [bcresponse, dff, BC, mstart]=singlefit(seq,polyType)
