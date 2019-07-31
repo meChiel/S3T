@@ -5,6 +5,9 @@ function label = OKname2text(okname)
     label=okname;
     label=strrep(label,'SU_','_');
     label=strrep(label,'SP_','.');
+    
+    
+    label=strrep(label,'_DPNT_',':');
     label=strrep(label,'ID_','');
 	label=strrep(label,'_COMMA_',',');
     label=strrep(label,'_MIN_','-');
@@ -20,5 +23,6 @@ function label = OKname2text(okname)
     label=strrep(label,'_MICRO_','µ'); % Back-Slash
     label=strrep(label,'___'	,' '); % Do this last because 3x_ gives problems with subsequent _
 
+    
 
 end

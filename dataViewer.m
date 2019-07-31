@@ -9,6 +9,8 @@ global doFilterBtn HistBtn levelDownBtn levelUpBtn ExportBtn fitBtn
 global lineSizeBtn LineStyleBtn logXChk logYChk wowChkBtn wow backgroundImageBtn backgroundImageSelection
 global useXlabelChk jitterChk  
 global addFileBtn
+global data;
+global wellAvg mask
 createButons();
 if nargin>0
     g=strfind(inputFile,'\');
@@ -334,7 +336,6 @@ function jitterToggle(e,d,r)
         updatePlot();
     end
 
-global data;
     function levelDown(d,f,e)
          switch currentLevel
             case 'synapseLevel'
@@ -424,7 +425,7 @@ global data;
         LineStyle = LineStyleBtn.String{LineStyleBtn.Value};
         updatePlot();
     end
-global wellAvg mask
+
     function seeWell(relPath,synNbr)
         % relPath to _synapses or _PPsynapes file
         subplot(4,4,1)
@@ -440,7 +441,10 @@ global wellAvg mask
         [wy, wx] = size(mask);
         synregio = loadMask([plateDir dd2]);
         activeSynapse=zeros(wy,wx);
-        activeSynapse(synregio(synNbr).PixelIdxList)=1;
+        if ~isempty(synregio)
+            activeSynapse(synregio(synNbr).PixelIdxList)=1;
+        end
+        
         mask=double(mask)+activeSynapse*100000;
         imagesc(mask);
         title(dd2,'Interpreter','none')

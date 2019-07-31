@@ -3,16 +3,11 @@ function oklabel= text2OKname(label)
 % compliant string(s).
 oklabel=label;
 %if ~isempty(str2num(oklabel))
-if ~isempty(str2num(oklabel(1)))
-    oklabel= ['ID_' oklabel];
-end
-if strcmp(oklabel(1),'_')
-    oklabel= ['SU_' oklabel(2:end)]; %Starting Underscore
-end
-if strcmp(oklabel(1),'.')
-    oklabel= ['SP_' oklabel(2:end)]; %Starting Point
+if ~isempty(str2num(oklabel(1))) && ~strcmp(oklabel(1),'i') && ~strcmp(oklabel(1),'j')
+            oklabel= ['ID_' oklabel];
 end
 
+oklabel=strrep(oklabel,':','_DPNT_');
 oklabel=strrep(oklabel,',','_COMMA_');
 oklabel=strrep(oklabel,'-','_MIN_');
 oklabel=strrep(oklabel,'+','_PLUS_');
@@ -26,5 +21,13 @@ oklabel=strrep(oklabel,'/','_FSLSH_'); % Forward-Slash
 oklabel=strrep(oklabel,'\','_BSLSH_'); % Back-Slash
 oklabel=strrep(oklabel,'µ','_MICRO_'); % Back-Slash
 oklabel=strrep(oklabel,' ','___');
+
+
+if strcmp(oklabel(1),'_')
+    oklabel= ['SU_' oklabel(2:end)]; %Starting Underscore
+end
+if strcmp(oklabel(1),'.')
+    oklabel= ['SP_' oklabel(2:end)]; %Starting Point
+end
 
 end
