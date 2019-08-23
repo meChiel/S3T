@@ -22,6 +22,7 @@ Version = 'V0.88-dev';
 fhandles.foldData=@foldData;
 fhandles.foldData2=@foldData2;
 fhandles.multiResponseto1=@multiResponseto1;
+fhandles.setFastLoad=@setFastLoad;
 %% Feature requests:
 % AllSynapse file.
 % export % - explanation of the SVD components
@@ -61,7 +62,7 @@ global synRegio; % Regionprops return
 global U S V; % eigv decomposition
 global m; %This is the struct where all the main(m) window buttons and variables should be in.
 global wx wy wt;
-global synsignal;
+global synsignal dffsynsignal;
 global EVN eigTxt; % Defines wich eigen value is used to create the mask
 global synProb; % Image before threshold for segmentation.
 global TValue;  % Threshold value
@@ -81,6 +82,7 @@ global dataFrameSelectionTxt PhotoBleachingTxt reloadMovie writeSVD skipMovie;
 global TSpAPA TSpAPAi
 global synSTD; 
 global noSynapsesFound;
+global invalidFileError;
 
 % For experiment:
 global C1Data C1pathname C1fname C1dirname                                 % Control 1AP
@@ -112,6 +114,7 @@ dt = 1/fps;
 debug = 0;
 dutyCycleOnFrames = 0;
 dutyCycleOnFrames2 = 0;
+fastLoad=0;
 setNumbAvgSamples(30);
 setPhotoBleachingTxt('linInt');
 setwriteSVD(1);
@@ -409,7 +412,7 @@ end
             %                 'Position',[170 by(19)+2.5 60 15],'String','Pause');
            
             
-             fastLoadChkButton = uicontrol('Style','checkbox','Value',0,...
+             fastLoadChkButton = uicontrol('Style','checkbox','Value',fastLoad,...
                 'Position',[70 by(1)+2.5 100 15],'String','Fast Load','Backgroundcolor',bgc);
             
              loadAnalysisChkButton = uicontrol('Style','checkbox','Value',1,...
@@ -775,8 +778,24 @@ end
     end
     function doOverviewGenerator(s,e,h) 
         %goDeep(@overviewGenerator,'\*.png');
-        rootdir=uigetdir(defaultDir);
+        if defaultDir==0
+            defaultDir='';
+        end
+         rootdir=uigetdir(defaultDir);
          goAllSubDir(@overviewGenerator,'\*.png',rootdir);
+         close(6);
+         close(7);
+         r=[];
+         aa=gca();
+        r=text(mean(aa.XLim),mean(aa.YLim),'Overview generation Done.');
+        pause(3)
+        for i=1:100
+            %r.Position=r.Position*1.01;
+            r.FontSize=r.FontSize*1.05;
+            pause(.03);
+        end
+        r.delete();
+   
 %         goDeep(@overviewGenerator,'\*mask.png',rootdir);
 %         goDeep(@overviewGenerator,'\*align.png',rootdir);
 %         goDeep(@overviewGenerator,'\*analysis.png',rootdir);
@@ -789,9 +808,27 @@ end
         catch
              rootdir=uigetdir();
         end
+        aa=gca();
+        r=text(mean(aa.XLim),mean(aa.YLim),'Fetching meta Data ...');
+        drawnow();
         goDeep(@plateMetaDataConverter,'\barcode.txt',rootdir);
+        r.delete();
         pause(.5);
+        aa=gca();
+        r=text(mean(aa.XLim),mean(aa.YLim),'Generating Results ...');
+        drawnow();
         goDeep(@readResults,'\*analysis.txt',rootdir);
+        r.delete();
+        r=[];
+        aa=gca();
+        r=text(mean(aa.XLim),mean(aa.YLim),'Generating Results Done.');
+        pause(3)
+        for i=1:100
+            r.Position=r.Position*1.01;
+            pause(.01);
+        end
+        r.delete();
+        
     end
 
     function doSetOnOffset(s,e,h)
@@ -1019,11 +1056,12 @@ end
         pause(.5)
         subplotNr=16;
         subplot(4,4,subplotNr);
-        plot(bsxfun(@plus,4*dff(synsignal')',1*(1:size(synsignal,2))));
+        %dffsynsignal=dff(synsignal');
+        plot(bsxfun(@plus,4*dffsynsignal',1*(1:size(synsignal,2))));
         drawnow();
         %plot(bsxfun(@plus,(synsignal')',1000*(1:size(synsignal,2))));
         savesubplot(4,4,subplotNr,[pathname(1:end-4) '_signals']);
-        ttdffs = tempThreshold(dff(synsignal'))';
+        ttdffs = tempThreshold(dffsynsignal)';
         if ~isempty(ttdffs)
             plot(bsxfun(@plus,4* ttdffs,1*(1:size(ttdffs,2))));
         else
@@ -1044,8 +1082,9 @@ end
             mkdir([dirname 'output\SynapseDetails\']);
         end
         if ~noSynapsesFound %don't threshold when all pixels are combined already
-            [dfftempThresSignals, thresKeepIdx] = tempThreshold(dff(synsignal')); % For synapse Traces
+            [dfftempThresSignals, thresKeepIdx] = tempThreshold(dffsynsignal); % For synapse Traces
             synsignal = synsignal(:,thresKeepIdx); % Here synsignal is Thresholded.
+            dffsynsignal = dffsynsignal(thresKeepIdx,:); % Here dff is thresholded.
         else % Just keep the one combined signal.
             thresKeepIdx = 1;
             dfftempThresSignals = dff(synsignal');
@@ -1456,6 +1495,11 @@ end
         dNmTxt.String=dirname;
         defaultDir=dirname;
         
+        if size(data,3)<2
+            invalidFileError=1;
+            disp('This file is not a movie, but a picture.')
+        end
+        
         subplot(1,2,1);
         imagesc(data(:,:,1));
         colormap('gray')
@@ -1617,7 +1661,9 @@ end
         hold off
      
         if ~isempty(synsignal)
-            ASR = mean(dff(synsignal'),1); % Average over all synapses
+           % dffsynsignal = dff(synsignal');
+            %ASR = mean(dffsynsignal,1); % Average over all synapses
+            ASR = dff(mean(synsignal,2)'); % Average over all synapses
             
 %                imageMetrics(5).name = 'Temporal spike Averaged Pixel Amplitude';
         
@@ -1628,8 +1674,8 @@ end
             
             disp('AR1 disabled in AVGSynapseResponse ;') ; AR1=AR*0;%      AR1 = mean(dff(reshape(data,wx*wy,[]),1)); % Average over all pixels, average Response
             
-           
-            stdSR = std(dff(synsignal'),1); %stdSR for all points in time
+          
+            stdSR = std(dffsynsignal,1); %stdSR for all points in time
             mstdSR = max(stdSR);
             
             synapseSize=zeros(1,length(synRegio));
@@ -1637,7 +1683,7 @@ end
                 synapseSize(i)=length(synRegio(i).PixelList);
             end
             
-            swASR = sum(repmat(synapseSize',1,size(synsignal,1)) .*  dff(synsignal'),1)/sum(synapseSize); % size weighted average over all synapses
+            swASR = sum(repmat(synapseSize',1,size(synsignal,1)) .*  dffsynsignal,1)/sum(synapseSize); % size weighted average over all synapses
       
             
         else
@@ -1665,10 +1711,11 @@ end
     amp=nan;      error=nan; xCentPos=nan; yCentPos=nan; synapseNbr=nan; bbox=[nan,nan,nan,nan]; AUC=nan; nAUC=nan;
     rawBaseFluor=nan; rawMaxFluor=nan; rawDFluor=nan; rawDFF=nan;
     
-    dffsynsignal=dff(synsignal')';
-        for i=1:size(dffsynsignal,2)
+   % dffsynsignal=dff(synsignal')';
+    dffsynsignal2=dffsynsignal';
+        for i=1:size(dffsynsignal2,2)
             if isempty(synsignal)
-            	rawFoldedData=nan*ones(size(dffsynsignal)); %When no synapses
+            	rawFoldedData=nan*ones(size(dffsynsignal2)); %When no synapses
                 centre = nan;
             xCentPos(i) = nan;
             yCentPos(i) = nan;
@@ -1696,7 +1743,7 @@ end
             rawDFluor(i) = rawMaxFluor(i)-rawBaseFluor(i);
             rawDFF(i) = rawDFluor(i)/rawBaseFluor(i);
             
-            signal = dffsynsignal(:,i);
+            signal = dffsynsignal2(:,i);
             synapseNbr(i) = i;
             
             
@@ -2264,19 +2311,26 @@ end
             for EID = 1:length(experiments) %=tif files
                 [isProcessed, currentfolder]=writeProcessStart(expnm,EID,currentfolder);
                 if  ~isProcessed
+                    
+                    
+%                    loadTiff22();
                     % Load the data
                     fNmTxt.String=['loading..' expnm{EID}.name];
                     if fastLoadChkButton.Value
                         [data, pathname, fname, dirname,U,S,V,invalidFileError] = loadTiff([expnm{EID}.folder '\' expnm{EID}.name],fastLoadChkButton.Value );
                         imageEigen(U,S,V);
+                        wx = size(data,2); wy = size(data,1);wt = size(data,3);
                         synProb = reshape(U(:,EVN),[wy,wx]);
                     else
                         [data, pathname, fname, dirname,~,~,~,invalidFileError] = loadTiff([expnm{EID}.folder '\' expnm{EID}.name],fastLoadChkButton.Value );
                     end
+                    wx = size(data,2); wy = size(data,1);wt = size(data,3);
                     if size(data,3)<2
                         invalidFileError=1;
                         disp('This file is not a movie, but a picture.')
                     end
+                    
+                    
                     if   ~invalidFileError
                         defaultDir = dirname;
                         dNmTxt.String = defaultDir;
@@ -2323,9 +2377,14 @@ end
                                 writeAnalysisStart(expnm,EID,analysisList(i).name);
                                 loadAnalysis(analysisList(i));
                                 try
-                                    eval(preCommand);
+                                    preCommandCellArray = text2cell(preCommand);
+                                    for ii=1:length(preCommandCellArray)
+                                        eval(preCommandCellArray{ii});
+                                    end
+                                                                       
                                 catch
                                     warning('failed to run preCommand');
+                                    disp(preCommandCellArray{ii});
                                     disp(preCommand);
                                 end
                                 if reloadMovie % If with frameselection only a part of the movie is loaded, by reload, another part of the same movie can be loaded to create a mask.
@@ -2337,10 +2396,15 @@ end
                                     moveResults(analysisList(i).name, getFN(pathname));
                                     writeProcessEnd(expnm,EID);
                                 end
+                                  postCommandCellArray = text2cell(postCommand);
                                 try
-                                    eval(postCommand);
+                                    for ii=1:length(postCommandCellArray)
+                                        eval(postCommandCellArray{ii});
+                                    end
+                                 
                                 catch
                                     warning('failed to run postCommand');
+                                    disp(postCommandCellArray{ii});
                                     disp(postCommand);
                                 end
                             end
@@ -2397,6 +2461,7 @@ end
         else 
             AN = analysisListName(1:end-4);
         end
+        movefile([dirname ifname '*_avg.png'],[dirname 'commonOutput\avg\']);
         movefile([dirname ifname '*.png'],[dirname AN '\']);
         movefile([dirname ffname '*.png'],[dirname AN '\']);
         try
@@ -2470,8 +2535,20 @@ end
     function doProcessMovie(e,v,h)
         processMovie(pathname)
     end
+
+    function dd=preProcessFrames()
+        mimage=data;
+        for t=1:(size(mimage,3));
+%             [U, V]=gradient(mimage(:,:,t));
+%             U=conv2(U,k,'same');
+%             V=conv2(V,k,'same');
+%             dd(:,:,t)=divergence(U,V);
+            dd(:,:,t)=del2(mimage(:,:,t));
+        end
+    end
+
     function processMovie(pathname)
-        
+        dffsynsignal=[];
         eval(['data=data(:,:,' dataFrameSelectionTxt ');']);
         if (reuseMaskChkButton.Value==1) % Load the mask
               [synRegio, synProb] =  loadMask([pathname(1:end) '_mask.png']);
@@ -2487,8 +2564,16 @@ end
                 %EVN=1; warning ('eigenvalue hacked 2->1');
                 warning('processMovie hacked for neuron body processing' )
             else % Synapses
+                dd=preProcessFrames();
+                warning('extra preprocess step');
+                pause(1);
+                data2=data; %backup data
+                %data=-dd; %overwrite data temporary
+                
                 segment2(); % [synapseBW, synProb] = f(data)
                 rmvBkGrnd(); % synapseBW = f(synapseBW, synProb) 2sigma is done
+                
+                data=data2; %restore data
             end
             
             %threeSigThreshold();
@@ -2515,6 +2600,7 @@ end
         RSTABSmean = mean(data(:)); %Raw spatioTemporalMeanAfterBlackLevelsubtraction.
         if (length(synRegio) ~=0)
             extractSignals();           % synsignal = f(synRegio,data)
+            dffsynsignal=dff(synsignal'); % Calculate global dff
             signalPlot();               % f(dff(synsignal'))
             exportSynapseSignals();     % tempThreshold(dff(synsignal'))
             exportMask('_mask.png'); % Mask after temporal Thresholding, =default to (reuse)
@@ -2523,19 +2609,19 @@ end
             % GetAmplitude
             analyseSingSynResponse();
             avgSynapseResponse(); % AR=f(synsignal)
-            doMultiResponseto1(); %AR=mr(AR), ASR=mr(ASR)   % Temporal Averaging          
-            analyseAvgResponse();
+            doMultiResponseto1(); % AR=mr(AR), ASR=mr(ASR)   % Temporal Averaging          
+            analyseAvgResponse(); % write outputfiles Analysis.
             
         else
                
             % Invalidate:
             extractSignals(); 
+            dffsynsignal=dff(synsignal');
             exportSynapseSignals(); % tempThreshold(dff(synsignal'))
             exportMask('_mask.png'); % Mask after temporal Thresholding, =default to (reuse)
             
        synRegio(1).PixelIdxList=nan;
        synRegio(1).PixelList=[nan,nan];
-       
             
             doPostProcessing(); % Partial Processing
             % GetAmplitude
@@ -2544,7 +2630,6 @@ end
             doMultiResponseto1(); % AR=mr(AR), ASR=mr(ASR)   % Temporal Averaging          
             analyseAvgResponse(); % write outputfiles Analysis.
        
-            
             subplot(4,4,16);
             hold off;
             plot(0,0);
@@ -2588,420 +2673,424 @@ end
         mkdir ([dirname 'output\']);
         writetable(t,[dirname 'output\' fname(1:end-4) '_analysis']);
     end
-    function processSingleCoverslipExperiment(s,e,h)
-                [C10dirname] = uigetdir(defaultDir,'Select control 10AP dir:');
-                defaultDir =  [C10dirname '\..'];
-                [C1dirname]  = uigetdir(defaultDir,'Select control 1AP dir:');
-                defaultDir =  [C1dirname '\..'];
-                 [M3dirname]  = uigetdir(defaultDir,'Select 3min. Compound 1AP dir:');
-                defaultDir =  [M3dirname '\..'];
-                [M5dirname]  = uigetdir(defaultDir,'Select 5min. Compound 1AP dir:');
-                defaultDir =  [M5dirname '\..'];
-                [M10dirname] = uigetdir(defaultDir,'Select 10min. Compound 1AP dir:');
-                defaultDir =  [M10dirname '\..'];
-                 [M15dirname] = uigetdir(defaultDir,'Select 15min. Compound 1AP dir:');
-                defaultDir =  [M15dirname '\..'];
-                [M20dirname] = uigetdir(defaultDir,'Select 20min. Compound 1AP dir:');
-                defaultDir =  [M20dirname '\..'];
-                 [M30dirname] = uigetdir(defaultDir,'Select 30min. Compound 1AP dir:');
-                defaultDir =  [M30dirname '\..'];
-                
-                
-                C10expnm{1} = dir ([C10dirname '\*.tif']);
-                C1expnm{1} = dir ([C1dirname '\*.tif']);
-                M3expnm{1} = dir ([M3dirname '\*.tif']);
-                M5expnm{1} = dir ([M5dirname '\*.tif']);
-                M10expnm{1} = dir ([M10dirname '\*.tif']);
-                M15expnm{1} = dir ([M15dirname '\*.tif']);
-                M20expnm{1} = dir ([M20dirname '\*.tif']);
-                M30expnm{1} = dir ([M30dirname '\*.tif']);
-                
-                processMovie([C10expnm{1}.folder '\' C10expnm{1}.name],0);
-                processMovie(C1expnm{1});
-                processMovie(M3expnm{1});
-                processMovie(M5expnm{1});
-                processMovie(M10expnm{1});
-                processMovie(M15expnm{1});
-                processMovie(M20expnm{1});
-                processMovie(M30expnm{1});
-                
-    end
-    function doseResponse(s,e,h)
-        
-        % Select Data dirs
-        global firstExpNb
-        firstExpNb = 0;
-        if 1
-            project = openPlateProject();%filePath);
-            prjTxt.String = project.filePath;
-            C10dirname = getProjDir(project,'10AP Control');
-            dNmTxt.String  = C10dirname;
-            C1dirname = getProjDir(project,'1AP Control');
-            dNmTxt.String  = C1dirname;
-            M5dirname = getProjDir(project,'1AP 5min');
-            dNmTxt.String  = M5dirname;
-            M10dirname = getProjDir(project,'1AP 10min');
-            dNmTxt.String  = M10dirname;
-            M20dirname = getProjDir(project,'1AP 20min');
-            dNmTxt.String  = M20dirname;
-            % M30dirname = getProjDir(project,'10AP 25min');
-            
-            [plateFilename, plateDir] = uigetfile('*.csv',['Select Plate Layout File'],[defaultDir '\']);
-        else
-            if 0
-                C10dirname =  'D:\data\Rajiv\20171017\syGcamp1\NS_2017_20171017_133534_20171017_133729';
-                C1dirname =  'D:\data\Rajiv\20171017\syGcamp1\NS_2017_120171017_133919_20171017_134155';
-                M5dirname =     'D:\data\Rajiv\20171017\syGcamp1\NS_2017_220171017_135310_20171017_135609'
-                M10dirname =     'D:\data\Rajiv\20171017\syGcamp1\NS_2017_320171017_135815_20171017_140054'
-                M20dirname=     'D:\data\Rajiv\20171017\syGcamp1\NS_2017_420171017_140224_20171017_140422'
-                
-            else
-                [C10dirname] = uigetdir(defaultDir,'Select control 10AP dir:');
-                defaultDir =  [C10dirname '\..'];
-                [C1dirname]  = uigetdir(defaultDir,'Select control 1AP dir:');
-                defaultDir =  [C1dirname '\..'];
-                [M5dirname]  = uigetdir(defaultDir,'Select 5min. Compound 1AP dir:');
-                defaultDir =  [M5dirname '\..'];
-                [M10dirname] = uigetdir(defaultDir,'Select 10min. Compound 1AP dir:');
-                defaultDir =  [M10dirname '\..'];
-                [M20dirname] = uigetdir(defaultDir,'Select 20min. Compound 1AP dir:');
-                defaultDir =  [M20dirname '\..'];
-            end
-        end
-        
-        % Define experiments to process
-        experiments = 1:28;
-        experiments = 0:9;
-        experiments =0;
-        % Create absolute Paths
-        for ii = 1:length(experiments )
-            ee = num2str(100+experiments(ii));ee = ee(2:3); % To make 01,02, 03, .. 10, 11
-            C10expnm{ii} = dir ([C10dirname '\*e00' ee '.tif']);
-            if isempty( C10expnm{ii})
-                C10expnm{ii} = dir ([C10dirname '\*iGlu_' num2str(ii) '.tif']);
-            end
-        end
-        if isempty(C1dirname)
-            C1expnm{ii}=[];
-        else
-            for ii = 1:length(experiments )
-                ee = num2str(100+experiments(ii));ee = ee(2:3); % To make 01,02, 03, .. 10, 11
-                C1expnm{ii} = dir ([C1dirname '\*e00' ee '.tif']);
-            end
-        end
-        for ii = 1:length(experiments )
-            M5expnm{ii} = dir ([M5dirname '\*e000' num2str(experiments(ii) ) '.tif']);
-        end
-        for ii = 1:length(experiments )
-            M10expnm{ii} = dir ([M10dirname '\*e000' num2str(experiments(ii) ) '.tif']);
-        end
-        for ii = 1:length(experiments )
-            M20expnm{ii} = dir ([M20dirname '\*e000' num2str(experiments(ii) ) '.tif']);
-        end
-        %                 for ii = 1:length(experiments )
-        %                     M30expnm{ii} = dir ([M30dirname '\*e000' num2str(experiments(ii) ) '.tif']);
-        %                 end
-        
-        %% Find and set Meta Data
-        % Select Plate Layout
-        metadata = 0;
-        if metadata
-        if 0
-            filenm =    'plateLayout_Concentration.csv'
-            plateDir =    'D:\data\Rajiv\20171017\syGcamp1\'
-        else
-            if ~plateDir
-                [plateFilename, plateDir] = uigetfile('*.csv',['Select Plate Layout File'],[defaultDir '\']);
-            end
-        end
-        defaultDir =  plateDir;
-        plateValues = csvread([plateDir '\' plateFilename ]);
-        id = strfind(plateFilename,'_');
-        plateQuantity = plateFilename(id+1:end-4);
-        
-        % Load Andor file
-        tttt = dir([C10dirname '\NS_*.txt']);
-        if length(tttt)==0
-            tttt = dir([C10dirname '\Protocol*.txt']);
-        end
-        andorfilename = [tttt.folder '\' tttt.name];
-        exp2wellNr = readAndorFile(andorfilename);
-        
-        plate.plateValues = plateValues;
-        plate.expwells = exp2wellNr;
-        wellQty = getPlateValue(plate,experiments);
-        end
-        
-        %%
-        for iii = 1:length(experiments)
-            % Load exp 1:10AP
-            
-            % Visualise we do new experiment.
-            
-            
-            % Load the data
-            [data, pathname, fname, dirname] = loadTiff([C10expnm{iii}.folder '\' C10expnm{iii}.name]);
-            dNmTxt.String = dirname;
-            defaultDir =  dirname;
-            wx = size(data,2); wy = size(data,1);
-            fNmTxt.String=fname;
-            
-            
-           % 
-           if isfile([C10expnm{iii}.folder '\' C10expnm{iii}.name '_mask.png'])
-               [synRegio, synProb] =  loadMask([C10expnm{iii}.folder '\' C10expnm{iii}.name '_mask.png']);
-               setMask();
-           else % create new mask
-               segment2();
-               rmvBkGrnd();
-               detectIslands();
-               doExportMask();
-               setMask();
-           end
-            extractSignals();
-            signalPlot();
-            exportSynapseSignals();
-            
-            
-            
-            % GetSignal
-            synRegio = maskRegio;
-            if length(synRegio) ~=0
-                extractSignals();
-                % GetAmplitude
-                %                analyseResponse();
-                avgSynapseResponse();
-                
-                %  doMultiResponseto1(); 
-                
-                analyseAvgResponse();
-                AP10Response(iii) = mASR;
-                
-                % Load exp 2: control
-                
-                %loadTiff22();
-                try C1expnm{ii};
-                    [data, pathname, fname, dirname] = loadTiff([C1expnm{iii}.folder '\' C1expnm{iii}.name]);
-                    
-                    wx = size(data,2); wy = size(data,1);
-                    fNmTxt.String=fname;
-                    newmask =1;
-                    if newmask % Create new mask, use 10AP mask.
-                        segment2();
-                        rmvBkGrnd();
-                        detectIslands();
-                    else
-                        synRegio=maskRegio;
-                    end
-                    if length(synRegio) ~=0
-                        extractSignals();
-                        signalPlot();
-                        exportSynapseSignals();
-                        % GetAmplitude
-                        analyseSingSynResponse();
-                        avgSynapseResponse();
-                        ASR=multiResponseto1(ASR);
-                        
-                        analyseAvgResponse();
-                        subplot(4,4,12)
-                        
-                        controlResponse(iii) = mASR;
-                    else
-                        disp(['No synapses identified in: ' fname])
-                        controlResponse(iii)=nan;
-                    end
-                catch
-                    disp(['No control data for' fname])
-                end
-                if 1
-                    % Load exp 3: 5min 1AP
-                    %loadTiff22();
-                    [data, pathname, fname, dirname] = loadTiff([M5expnm{iii}.folder '\' M5expnm{iii}.name]);
-                    wx = size(data,2); wy = size(data,1);
-                    fNmTxt.String=fname;
-                    if newmask % Create new mask, use 10AP mask.
-                        segment2();
-                        rmvBkGrnd();
-                        detectIslands();
-                    else
-                        synRegio=maskRegio;
-                    end
-                    
-                    if length(synRegio) ~=0
-                        extractSignals();
-                        signalPlot();
-                        exportSynapseSignals();
-                        % GetAmplitude
-                        analyseSingSynResponse();
-                        avgSynapseResponse();
-                        hold on
-                        plot(ASR,'k','LineWidth',2)
-                        hold off
-                        savesubplot(4,4,12,[pathname '_response'])
-                        ASR=multiResponseto1(ASR);
-                        analyseAvgResponse();
-                        min5Response(iii) = mASR;
-                    else
-                        disp(['No synapses identified in: ' fname])
-                        mASR=nan;
-                        min5Response(iii) = mASR;
-                    end
-                    
-                    % Load exp 4: 10 min 1AP
-                    %loadTiff22();
-                    [data, pathname, fname, dirname] = loadTiff([M10expnm{iii}.folder '\' M10expnm{iii}.name]);
-                    wx = size(data,2); wy = size(data,1);
-                    fNmTxt.String=fname;
-                    if newmask % Create new mask, use 10AP mask.
-                        segment2();
-                        rmvBkGrnd();
-                        detectIslands();
-                    else
-                        synRegio=maskRegio;
-                    end
-                    if length(synRegio) ~=0
-                        extractSignals();
-                        signalPlot();
-                        exportSynapseSignals();
-                        % GetAmplitude
-                        analyseSingSynResponse();
-                        avgSynapseResponse();
-                        signalPlot();
-                        hold on
-                        plot(ASR,'k','LineWidth',2)
-                        hold off
-                        %figure
-                        subplot(4,4,8);
-                        ASR=multiResponseto1(ASR);
-                        analyseAvgResponse();
-                        min10Response(iii) = mASR;
-                    else
-                        disp(['No synapses identified in: ' fname])
-                        mASR=nan;
-                        min10Response(iii) = mASR;
-                    end
-                    
-                    
-                    
-                    % Load exp 5: 20 min 1AP
-                    %loadTiff22();
-                    [data, pathname, fname, dirname] = loadTiff([M20expnm{iii}.folder '\' M20expnm{iii}.name]);
-                    wx = size(data,2); wy = size(data,1);
-                    fNmTxt.String=fname;
-                    
-                    if newmask % Create new mask, use 10AP mask.
-                        segment2();
-                        rmvBkGrnd();
-                        detectIslands();
-                    else
-                        synRegio=maskRegio;
-                    end
-                    if length(synRegio) ~=0
-                        extractSignals();
-                        signalPlot();
-                        exportSynapseSignals();
-                        % GetAmplitude
-                        analyseSingSynResponse();
-                        avgSynapseResponse();
-                        ASR=multiResponseto1(ASR);
-                        
-                        analyseAvgResponse();
-                        min20Response(iii) = mASR;
-                    else
-                        disp(['No synapses identified in: ' fname])
-                        mASR=nan;
-                        min20Response(iii) = mASR;
-                    end
-                    
-                    
-                    %                     % Load exp 6: 30 min 1AP
-                    %                     %loadTiff22();
-                    %                     [data, pathname, fname, dirname] = loadTiff([M30expnm{iii}.folder '\' M30expnm{iii}.name]);
-                    %                     wx = size(data,2); wy = size(data,1);
-                    %                     fNmTxt.String=fname;
-                    %
-                    %                     if newmask % Create new mask, use 10AP mask.
-                    %                         segment2();
-                    %                         rmvBkGrnd();
-                    %                         detectIslands();
-                    %                     else
-                    %                         synRegio=maskRegio;
-                    %                     end
-                    %                     if length(synRegio) ~=0
-                    %                         extractSignals();
-                    %                         % GetAmplitude
-                    %                         avgSynapseResponse();
-                    %                         ASR=multiResponseto1(ASR);
-                    %
-                    %                         analyseAvgReponse();
-                    %                         min30Response(iii) = mASR;
-                    %                     else
-                    %                         disp(['No synapses identified in: ' fname])
-                    %                         mASR=nan;
-                    %                         min30Response(iii) = mASR;
-                    %                     end
-                end
-                
-            else
-                disp(['No synapses identified in: ' fname])
-                mASR=nan;
-                min10Response(iii) = mASR;
-                AP10Response(iii) = nan;
-                controlResponse(iii) = nan;
-                min5Response(iii) = nan;
-                min20Response(iii) = nan;
-                min30Response(iii) = nan;
-                
-            end
-            
-            hold off;
-            subplot(4,4,14);
-            
-            plot([0 ]  , [controlResponse(iii)]);% min5Response(iii)]);
-            plot([0 5 10 20] , [controlResponse(iii) min5Response(iii) min10Response(iii) min20Response(iii) ]);
-            
-            %plot([0 5 10 20 30] , [controlResponse(iii) min5Response(iii) min10Response(iii) min20Response(iii) min30Response(iii)]);
-            savesubplot(4,4,14,[dirname 'responses']);
-        end
-        %% save the result:
-        save ('controlResponse.mat', 'controlResponse')
-        
-        %% Plot the results
-        %figure;
-        subplot(4,4,[2:4,6:8,10:12]);
-        cla
-        pause(.5);
-        
-        %  plot(wellQty , AP10Response);
-        hold on
-        plot(wellQty , controlResponse,'o');%./controlResponse,'o');
-        
-        plot(wellQty , min5Response./controlResponse,'*');
-        %        plot(wellQty , min10Response./controlResponse,'x');
-        %        plot(wellQty , min20Response./controlResponse,'o');
-        mR = mean([controlResponse],1);% min10Response./controlResponse; min20Response./controlResponse]);
-        e = std( [controlResponse],[],1);% min10Response./controlResponse; min20Response./controlResponse]);
-        
-        
-        %mR = mean([min5Response./controlResponse; min10Response./controlResponse; min20Response./controlResponse]);
-        %e = std( [min5Response./controlResponse; min10Response./controlResponse; min20Response./controlResponse]);
-        
-        wellSelection1 = (wellQty==1);
-        mC1 = sum((wellSelection1).*controlResponse)/sum((wellSelection1));
-        sC1 = sqrt(sum((wellSelection1).*(controlResponse-mC1).^2))/sqrt(sum((wellSelection1)));
-        
-        wellSelection0 = (wellQty==0);
-        mC2 = sum(wellSelection0.*controlResponse)/sum(wellSelection0);
-        sC2 = sqrt(sum(wellSelection0.*(controlResponse-mC2).^2))/sqrt(sum(wellSelection0));
-        
-        sum((wellQty==1).*controlResponse)
-        errorbar(wellQty, mR,e)
-        xlabel(plateQuantity);
-        ylabel('Amp. / A_{control}');
-        legend('10AP Control','1AP Control', '1AP 5min', '1AP 10min', '10AP 12min')
-        savesubplot(4,4,[2:4,6:8,10:12],[pathname '_doseResponse.png'])
-        
-    end
+
+
+%     function processSingleCoverslipExperiment(s,e,h)
+%                 [C10dirname] = uigetdir(defaultDir,'Select control 10AP dir:');
+%                 defaultDir =  [C10dirname '\..'];
+%                 [C1dirname]  = uigetdir(defaultDir,'Select control 1AP dir:');
+%                 defaultDir =  [C1dirname '\..'];
+%                  [M3dirname]  = uigetdir(defaultDir,'Select 3min. Compound 1AP dir:');
+%                 defaultDir =  [M3dirname '\..'];
+%                 [M5dirname]  = uigetdir(defaultDir,'Select 5min. Compound 1AP dir:');
+%                 defaultDir =  [M5dirname '\..'];
+%                 [M10dirname] = uigetdir(defaultDir,'Select 10min. Compound 1AP dir:');
+%                 defaultDir =  [M10dirname '\..'];
+%                  [M15dirname] = uigetdir(defaultDir,'Select 15min. Compound 1AP dir:');
+%                 defaultDir =  [M15dirname '\..'];
+%                 [M20dirname] = uigetdir(defaultDir,'Select 20min. Compound 1AP dir:');
+%                 defaultDir =  [M20dirname '\..'];
+%                  [M30dirname] = uigetdir(defaultDir,'Select 30min. Compound 1AP dir:');
+%                 defaultDir =  [M30dirname '\..'];
+%                 
+%                 
+%                 C10expnm{1} = dir ([C10dirname '\*.tif']);
+%                 C1expnm{1} = dir ([C1dirname '\*.tif']);
+%                 M3expnm{1} = dir ([M3dirname '\*.tif']);
+%                 M5expnm{1} = dir ([M5dirname '\*.tif']);
+%                 M10expnm{1} = dir ([M10dirname '\*.tif']);
+%                 M15expnm{1} = dir ([M15dirname '\*.tif']);
+%                 M20expnm{1} = dir ([M20dirname '\*.tif']);
+%                 M30expnm{1} = dir ([M30dirname '\*.tif']);
+%                 
+%                 processMovie([C10expnm{1}.folder '\' C10expnm{1}.name],0);
+%                 processMovie(C1expnm{1});
+%                 processMovie(M3expnm{1});
+%                 processMovie(M5expnm{1});
+%                 processMovie(M10expnm{1});
+%                 processMovie(M15expnm{1});
+%                 processMovie(M20expnm{1});
+%                 processMovie(M30expnm{1});
+%                 
+%     end
+
+
+%     function doseResponse(s,e,h)
+%         
+%         % Select Data dirs
+%         global firstExpNb
+%         firstExpNb = 0;
+%         if 1
+%             project = openPlateProject();%filePath);
+%             prjTxt.String = project.filePath;
+%             C10dirname = getProjDir(project,'10AP Control');
+%             dNmTxt.String  = C10dirname;
+%             C1dirname = getProjDir(project,'1AP Control');
+%             dNmTxt.String  = C1dirname;
+%             M5dirname = getProjDir(project,'1AP 5min');
+%             dNmTxt.String  = M5dirname;
+%             M10dirname = getProjDir(project,'1AP 10min');
+%             dNmTxt.String  = M10dirname;
+%             M20dirname = getProjDir(project,'1AP 20min');
+%             dNmTxt.String  = M20dirname;
+%             % M30dirname = getProjDir(project,'10AP 25min');
+%             
+%             [plateFilename, plateDir] = uigetfile('*.csv',['Select Plate Layout File'],[defaultDir '\']);
+%         else
+%             if 0
+%                 C10dirname =  'D:\data\Rajiv\20171017\syGcamp1\NS_2017_20171017_133534_20171017_133729';
+%                 C1dirname =  'D:\data\Rajiv\20171017\syGcamp1\NS_2017_120171017_133919_20171017_134155';
+%                 M5dirname =     'D:\data\Rajiv\20171017\syGcamp1\NS_2017_220171017_135310_20171017_135609'
+%                 M10dirname =     'D:\data\Rajiv\20171017\syGcamp1\NS_2017_320171017_135815_20171017_140054'
+%                 M20dirname=     'D:\data\Rajiv\20171017\syGcamp1\NS_2017_420171017_140224_20171017_140422'
+%                 
+%             else
+%                 [C10dirname] = uigetdir(defaultDir,'Select control 10AP dir:');
+%                 defaultDir =  [C10dirname '\..'];
+%                 [C1dirname]  = uigetdir(defaultDir,'Select control 1AP dir:');
+%                 defaultDir =  [C1dirname '\..'];
+%                 [M5dirname]  = uigetdir(defaultDir,'Select 5min. Compound 1AP dir:');
+%                 defaultDir =  [M5dirname '\..'];
+%                 [M10dirname] = uigetdir(defaultDir,'Select 10min. Compound 1AP dir:');
+%                 defaultDir =  [M10dirname '\..'];
+%                 [M20dirname] = uigetdir(defaultDir,'Select 20min. Compound 1AP dir:');
+%                 defaultDir =  [M20dirname '\..'];
+%             end
+%         end
+%         
+%         % Define experiments to process
+%         experiments = 1:28;
+%         experiments = 0:9;
+%         experiments =0;
+%         % Create absolute Paths
+%         for ii = 1:length(experiments )
+%             ee = num2str(100+experiments(ii));ee = ee(2:3); % To make 01,02, 03, .. 10, 11
+%             C10expnm{ii} = dir ([C10dirname '\*e00' ee '.tif']);
+%             if isempty( C10expnm{ii})
+%                 C10expnm{ii} = dir ([C10dirname '\*iGlu_' num2str(ii) '.tif']);
+%             end
+%         end
+%         if isempty(C1dirname)
+%             C1expnm{ii}=[];
+%         else
+%             for ii = 1:length(experiments )
+%                 ee = num2str(100+experiments(ii));ee = ee(2:3); % To make 01,02, 03, .. 10, 11
+%                 C1expnm{ii} = dir ([C1dirname '\*e00' ee '.tif']);
+%             end
+%         end
+%         for ii = 1:length(experiments )
+%             M5expnm{ii} = dir ([M5dirname '\*e000' num2str(experiments(ii) ) '.tif']);
+%         end
+%         for ii = 1:length(experiments )
+%             M10expnm{ii} = dir ([M10dirname '\*e000' num2str(experiments(ii) ) '.tif']);
+%         end
+%         for ii = 1:length(experiments )
+%             M20expnm{ii} = dir ([M20dirname '\*e000' num2str(experiments(ii) ) '.tif']);
+%         end
+%         %                 for ii = 1:length(experiments )
+%         %                     M30expnm{ii} = dir ([M30dirname '\*e000' num2str(experiments(ii) ) '.tif']);
+%         %                 end
+%         
+%         %% Find and set Meta Data
+%         % Select Plate Layout
+%         metadata = 0;
+%         if metadata
+%         if 0
+%             filenm =    'plateLayout_Concentration.csv'
+%             plateDir =    'D:\data\Rajiv\20171017\syGcamp1\'
+%         else
+%             if ~plateDir
+%                 [plateFilename, plateDir] = uigetfile('*.csv',['Select Plate Layout File'],[defaultDir '\']);
+%             end
+%         end
+%         defaultDir =  plateDir;
+%         plateValues = csvread([plateDir '\' plateFilename ]);
+%         id = strfind(plateFilename,'_');
+%         plateQuantity = plateFilename(id+1:end-4);
+%         
+%         % Load Andor file
+%         tttt = dir([C10dirname '\NS_*.txt']);
+%         if length(tttt)==0
+%             tttt = dir([C10dirname '\Protocol*.txt']);
+%         end
+%         andorfilename = [tttt.folder '\' tttt.name];
+%         exp2wellNr = readAndorFile(andorfilename);
+%         
+%         plate.plateValues = plateValues;
+%         plate.expwells = exp2wellNr;
+%         wellQty = getPlateValue(plate,experiments);
+%         end
+%         
+%         %%
+%         for iii = 1:length(experiments)
+%             % Load exp 1:10AP
+%             
+%             % Visualise we do new experiment.
+%             
+%             
+%             % Load the data
+%             [data, pathname, fname, dirname] = loadTiff([C10expnm{iii}.folder '\' C10expnm{iii}.name]);
+%             dNmTxt.String = dirname;
+%             defaultDir =  dirname;
+%             wx = size(data,2); wy = size(data,1);
+%             fNmTxt.String=fname;
+%             
+%             
+%            % 
+%            if isfile([C10expnm{iii}.folder '\' C10expnm{iii}.name '_mask.png'])
+%                [synRegio, synProb] =  loadMask([C10expnm{iii}.folder '\' C10expnm{iii}.name '_mask.png']);
+%                setMask();
+%            else % create new mask
+%                segment2();
+%                rmvBkGrnd();
+%                detectIslands();
+%                doExportMask();
+%                setMask();
+%            end
+%             extractSignals();
+%             signalPlot();
+%             exportSynapseSignals();
+%             
+%             
+%             
+%             % GetSignal
+%             synRegio = maskRegio;
+%             if length(synRegio) ~=0
+%                 extractSignals();
+%                 % GetAmplitude
+%                 %                analyseResponse();
+%                 avgSynapseResponse();
+%                 
+%                 %  doMultiResponseto1(); 
+%                 
+%                 analyseAvgResponse();
+%                 AP10Response(iii) = mASR;
+%                 
+%                 % Load exp 2: control
+%                 
+%                 %loadTiff22();
+%                 try C1expnm{ii};
+%                     [data, pathname, fname, dirname] = loadTiff([C1expnm{iii}.folder '\' C1expnm{iii}.name]);
+%                     
+%                     wx = size(data,2); wy = size(data,1);
+%                     fNmTxt.String=fname;
+%                     newmask =1;
+%                     if newmask % Create new mask, use 10AP mask.
+%                         segment2();
+%                         rmvBkGrnd();
+%                         detectIslands();
+%                     else
+%                         synRegio=maskRegio;
+%                     end
+%                     if length(synRegio) ~=0
+%                         extractSignals();
+%                         signalPlot();
+%                         exportSynapseSignals();
+%                         % GetAmplitude
+%                         analyseSingSynResponse();
+%                         avgSynapseResponse();
+%                         ASR=multiResponseto1(ASR);
+%                         
+%                         analyseAvgResponse();
+%                         subplot(4,4,12)
+%                         
+%                         controlResponse(iii) = mASR;
+%                     else
+%                         disp(['No synapses identified in: ' fname])
+%                         controlResponse(iii)=nan;
+%                     end
+%                 catch
+%                     disp(['No control data for' fname])
+%                 end
+%                 if 1
+%                     % Load exp 3: 5min 1AP
+%                     %loadTiff22();
+%                     [data, pathname, fname, dirname] = loadTiff([M5expnm{iii}.folder '\' M5expnm{iii}.name]);
+%                     wx = size(data,2); wy = size(data,1);
+%                     fNmTxt.String=fname;
+%                     if newmask % Create new mask, use 10AP mask.
+%                         segment2();
+%                         rmvBkGrnd();
+%                         detectIslands();
+%                     else
+%                         synRegio=maskRegio;
+%                     end
+%                     
+%                     if length(synRegio) ~=0
+%                         extractSignals();
+%                         signalPlot();
+%                         exportSynapseSignals();
+%                         % GetAmplitude
+%                         analyseSingSynResponse();
+%                         avgSynapseResponse();
+%                         hold on
+%                         plot(ASR,'k','LineWidth',2)
+%                         hold off
+%                         savesubplot(4,4,12,[pathname '_response'])
+%                         ASR=multiResponseto1(ASR);
+%                         analyseAvgResponse();
+%                         min5Response(iii) = mASR;
+%                     else
+%                         disp(['No synapses identified in: ' fname])
+%                         mASR=nan;
+%                         min5Response(iii) = mASR;
+%                     end
+%                     
+%                     % Load exp 4: 10 min 1AP
+%                     %loadTiff22();
+%                     [data, pathname, fname, dirname] = loadTiff([M10expnm{iii}.folder '\' M10expnm{iii}.name]);
+%                     wx = size(data,2); wy = size(data,1);
+%                     fNmTxt.String=fname;
+%                     if newmask % Create new mask, use 10AP mask.
+%                         segment2();
+%                         rmvBkGrnd();
+%                         detectIslands();
+%                     else
+%                         synRegio=maskRegio;
+%                     end
+%                     if length(synRegio) ~=0
+%                         extractSignals();
+%                         signalPlot();
+%                         exportSynapseSignals();
+%                         % GetAmplitude
+%                         analyseSingSynResponse();
+%                         avgSynapseResponse();
+%                         signalPlot();
+%                         hold on
+%                         plot(ASR,'k','LineWidth',2)
+%                         hold off
+%                         %figure
+%                         subplot(4,4,8);
+%                         ASR=multiResponseto1(ASR);
+%                         analyseAvgResponse();
+%                         min10Response(iii) = mASR;
+%                     else
+%                         disp(['No synapses identified in: ' fname])
+%                         mASR=nan;
+%                         min10Response(iii) = mASR;
+%                     end
+%                     
+%                     
+%                     
+%                     % Load exp 5: 20 min 1AP
+%                     %loadTiff22();
+%                     [data, pathname, fname, dirname] = loadTiff([M20expnm{iii}.folder '\' M20expnm{iii}.name]);
+%                     wx = size(data,2); wy = size(data,1);
+%                     fNmTxt.String=fname;
+%                     
+%                     if newmask % Create new mask, use 10AP mask.
+%                         segment2();
+%                         rmvBkGrnd();
+%                         detectIslands();
+%                     else
+%                         synRegio=maskRegio;
+%                     end
+%                     if length(synRegio) ~=0
+%                         extractSignals();
+%                         signalPlot();
+%                         exportSynapseSignals();
+%                         % GetAmplitude
+%                         analyseSingSynResponse();
+%                         avgSynapseResponse();
+%                         ASR=multiResponseto1(ASR);
+%                         
+%                         analyseAvgResponse();
+%                         min20Response(iii) = mASR;
+%                     else
+%                         disp(['No synapses identified in: ' fname])
+%                         mASR=nan;
+%                         min20Response(iii) = mASR;
+%                     end
+%                     
+%                     
+%                     %                     % Load exp 6: 30 min 1AP
+%                     %                     %loadTiff22();
+%                     %                     [data, pathname, fname, dirname] = loadTiff([M30expnm{iii}.folder '\' M30expnm{iii}.name]);
+%                     %                     wx = size(data,2); wy = size(data,1);
+%                     %                     fNmTxt.String=fname;
+%                     %
+%                     %                     if newmask % Create new mask, use 10AP mask.
+%                     %                         segment2();
+%                     %                         rmvBkGrnd();
+%                     %                         detectIslands();
+%                     %                     else
+%                     %                         synRegio=maskRegio;
+%                     %                     end
+%                     %                     if length(synRegio) ~=0
+%                     %                         extractSignals();
+%                     %                         % GetAmplitude
+%                     %                         avgSynapseResponse();
+%                     %                         ASR=multiResponseto1(ASR);
+%                     %
+%                     %                         analyseAvgReponse();
+%                     %                         min30Response(iii) = mASR;
+%                     %                     else
+%                     %                         disp(['No synapses identified in: ' fname])
+%                     %                         mASR=nan;
+%                     %                         min30Response(iii) = mASR;
+%                     %                     end
+%                 end
+%                 
+%             else
+%                 disp(['No synapses identified in: ' fname])
+%                 mASR=nan;
+%                 min10Response(iii) = mASR;
+%                 AP10Response(iii) = nan;
+%                 controlResponse(iii) = nan;
+%                 min5Response(iii) = nan;
+%                 min20Response(iii) = nan;
+%                 min30Response(iii) = nan;
+%                 
+%             end
+%             
+%             hold off;
+%             subplot(4,4,14);
+%             
+%             plot([0 ]  , [controlResponse(iii)]);% min5Response(iii)]);
+%             plot([0 5 10 20] , [controlResponse(iii) min5Response(iii) min10Response(iii) min20Response(iii) ]);
+%             
+%             %plot([0 5 10 20 30] , [controlResponse(iii) min5Response(iii) min10Response(iii) min20Response(iii) min30Response(iii)]);
+%             savesubplot(4,4,14,[dirname 'responses']);
+%         end
+%         %% save the result:
+%         save ('controlResponse.mat', 'controlResponse')
+%         
+%         %% Plot the results
+%         %figure;
+%         subplot(4,4,[2:4,6:8,10:12]);
+%         cla
+%         pause(.5);
+%         
+%         %  plot(wellQty , AP10Response);
+%         hold on
+%         plot(wellQty , controlResponse,'o');%./controlResponse,'o');
+%         
+%         plot(wellQty , min5Response./controlResponse,'*');
+%         %        plot(wellQty , min10Response./controlResponse,'x');
+%         %        plot(wellQty , min20Response./controlResponse,'o');
+%         mR = mean([controlResponse],1);% min10Response./controlResponse; min20Response./controlResponse]);
+%         e = std( [controlResponse],[],1);% min10Response./controlResponse; min20Response./controlResponse]);
+%         
+%         
+%         %mR = mean([min5Response./controlResponse; min10Response./controlResponse; min20Response./controlResponse]);
+%         %e = std( [min5Response./controlResponse; min10Response./controlResponse; min20Response./controlResponse]);
+%         
+%         wellSelection1 = (wellQty==1);
+%         mC1 = sum((wellSelection1).*controlResponse)/sum((wellSelection1));
+%         sC1 = sqrt(sum((wellSelection1).*(controlResponse-mC1).^2))/sqrt(sum((wellSelection1)));
+%         
+%         wellSelection0 = (wellQty==0);
+%         mC2 = sum(wellSelection0.*controlResponse)/sum(wellSelection0);
+%         sC2 = sqrt(sum(wellSelection0.*(controlResponse-mC2).^2))/sqrt(sum(wellSelection0));
+%         
+%         sum((wellQty==1).*controlResponse)
+%         errorbar(wellQty, mR,e)
+%         xlabel(plateQuantity);
+%         ylabel('Amp. / A_{control}');
+%         legend('10AP Control','1AP Control', '1AP 5min', '1AP 10min', '10AP 12min')
+%         savesubplot(4,4,[2:4,6:8,10:12],[pathname '_doseResponse.png'])
+%         
+%     end
     function subtractBlackLevel(f,d,e)
         [sz1, sz2, sz3]=size(data);
         backGroundStrength = getBkgrnd(data(:,:,:));
@@ -3111,7 +3200,7 @@ end
         %         part(:,5)=data(OnOffset+4*iSP+(1:iSP));
         % figure;
         
-        if  ~(strcmp(PhotoBleachingTxt,'auto2exp') || strcmp(PhotoBleachingTxt,'autoLinInt'))
+        if  ~(strcmp(PhotoBleachingTxt,'auto2expInt') || strcmp(PhotoBleachingTxt,'autoLinInt'))
             subplot(4,4,12)
             [spart,~,~,level] = linBleachCorrect(part');
             part = (spart-level)'; %Using Matlab Matrix expansion
@@ -3121,7 +3210,7 @@ end
         
         meanData=mean(part,2);
         
-        if ~(strcmp(PhotoBleachingTxt,'auto2exp') || strcmp(PhotoBleachingTxt,'autoLinInt'))
+        if ~(strcmp(PhotoBleachingTxt,'auto2expInt') || strcmp(PhotoBleachingTxt,'autoLinInt'))
             [meanData,~, ~,baseLevel] = linBleachCorrect(meanData'); % To set the bottom back to zero,
             meanData = meanData'-baseLevel;
             plot(meanData,'k','LineWidth',3);
@@ -3214,7 +3303,8 @@ end
 
     function postProcess(synsignalTemp)
         % To create the *PP_Synapse.txt file
-        dffsynsignal=dff(synsignal')';
+        %dffsynsignal=dff(synsignal')';
+        dffsynsignal2=dffsynsignal';
         
         
         expEqDown =[nan nan nan nan] ;
@@ -3226,9 +3316,9 @@ end
          rawDFF=nan; rawDFluor=nan; rawMaxFluor = nan; rawBaseFluor=nan;
             rawPartDF=nan; rawPartMaxFluor= nan; rawPartMinFluor=nan;
         
-        for i=1:size(dffsynsignal,2)
+        for i=1:size(dffsynsignal2,2)
             if isempty(synsignal)
-                rawFoldedData=nan*ones(size(dffsynsignal)); %When no synapses
+                rawFoldedData=nan*ones(size(dffsynsignal2)); %When no synapses
                 centre = nan;
                 xCentPos(i) = nan;
                 yCentPos(i) = centre(1);
@@ -3257,7 +3347,7 @@ end
             rawDFluor(i) = rawMaxFluor(i)-rawBaseFluor(i);
             rawDFF(i) = rawDFluor(i)/rawBaseFluor(i);
         
-            signal = dffsynsignal(:,i);
+            signal = dffsynsignal2(:,i);
             synapseNbr(i) = i;
             
           

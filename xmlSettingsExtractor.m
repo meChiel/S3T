@@ -1,4 +1,3 @@
-
 function stimCfg = xmlSettingsExtractor(stimCfgFN)
 %% Also see : stimSettingsLoader()
 
@@ -25,7 +24,7 @@ else
            stimFreq=0;
        else
            if length(rr)>1
-               warning('did find multiple frequencies, chosing freq 1')
+               warning('Did find multiple frequencies, chosing freq 1')
            end
            warning(['Frequency field found, this is the old convention,'...
                '                                                       '...
@@ -415,7 +414,7 @@ stimCfg.skipMovie = skipMovie;
 stimCfg.dutyCycle = dutyCycle;
 stimCfg.dutyCycle2 = dutyCycle2;
 stimCfg.maskTimeProjectionMethod = maskTimeProjection;%'SVD';
-stimCfg.MPreC=MPreC;
-stimCfg.MPostC=MPostC;
+stimCfg.preCommand=MPreC;
+stimCfg.postCommand=MPostC;
 
 end

@@ -11,6 +11,7 @@ tifViewMode='mask';
 currentAnalysis  = 1;
 global displayNodeFct;
 displayNodeFct =@displayNode;
+global isPlaying;
 
 if nargin<3
     f = uifigure;
@@ -144,7 +145,7 @@ end
         end
         
     end
-global isPlaying
+
     function nodechange(src,event)
         %check here if the particular node has some more information, which
         %can be retreived.
@@ -171,7 +172,7 @@ global isPlaying
     function displayNode(thePath, nodeText)
         %imagesc(uia,imread(['F:\share\data\Rajiv\2018\02-03-2018\plate1\Protocol11220180302_110630_20180302_112921\1AP_Analysis\' node.Text '_avg.png']));
         maskFile=[thePath '_mask.png'];
-        if exist(maskFile,'file')
+        if exist(maskFile,'file') % To check if it is a file or a dir.
             %             tifViewMode='mask'
             %             tifViewMode='avg'
             %             tifViewMode='play'
@@ -285,6 +286,10 @@ global isPlaying
             if exist(overviewFile,'file')
                 currentPath = thePath;
                 switch tifViewMode
+                    case 'layout'
+                        layout = generatePlateSummary(thePath);
+                        imagesc(uia,layout(2:7,2:11));
+                        uia.Position=[560,-600,3102/2.3,5170/2.3 ];
                     case 'mask'
                           % Find the _Analysis folders/xml files.
                         ttt=dir([thePath '\*_Analysis\mask_overview.png']); % This takes a few ms which can be avoided, but is OK for now.
@@ -321,6 +326,7 @@ global isPlaying
                         %uia.Position=[560,-600,3102/2.3,5170/2.3 ];
                     case 'analysis'
                         % Find the _Analysis folders/xml files.
+                        
                         ttt=dir([thePath '\*_Analysis\analysis_overview.png']); % This takes a few ms which can be avoided, but is OK for now.
                          for i=1:length(ttt)
                            gg = strfind(ttt(i).folder,'\');
@@ -335,7 +341,10 @@ global isPlaying
                                 %avgFile=[ttt(io).folder '\' ttt(io).name];
                                 %avgFile=[ttt(io).folder '\' 'analysis_overview.png'];
                                 avgFile=[thePath '\' currentAnalysis '_Analysis\analysis_overview.png'];
-                                imagesc(uia,imresize(imread(avgFile),'OutputSize',[3102/2.3,5170/2.3 ]));
+                                av=double(imread(avgFile)/255);
+                                layout = flipud(generatePlateSummary(thePath,1));
+                                av = av*1.00 - 0.00*av  -0.5*(imresize(0+layout(2:7,2:11,:),'OutputSize',[size(av,1) size(av,2)],'method','nearest'));
+                                imagesc(uia,imresize(av,'OutputSize',[3102/2.3,5170/2.3 ]));
                                 %uia.Position=[700,-10,512*2,512*2 ];
                                 uia.Position=[560,-600,3102/2.3,5170/2.3 ]
                             end
@@ -359,6 +368,9 @@ global isPlaying
                                 uia.Position=[560,-600,3102/2.3,5170/2.3 ]
                             end
                         end
+                        
+                       
+                        
                      case 'temp'
                         ttt=dir([thePath '\*_Analysis\temp_overview.png']); % This takes a few ms which can be avoided, but is OK for now.
                         io=1;
@@ -377,7 +389,10 @@ global isPlaying
                                     avgFile=[thePath '\' AL{i} '_Analysis\temp_overview.png'];
                                     
                                 end
-                                imagesc(uia,imresize(imread(avgFile),'OutputSize',[3102/2.3,5170/2.3 ]));
+                                av=double(imread(avgFile)/255);
+                                layout = flipud(generatePlateSummary(thePath,1));
+                                av = av*1.00 - 0.00*av  -0.5*(imresize(0+layout(2:7,2:11,:),'OutputSize',[size(av,1) size(av,2)],'method','nearest'));
+                                image(uia,imresize(av,'OutputSize',[3102/2.3,5170/2.3 ]));
                                 uia.Position=[560,-600,3102/2.3,5170/2.3 ]
                             end
                         end

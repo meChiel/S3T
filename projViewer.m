@@ -1,4 +1,4 @@
-function ss=projViewer(tifDir)
+function ss=projViewer(tifDir,filter)
 global nopf notf oldNopf uia
 global defaultdir t rootNode f label1 refreshBtn refreshBtn2 tifViewModeLst
 global tifViewMode analysisLst currentAnalysis
@@ -6,6 +6,7 @@ global isPlaying
 global currentPath
 global displayNodeFct;
 displayNodeFct=@(x) disp(x); % Temporary implementation to be overwritten by structViewer immplementation.
+
 
 if nargin==0
     d=uigetdir('defaultdir');
@@ -18,12 +19,17 @@ else
     end
 end
 
+if nargin<2
+    chooseFilter(d);
+end
+
+
 defaultdir=d;
 
 %%
-start();
+startt();
 %%
-    function start()
+    function startt()
         
         %% Create the figure:
         f=uifigure('Name','ProjViewer','Resize','on','AutoResizeChildren','off');
@@ -53,8 +59,8 @@ start();
         axis(uia,'equal');
         axis(uia,'off');
         t = uitree(f,'Position',[20 150 550 550]);
-        tifViewModeLst = uilistbox(f,'Value',{'avg'},'Items',{'mask','avg','play','analysis','signals','temp'},'Position',[20 130 100 20],'ValueChangedFcn', @changeTifViewMode);
-        AL=getAnalysises(currentPath);
+        tifViewModeLst = uilistbox(f,'Value',{'avg'},'Items',{'mask','avg','play','analysis','signals','temp','layout'},'Position',[20 130 100 20],'ValueChangedFcn', @changeTifViewMode);
+        AL={};%getAnalysises(currentPath);
         analysisLst = uilistbox(f,'Items',AL,'Position',[120 130 200 20],'ValueChangedFcn', @changeAnalysis);
         fullUpdate();
         
@@ -64,14 +70,27 @@ start();
     function AL = getAnalysises(currentPath)
         gg=strfind(currentPath,'\');
         % Find the _Analysis folders/xml files.
+        if ~isempty(gg)
         ttt=dir([currentPath(1:gg(end)) '*_Analysis']); % This takes a few ms which can be avoided, but is OK for now.
         for i=1:size(ttt,1)
             AL{i} = ttt(i).name(1:end-9);
         end
+        else
+            AL={};%AL={'No Analysises'};
+        end
     end
 
     function openExplorer(e,f,g)
-      eval(['!explorer.exe /select,"'  currentPath '" &']);
+      if exist(currentPath ,'file')
+        eval(['!explorer.exe /select,"'  currentPath '" &']);
+      else
+          if strcmp(currentPath(end-3:end),'.tif')
+              gg=strfind(currentPath,'\');
+              eval(['!explorer.exe "'  currentPath(1:gg(end)) '" &']);
+          else
+              eval(['!explorer.exe /select,"'  currentPath '" &']);
+          end
+      end
     end
 
     function openData(e,f,g)
@@ -131,7 +150,9 @@ start();
         catch e
             disp(e.message)
         end
-        [t, rootNode] = structViewer(ss,'experiment',f,d,uia);
+        fff=strfind(d(1:end-1),'\');
+        dlastpart=d(fff(end):end);
+        [t, rootNode] = structViewer(ss,['experiment: ' dlastpart],f,d,uia);
         oldNopf=nopf;
         refreshBtn.Text='Update';
     end
@@ -196,13 +217,24 @@ start();
 
 %% New faster? refresh routine:
 
+    
     function doRefresh2(a,b,c)
+      %  refresh2(nopf,notf,oldNopf);
+        
+        ttt = timer('StartDelay', 4, 'Period', 4, 'TasksToExecute', 4, ...
+          'ExecutionMode', 'fixedSpacing');
+       ttt.TimerFcn = @doRefresh3;
+       start(ttt);
+    end
+
+    function doRefresh3(a,b,c)
         refresh2(nopf,notf,oldNopf);
     end
+
+
     function refresh2(nopf,notf,oldNopf)
-        
         disp('r start');
-        for i=1:100
+        for i=1:1
             refreshBtn.Text=['Updating .'];
             prevLength=length(nopf);
             nopf=dir([d '\**\process_*.tif.txt']); % Number of processed files
@@ -250,9 +282,10 @@ start();
                 end
                 oldNopf=nopf;
             end
+            pause(.1);
             refreshBtn.Text=['Updating  '];
             drawnow();
-            pause(1);
+            %pause(.1);
         end
         refreshBtn.Text=['Update  '];
         disp('r stop');

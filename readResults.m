@@ -40,11 +40,14 @@ if ~isempty(strfind(dirname(end-length('output\'):end),'output')) %make sure thi
         sfnNber=[];
         for i=1:(length(synFiles))
             disp(synFiles(i).name)
+            aa=gca();
+            r=text(mean(aa.XLim),max(aa.YLim)-diff(aa.YLim)/60*i,synFiles(i).name);
+            drawnow();
             try
                 SD = readtable([dirname '\synapseDetails\' synFiles(i).name]);
                 aST = [aST; SD];
             catch
-                disp(error);
+%                disp(error);
             end
             %t = [t; readtable([dirname '\' num2fname(i)])];
             nEl(i) = size(SD,1);
@@ -134,13 +137,13 @@ if ~isempty(strfind(dirname(end-length('output\'):end),'output')) %make sure thi
                 
                 qtyName = plateLayoutFileName(13:(end-4));
                 %NESTable = array2table(wellQty','VariableNames',{'NES'});
-                qtyTable = array2table(wellQty','VariableNames',{qtyName});
+                qtyTable = array2table(wellQty','VariableNames',{text2OKname(qtyName)});
                 aWT = [aWT, qtyTable];
                 rvec=[];
                 for ii=1:length(nEl)
                     rvec=[rvec; repmat(table2array(qtyTable(ii,1)),nEl(ii),1)];
                 end
-                aST = [aST, array2table(rvec,'VariableNames',{qtyName})];
+                aST = [aST, array2table(rvec,'VariableNames',{text2OKname(qtyName)})];
                 
                 plot(wellQty, aWT.peakAmp,'o-')
                 xlabel(qtyName);

@@ -4,7 +4,8 @@ global ptitle3 NOStxt3 stimFreqtxt3 OnOffsettxt3 fpsTxt3 DCOFtxt3 DCOF2txt NOS2t
 global frameSelectionTxt frameSelection maskTimeProjLst SVDLst SVDtxt createDictBtn createDicttxt ...
     PhotoBleachLst PhotoBleach ...
     ReuseMaskChkBx ReloadMovieChkBx FastLoadChkBx CellBodytypeLst ...
-    skipMovieChkBx WriteSVDChkBx AnalysistypeLst NumAvgSamples numAvgSamplesTxt;
+    skipMovieChkBx WriteSVDChkBx AnalysistypeLst NumAvgSamples ...
+    MpreCtxt MpostCtxt numAvgSamplesTxt MpreC MpostC;
 global CellBodytype skipMovie WriteSVD;
 stimCfgFN.folder='c:\';
 
@@ -172,12 +173,23 @@ createInputFields();
             'Position', [420 by(8) 150 20],...
             'Callback', @doSetWriteSVD);
         
+          uicontrol('Style', 'text', 'String', 'M pre-Command',...
+            'Position', [700 by(-11.2) 100 20],'BackgroundColor',bgc);
+        MpreCtxt = uicontrol('Style', 'Edit', 'String', '',...
+            'Position', [700 by(-4) 600 150],...
+            'Max',2,...
+            'HorizontalAlignment','left',...
+            'Callback', @doSetPreCommand);
+      
         
-        
-        
-        
-        
-        
+        uicontrol('Style', 'text', 'String', 'M post-Command',...
+            'Position', [700 by(-.2) 100 20],'BackgroundColor',bgc);
+        MpostCtxt = uicontrol('Style', 'Edit', 'String', '',...
+            'Position', [700 by(7) 600 150],...
+            'Max',2,...
+            'HorizontalAlignment','left',...
+            'Callback', @doSetPostCommand);
+       
         setFastLoad(FastLoad);
         setReloadMovie(ReloadMovie);
         setReuseMask(ReuseMask);
@@ -217,11 +229,12 @@ createButtonsUI();
         
     end
     function loadMovie(e,r,t)
-        [fn, di, pn]=uigetfile([stimCfgFN.folder '*.tif']);
+        [fn, di, pn]=uigetfile( [stimCfgFN.folder '*.tif*']);
         if di
+           ti = strfind(fn,'.tif');
             stimCfgFN.folder=di;
-            stimCfgFN.name=fn;
-            
+            stimCfgFN.name=fn(1:(ti+3));
+            fn=stimCfgFN.name;
             try % Fast load
                 [data, pathname, fname, dirname] = loadTiff([di fn],1);%'c:',1);
             catch % If fast load not possible, do normal load
@@ -434,6 +447,12 @@ createButtonsUI();
             field(i).Name = 'Number Average Samples';
             field(i).Value = num2str(NumAvgSamples);
             i=i+1;
+            field(i).Name = 'Matlab Pre-Commands';
+            field(i).Value = MpreC;
+            i=i+1;
+            field(i).Name = 'Matlab Post-Commands';
+            field(i).Value = MpostC;
+            i=i+1;
             
             for i=1:length(field)
                 dd4=['\r\n\r\n<Name>'   field(i).Name '</Name>\r\n<Val>%s</Val>'];
@@ -450,9 +469,9 @@ createButtonsUI();
         end
     end
     function loadSettings(e,g,h)
-        [ stimCfgFN.name, folerReturn] = uigetfile([stimCfgFN.folder '*.xml']);
-        if folerReturn
-            stimCfgFN.folder=folerReturn;
+        [ stimCfgFN.name, folderReturn] = uigetfile([stimCfgFN.folder '*.xml']);
+        if folderReturn
+            stimCfgFN.folder=folderReturn;
         end
         stimCfg = xmlSettingsExtractor(stimCfgFN);
         setNOS(stimCfg.pulseCount);
@@ -463,6 +482,83 @@ createButtonsUI();
         
         setStimFreq(stimCfg.stimFreq);
         setStimFreq2(stimCfg.stimFreq2);
+        setFastLoad(stimCfg.fastLoad);
+        setReuseMask(stimCfg.reuseMask);
+        setReloadMovie(stimCfg.reloadMovie);
+        setCellBodytype(stimCfg.cellBody);
+        setDCOF(stimCfg.dutyCycle);
+        setDCOF(stimCfg.dutyCycle2);
+        setSVDNumber(stimCfg.eigenvalueNumber);
+        setFrameSelection(stimCfg.FrameSelectionTxt);
+        setMaskTimeProj(stimCfg.maskTimeProjectionMethod);
+        setPreCommand(stimCfg.preCommand);
+        setPostCommand(stimCfg.postCommand);
+        setNumAvgSamples(stimCfg.NumAvgSamples);
+        setPhotoBleach(stimCfg.PhotoBleachingTxt);
+        setSkipMovie(stimCfg.skipMovie);
+        setWriteSVD(stimCfg.writeSVD);
+    end
+    function doSetPreCommand(f,g,h)
+        setPreCommand(MpreCtxt.String);
+    end
+    function setPreCommand(MpreC2)
+        %convert to 1 string with ENTER
+        MpreC3='';
+        for i=1:size(MpreC2,1)
+            MpreC3 = [MpreC3 MpreC2(i,:) 'ENTER'];%
+        end
+        MPreCellArray= text2cell(MpreC3);
+        
+        % Allocate space for char matrix and fill
+        ml=0;
+        for i=1:length(MPreCellArray)
+         ml=max(ml, size(MPreCellArray{i},2));
+        end
+
+        MPreArray=char(zeros(length(MPreCellArray),ml));
+        for i=1:length(MPreCellArray)
+            MPreArray(i,1:size(MPreCellArray{i},2))=MPreCellArray{i};
+        end
+        
+        % Create 1 line string for export
+        MpreC=[];
+        for i=1:length(MPreCellArray)
+           MpreC = [MpreC MPreCellArray{i} 'ENTER'];%
+        end
+        
+        % Set as the text input.
+        MpreCtxt.String=MPreArray;
+    end
+    function doSetPostCommand(f,g,h)
+        setPostCommand(MpostCtxt.String);
+    end
+    function setPostCommand(MpostC2)
+          %convert to 1 string with ENTER
+        MpostC3='';
+        for i=1:size(MpostC2,1)
+            MpostC3 = [MpostC3 MpostC2(i,:) 'ENTER'];%
+        end
+        MPostCellArray= text2cell(MpostC3);
+        
+        % Allocate space for char matrix and fill
+        ml=0;
+        for i=1:length(MPostCellArray)
+         ml=max(ml, size(MPostCellArray{i},2));
+        end
+
+        MPostArray=char(zeros(length(MPostCellArray),ml));
+        for i=1:length(MPostCellArray)
+            MPostArray(i,1:size(MPostCellArray{i},2))=MPostCellArray{i};
+        end
+        
+        % Create 1 line string for export
+        MpostC=[];
+        for i=1:length(MPostCellArray)
+           MpostC = [MpostC MPostCellArray{i} 'ENTER'];%
+        end
+        
+        % Set as the text input.
+        MpostCtxt.String=MPostArray;
     end
     function doSetReuseMask(s,e,h)
         setReuseMask(ReuseMaskChkBx.Value);
@@ -522,11 +618,9 @@ createButtonsUI();
         WriteSVD =tWriteSVD;
         WriteSVDChkBx.Value=WriteSVD;
     end
-
     function doCreateRef(s,e,h)
         createRef();
     end
-
     function doSetSVDNumber(s,e,h)
         if strcmp(SVDLst.String{SVDLst.Value},'Pop-up')
             setSVDNumber(0); % set SVDNumber to 0 for interactive popup question.

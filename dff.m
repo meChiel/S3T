@@ -1,6 +1,7 @@
 function dff=dff(signal,BC)
 global PhotoBleachingTxt;
 global NumbAvgSamples;
+warning('dff')
 % Calculates the delta fluoresence / base fluoresence signal.
 %
 % BC enables/disables bleach correction. Default = on;
@@ -19,10 +20,9 @@ if BC == 1  %Do Bleach Correction?
             case '2expInt'
                 [~,dff] = exp2BleachCorrection(signal,NumbAvgSamples);warning ('dff hack');
             case 'auto2expInt'
-                [~,dff] = findBaseFluorPoints(signal,2);
+                [~,dff] = findBaseFluorPoints(signal,'2exp');
             case 'autoLinInt'
-                [~,dff] = findBaseFluorPoints(signal,1);
-            
+                [~,dff] = findBaseFluorPoints(signal,'none');
             otherwise
                 error('Bleach correction Type not recognised.')
         end

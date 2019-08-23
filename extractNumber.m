@@ -5,7 +5,13 @@
     if iscell(filename)
         for i=1:length(filename)
             % [~, number(i), ~]= disassembleName(filename{i});
-            number(i)=getENumber(filename{i});
+            try
+                number(i)=getENumber(filename{i});
+            catch
+                disp(filename{i});
+                number(i-1)
+                error(['getENumber of :' filename{i}]);
+            end
         end
     else
         [~, number, ~]= disassembleName(filename);
@@ -14,7 +20,6 @@
     end
     
     function number=getENumber(filename)
-    
     eidx = strfind(filename,'_e');
     if ~isempty(eidx)
         Nendidx = strfind(filename(eidx+1:end),'_');

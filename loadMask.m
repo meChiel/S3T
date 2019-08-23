@@ -17,10 +17,14 @@
         synRegio2=[];
         sortedValues = sort(mask(:));
         [lowestNZValueID] = find(0<sortedValues,1);
-        lowestNZValue = sortedValues(lowestNZValueID);
-        maxValue = max(mask(:));
-        ids = maxValue:-1:lowestNZValue;
-        imagesc(mask);
+        if isempty(lowestNZValueID)
+            ids = [];
+        else
+            lowestNZValue = sortedValues(lowestNZValueID);
+            maxValue = max(mask(:));
+            ids = maxValue:-1:lowestNZValue;
+            imagesc(mask);
+        end
         for i=1:length(ids)
             %synRegio{i}.PixelIdxList = find(mask==ids(i));
             synRegio2{i}= find(mask==ids(i));

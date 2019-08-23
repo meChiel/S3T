@@ -17,9 +17,11 @@ end
 if nargin <2
     onlySVD=0;
 end
+if nargin<1
+    [fname, dirname]=uigetfile('*.tif_mask.png');
+    pname = [dirname fname(1:end-9)];
+end
 
-
-%[fname, dirname]=uigetfile('*.tif');
 [dirname, fname , ext] = fileparts(pname);
 fname = [fname ext];
 for evnI=1:accuracy

@@ -3,7 +3,7 @@ function n01=natsort(n)
 if ~isempty(n)
     n1 = {n.name};
     %z = regexp(n1,'(?<=iGlu_)\d*(?=\_analysis.txt)','match');
-    z = regexp(n1,'\d*','match'); %find all the number is the filename
+    z = regexp(n1,'\d*','match'); %find all the number in the filename
     if isempty(z{1})
         z={{nan}};
     end

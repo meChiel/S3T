@@ -794,7 +794,7 @@ function jitterToggle(e,d,r)
             if strcmp(plateFilename{1}(end-12:end),'_synapses.txt')
                 currentLevel='synapseLevel';
             end
-            if strcmp(plateFilename{1}(end-12:end),'_PPsynapses.txt')
+            if strcmp(plateFilename{1}(end-14:end),'_PPsynapses.txt')
                 currentLevel='synapseLevel';
             end
             if strcmp(plateFilename{1}(end-12:end),'_analysis.txt')

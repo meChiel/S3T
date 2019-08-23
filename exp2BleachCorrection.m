@@ -24,7 +24,7 @@ LM = size(signal,2);
 
 mmend= mean(signal(:,end-aSS:end),2);
 xend=(LM-(aSS*1)):LM;
-x=[(1:aSS*1) repmat(xend,1,200)];
+x=[(1:aSS*1)];% repmat(xend,1,200)]; % exp2fit should have ascending x and no doubles. So no repmat
 if isempty(signal)
     signal=nan*ones(1,size(signal,2));
     a=nan; b=nan; c=nan; p=nan; q=nan;
@@ -33,9 +33,9 @@ for i=1:size(signal,1)
     mstart= signal(i,1:aSS*1);
     
     mend= signal(i,end-(aSS*1):end);
-    mend=(repmat(mmend(i),1,aSS+1));
+    % mend=(repmat(mmend(i),1,aSS+1));
     
-    y=[mstart repmat(mend,1,200)];
+    y=[mstart];% repmat(mend,1,200)]; % exp2fit should have ascending x and no doubles. So no repmat
 
 [a(i),b(i),c(i),p(i),q(i)]=exp2fit(x,y);
 end

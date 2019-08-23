@@ -1,12 +1,21 @@
 function createRef()
-
+% Create reference dictionare.
+% Function to create a set of reference signals which are used to decompose the movie into. 
+% Choosing in the analysis configurator
+% in the Mask Creation Time Projection: DICT.
+% Then all pixel temporal responses are decomposed into the dictionare.
+% This function decomposes the spatial avg response into a photobleach
+% component and a synapse/neuron component.
+% The result is written in a Vref.csv table.
+% The first collumn is the collumn which is used to create the mask when
+% using the DICT. option.
 [A, fname, FileName, PathName, U, S, V, error]=loadTiff([],1);
 Uref=U;
 Vref=V;
 Sref=S;
 %%
 V=squeeze(mean(mean(A)));
-%% decompose reference in photobleach and signal
+%% Decompose reference in photobleach- and synapse-signal
 %[bcresponse, dff, BC, mstart]=findBaseFluorPoints(V(:,1)',2);
 [bcresponse, dff, BC, mstart]=findBaseFluorPoints(V(:)',2);
 

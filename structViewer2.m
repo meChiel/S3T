@@ -6,16 +6,19 @@ function [t,rootNode]=structViewer2(s,rootName,f,rootDir,uia,t,rootNode)
 % If a dir is shown, the rootDir;
 % t is an existing tree, if not a new tree is created
 %
-global currentPath
-global tifViewMode currentAnalysis analysisLst
-tifViewMode='mask';
-currentAnalysis  = 1;
-global displayNodeFct;
-displayNodeFct =@displayNode;
+persistent currentPath
+global tifViewMode2 currentAnalysis2 analysisLst2
+tifViewMode2='mask';
+currentAnalysis2  = 1;
+global displayNodeFct2;
+global isPlaying2;
+global fr;
+displayNodeFct2 =@displayNode;
 
 if nargin<3
     f = uifigure;
-end
+      openBtn = uibutton(f,'push','text','Open','Position',[468 130 100 20],'ButtonPushedFcn', @openDir);%(btn,event) refresh(btn,ax));
+ end
 % try
 %     disp(ctfroot);
 % catch
@@ -36,9 +39,9 @@ end
 
 
 try
-    set(rootNode,'Icon',[ctfroot '\S3T\my_icon.png'])
+    set(rootNode,'Icon',[ctfroot '\S3T\my_icon.png']);
 catch
-    set(rootNode,'Icon',['my_icon.png'])
+    set(rootNode,'Icon',['my_icon.png']);
 end
 if length(s)~=1
     s3=s;
@@ -75,28 +78,45 @@ else
     
 end
 
+    function openDir(e,d,f)
+        disp(['opening ' currentPath]);
+        projViewer(currentPath)
+    end
+
 
     function createStructFieldNodes(parentNode,s2,fnj)%s2=s.(fn{j})
         % creates for each field in the struct a node
-        %fnn=fieldnames(s.(fn{j}));
-        fnn=fieldnames(s2);
+        % fnn=fieldnames(s.(fn{j}));
+        fnn = fieldnames(s2);
         for i=1:(length(fnn))
             %if (isstruct(s.(fn{j})))
-            if (isstruct(s2.(fnn{i})))
+            if (isstruct(s2.(fnn{i}))) % There are still childs
                 %L1Node{j,i} = uitreenode(rootTxtNode{j},'Text',fnn{i},'NodeData',[]);
                 L1Node{i} = uitreenode(parentNode,'Text',OKname2text(fnn{i}),'NodeData',[]);
-                if length(s2.(fnn{i}))~=1
+                if length(s2.(fnn{i}))~=1 % If more items
                     for kk=1:length(s2.(fnn{i})) % create for each element in the array a node
                         Node2{i,kk} = uitreenode(L1Node{i},'Text',[OKname2text(fnn{i}) '[' num2str(kk) ']'],'NodeData',[]);
                         % Create for each element in the struct a node.
                         createStructFieldNodes(Node2{i,kk},s2.(fnn{i})(kk),fnn{i});
                     end
                 else % Single node: create for each element in the struct a node.
-                    
                     createStructFieldNodes( L1Node{i},s2.(fnn{i}),fnn{i})
                 end
-            else
-                showLeave(parentNode,s2.(fnn{i}),fnn{i})
+            else % This is the leave.
+                if ~isExcluded(s2.(fnn{i}),fr) %Is it excluded?
+                    if ~isGreyedOut(s2.(fnn{i}),fr) % Greyed Out?
+                         showLeave(parentNode,s2.(fnn{i}),fnn{i})
+                    else % Is greyed Out?
+                        leaveNode = uitreenode(parentNode,'Text',[OKname2text(fnn{i}) ': ' s2.(fnn{i})],'NodeData',[s2.(fnn{i})]);
+                        try
+                            %set(parentNode,'Icon',[ctfroot '\S3T\unprocesssed_icon.png']);
+                            set(parentNode,'Icon',[ctfroot '\S3T\grey_icon.png']);
+                        catch
+                            % set(parentNode,'Icon',['unprocesssed_icon.png']);
+                            set(parentNode,'Icon',['grey_icon.png']);
+                        end
+                    end
+                end
             end
         end
     end
@@ -109,6 +129,11 @@ end
         end
         if (isstr(s2))
             leaveNode = uitreenode(parentNode,'Text',[OKname2text(fnj) ': ' s2],'NodeData',[s2]);
+            try
+                set(parentNode,'Icon',[ctfroot '\S3T\processsed_icon.png']);
+            catch
+                set(parentNode,'Icon',['processsed_icon.png']);
+            end
         else
             if (isnumeric(s2))
                 if strcmp(fnj,'processed')
@@ -145,7 +170,7 @@ end
         end
         
     end
-global isPlaying
+
     function nodechange(src,event)
         %check here if the particular node has some more information, which
         %can be retreived.
@@ -154,16 +179,23 @@ global isPlaying
         hold off
         compoundAvg=[];
         legendLabels=[];
+        % clear figure 1;
+        figure(1);
+        clf;
+        
+        bcp='2exp';%'none'; % Bleach correction polytype
         for sel=1:size(node,1) % nB of selections = different compounds
             display(node(sel).NodeData);
             display(node(sel).Text);
             %dir(['/**/*' node.Text])
             %        thePath=node(sel).Text
-            %         p=node(sel).Parent;
-            %         while (isprop(p,'Text')) %Go up the tree, until there is no text field
-            %             thePath=[p.Text '\' thePath];
-            %             p=p.Parent;
-            %         end
+                    level=0; 
+                    p=node(sel).Parent;
+                     while (isprop(p,'Text')) %Go up the tree, until there is no text field
+                       %  thePath=[p.Text '\' thePath];
+                         p=p.Parent;
+                         level=level+1;
+                     end
             %         if strcmp(rootDir(end),'\')
             %             thePath=strrep(thePath,[rootName '\'],rootDir);
             %         else
@@ -171,60 +203,152 @@ global isPlaying
             %         end
             %hold off
             plateAvg=[];
-            for k=1:length(node(sel).Children) % All plates with particular compound
-                node2=node(sel).Children(k);
+            plateTime=[];
+            switch level 
+                case 1 % Compound selected
+                    K=length(node(sel).Children);
+                    node3=node(sel).Children;
+                case 2 % Plate selected
+                    K=length(node(sel));
+                    node3=node(sel);
+            end
+            
+            
+                 %% Check if on exclude or gray list
+                 K2=K;
+                for k=K:-1:1 % All wells with compound
+                    node2=node3(k);
+                    thePath=node2.Children.NodeData;
+                    %tifPath = [thePath '\' dcs(c(i)).name(1:end-11) '.tif'];
+                    if isExcluded(thePath,fr)
+                       node3(k)=[];
+                        K2=K2-1;
+                    else
+                        if isGreyedOut(thePath,fr)
+                            node3(k)=[];
+                            K2=K2-1;
+                        end
+                    end
+                end
+                %%
+                K=K2;
+            
+            
+%%
+            for k=1:K % All plates with particular compound
+                node2=node3(k);
                 thePath=node2.Children.NodeData;
-                
-                
                 %thePath=strrep(thePath,rootName,rootDir);
                 currentPath = thePath;
                 %  displayNode(thePath,node.Text);
                 %gg=strfind(thePath,'\');
-                ttt=dir([thePath '\*_Analysis']);
-                if isfile([thePath '\' currentAnalysis '_Analysis\mask_overview.png'])
-                    avgFile=[thePath '\' currentAnalysis '_Analysis\mask_overview.png'];
+                Analysises=dir([thePath '\*_Analysis']);
+                if isfile([thePath '\' currentAnalysis2 '_Analysis\mask_overview.png'])
+                    avgFile=[thePath '\' currentAnalysis2 '_Analysis\mask_overview.png'];
                 else
-                    avgFile=[ttt(1).folder '\' ttt(1).name '\mask_overview.png'];%'\' 'mask_overview.png'];
-                    ca = ttt(1).name;
-                    currentAnalysis = ca(1:end-(length('_Analysis')));
+                    if ~isempty(Analysises)
+                        avgFile=[Analysises(1).folder '\' Analysises(1).name '\mask_overview.png'];%'\' 'mask_overview.png'];
+                        ca = Analysises(1).name;
+                        currentAnalysis2 = ca(1:end-(length('_Analysis')));
+                    else
+                        error(['could not find file: ' thePath] );
+                        %error();
+                         
+                     end
                 end
                 
                 %imagesc(imresize(imread(avgFile),'OutputSize',[3102/2.3,5170/2.3 ]));
-                aw=csvread([thePath  '\plateLayout_' node2.Parent.Text '.csv']);
-                aw=readtable([thePath  '\' ttt(1).name '\output\AllWells.txt']);
+%                aw=csvread([thePath  '\plateLayout_' node2.Parent.Text '.csv']);
+                aw=readtable([thePath  '\' Analysises(1).name '\output\AllWells.txt']);
                 
                 compoundName = node2.Parent.Text;
-                cfn = aw.FileNumber(~isnan(aw.(compoundName)));
-                inputDir = [thePath  '\' ttt(1).name '\output\'];
-                dcs=dir([inputDir '\*.csv']); % Directory Csv'S
-                [r,c] = find(aw.FileNumber==extractNumber({dcs(:).name}));
+                cfn = aw.FileNumber(~isnan(aw.(text2OKname(compoundName)))); % Compound file number(s)
+                if isempty(cfn) 
+                    disp( 'The compound well is not in this plate directory.');
+                else
+                inputDir = [thePath  '\' Analysises(1).name '\output\'];
+                dcs=dir([inputDir '\*_traces.csv']); % Directory Csv'S
+                disp(inputDir);
+                
                 [r,c] = find(cfn==extractNumber({dcs(:).name}));
+                
+                %% Check if on exclude or gray list:
+                for i=length(c):-1:1 % All wells with compound
+                    disp([dcs(c(i)).folder '\' dcs(c(i)).name]);
+                    tifPath = [thePath '\' dcs(c(i)).name(1:end-11) '.tif'];
+                    if isExcluded(tifPath,fr)
+                        c(i)=[];
+                    else
+                        if isGreyedOut(tifPath,fr)
+                            c(i)=[];
+                        end
+                    end
+                end
+                
+                %%
                  Wellavg=[];
+                 WellTime=[];
                 for i=1:length(c) % All wells with compound
                     disp(dcs(c(i)).name)
                     tr{i} = readtable([dcs(c(i)).folder '\' dcs(c(i)).name]);
-                     Wellavg(:,i)=tr{i}.SynapseAverage; %PixelAverage,rawAverageResponse,SWSynapseAverage,SynapseAverage
+                    
+                        Wellavg(:,i)=tr{i}.PixelAverage; %SynapseAverage,PixelAverage,rawAverageResponse,SWSynapseAverage,SynapseAverage
+                        WellTime(:,i)=tr{i}.time;   
+                    
                     if size(node,1)>1 % When multiple files selected.
                         %%  plot(tr{i}.time,tr{i}.rawAverageResponse,'color',thecolor(sel,:)); %PixelAverage,rawAverageResponse
                         %hold on;
                        % Wellavg(:,i)=tr{i}.PixelAverage;
                         
-                    else
-                        plot(tr{i}.time,tr{i}.PixelAverage); %PixelAverage,rawAverageResponse,SWSynapseAverage,SynapseAverage
+                    else %Single File selected
+                        plot(tr{i}.time, findBaseFluorPoints(Wellavg(:,i)',bcp,0)'); %PixelAverage,rawAverageResponse,SWSynapseAverage,SynapseAverage
                         hold on;
                     end
                     
                 end
-                plateAvg(:,k)=mean(Wellavg,2);
-                if size(node,1)==1
-                    plot(tr{i}.time,plateAvg(:,k),'color',thecolor(mod(sel-1,6)+1,:),'LineWidth',3); %PixelAverage,rawAverageResponse
+                mW = findBaseFluorPoints(mean(Wellavg,2)',bcp,0)';
+                wT = mean(WellTime,2);
+                if size(mW,1)==size(plateAvg,1)
+                    plateAvg(:,k) = mW;
+                    plateTime(:,k) = wT;
+                    
+                else % Change the size of the smallest to the largest by adding zeros.
+                    if size(mW,1)<size(plateAvg,1)
+                        dsize=size(plateAvg,1)-size(mW,1);
+                        plateAvg(:,k) = [mW; zeros(dsize,1)];
+
+                        plateTime(:,k) = [wT; wT(end)+(wT(2)-wT(1))*(1:dsize)'];
+                    else
+                        dsize=size(mW,1)-size(plateAvg,1);
+                        plateAvg = [plateAvg; zeros(dsize,size(plateAvg,2))];
+                        plateAvg(:,k) = mW;
+                        if isempty(plateTime)
+                            plateTime(:,k) = wT;
+                        else
+                            plateTime = [plateTime; plateTime(end,:)+(plateTime(2,:)-plateTime(1,:)).*(1:dsize)' ];
+                            plateTime(:,k) = wT;
+                        end
+                    end
+                    
+                end
+                figure(1);
+                if size(node,1)==1 %Single compound selection, => show all plates avg.
+                    try
+                        plot( plateTime(:,k),plateAvg(:,k),'color',thecolor(mod(sel-1,6)+1,:),'LineWidth',3); %PixelAverage,rawAverageResponse
+                    catch
+                        plot( plateTime(:,k),plateAvg(:,k),'color',thecolor(mod(sel-1,6)+1,:),'LineWidth',3); %PixelAverage,rawAverageResponse
+                    end
                     hold on;
+                end
                 end
             end
             legendLabels{sel}=node(sel).Text;
-            compoundAvg(:,sel)=mean(plateAvg,2);
-            if size(node,1)>1
-                plot(tr{i}.time,compoundAvg(:,sel),'color',thecolor(mod(sel-1,6)+1,:),'LineWidth',3); %PixelAverage,rawAverageResponse
+            
+            compoundAvg{sel}=findBaseFluorPoints(mean(plateAvg,2)',bcp,0)';
+            compoundTime{sel}=mean(plateTime,2);
+            figure(1);
+            if size(node,1)>1 % if multiple selections
+                plot(compoundTime{sel},compoundAvg{sel},'color',thecolor(mod(sel-1,6)+1,:),'LineWidth',3); %PixelAverage,rawAverageResponse
                 hold on;
             end
         end
@@ -240,8 +364,8 @@ global isPlaying
             %             tifViewMode='play'
             %             tifViewMode='analysis'
             %             tifViewMode='temp'
-            tifViewMode=tifViewMode; %comes from global variable in projViewer
-            switch tifViewMode
+            tifViewMode2=tifViewMode2; %comes from global variable in projViewer
+            switch tifViewMode2
                 case 'mask'
                     gg=strfind(thePath,'\');
                     % Find the _Analysis folders/xml files.
@@ -249,7 +373,7 @@ global isPlaying
                     analysisLst.Items= getAnalysises(thePath);
                     io=1;
                     % ttt(io).folder = [ttt(io).folder '\' ttt(io).name];
-                    ttt(io).folder = [ttt(io).folder '\' currentAnalysis '_Analysis'];
+                    ttt(io).folder = [ttt(io).folder '\' currentAnalysis2 '_Analysis'];
                     ttt(io).name=thePath(gg(end)+1:end);
                     if ~isempty(ttt)
                         for io=1:1%size(t,1)
@@ -303,7 +427,7 @@ global isPlaying
                     analysisLst.Items= getAnalysises(thePath);
                     io=1;
                     % ttt(io).folder = [ttt(io).folder '\' ttt(io).name];
-                    ttt(io).folder = [ttt(io).folder '\' currentAnalysis '_Analysis'];
+                    ttt(io).folder = [ttt(io).folder '\' currentAnalysis2 '_Analysis'];
                     ttt(io).name=thePath(gg(end)+1:end);
                     if ~isempty(ttt)
                         for io=1:1%size(t,1)
@@ -347,7 +471,7 @@ global isPlaying
             overviewFile=[thePath '\mask_overview.png'];
             if exist(overviewFile,'file')
                 currentPath = thePath;
-                switch tifViewMode
+                switch tifViewMode2
                     case 'mask'
                         % Find the _Analysis folders/xml files.
                         ttt=dir([thePath '\*_Analysis\mask_overview.png']); % This takes a few ms which can be avoided, but is OK for now.
@@ -363,8 +487,8 @@ global isPlaying
                             for io=1:1%size(t,1)
                                 %avgFile=[ttt(io).folder '\' ttt(io).name];
                                 %avgFile=[ttt(io).folder '\' 'analysis_overview.png'];
-                                if isfile([thePath '\' currentAnalysis '_Analysis\mask_overview.png'])
-                                    avgFile=[thePath '\' currentAnalysis '_Analysis\mask_overview.png'];
+                                if isfile([thePath '\' currentAnalysis2 '_Analysis\mask_overview.png'])
+                                    avgFile=[thePath '\' currentAnalysis2 '_Analysis\mask_overview.png'];
                                 else
                                     avgFile=[ttt(io).folder ];%'\' 'mask_overview.png'];
                                 end
@@ -397,7 +521,7 @@ global isPlaying
                             for io=1:1%size(t,1)
                                 %avgFile=[ttt(io).folder '\' ttt(io).name];
                                 %avgFile=[ttt(io).folder '\' 'analysis_overview.png'];
-                                avgFile=[thePath '\' currentAnalysis '_Analysis\analysis_overview.png'];
+                                avgFile=[thePath '\' currentAnalysis2 '_Analysis\analysis_overview.png'];
                                 imagesc(uia,imresize(imread(avgFile),'OutputSize',[3102/2.3,5170/2.3 ]));
                                 %uia.Position=[700,-10,512*2,512*2 ];
                                 uia.Position=[560,-600,3102/2.3,5170/2.3 ]
@@ -434,8 +558,8 @@ global isPlaying
                         %ttt(io).name=nodeText;
                         if ~isempty(ttt)
                             for io=1:1%size(t,1)
-                                if isfile([thePath '\' currentAnalysis '_Analysis\temp_overview.png'])
-                                    avgFile=[thePath '\' currentAnalysis '_Analysis\temp_overview.png'];
+                                if isfile([thePath '\' currentAnalysis2 '_Analysis\temp_overview.png'])
+                                    avgFile=[thePath '\' currentAnalysis2 '_Analysis\temp_overview.png'];
                                 else
                                     avgFile=[thePath '\' AL{i} '_Analysis\temp_overview.png'];
                                     
@@ -477,6 +601,5 @@ global isPlaying
             AL{i} = ttt(i).name(1:end-9);
         end
     end
-
 
 end
