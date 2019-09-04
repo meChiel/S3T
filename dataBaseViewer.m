@@ -1,5 +1,6 @@
 global fr currentPath
 % Read Filter
+disp(' Read Filter')
 if ~exist('dfp','var')
     dfp = chooseFilter('D:\my E drive\bckup\testSegV1');
    % dfp='default_Filter.pson';
@@ -49,7 +50,7 @@ end
 rr=rr2;
 
 %%
-
+disp('Extracting compound names');
 % Extract compound name:
 rname=[];
 for i=1:length(rr) 
@@ -67,7 +68,7 @@ end
 % Sort names:
 urname=sort(urname);
 
-% Remove empty entries:
+disp(' Remove empty entries:');
 urname5=urname;
 for i=1:length(urname)
     if isempty(urname{i})
@@ -88,6 +89,7 @@ end
 % axis off
 
 %%
+disp('create compound structure')
 compounds=[];
 for i=1:length(urname)
     try
@@ -106,7 +108,7 @@ for i=1:length(urname)
 end
 
 
-
+%%
 structViewer2(compounds,'compounds');
 
 

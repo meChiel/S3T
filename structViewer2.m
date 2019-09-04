@@ -14,10 +14,13 @@ global displayNodeFct2;
 global isPlaying2;
 global fr;
 displayNodeFct2 =@displayNode;
+currentNode=0;
 
-if nargin<3
-    f = uifigure;
+if nargin<3 % Create the uifigure.
+      f = uifigure;
       openBtn = uibutton(f,'push','text','Open','Position',[468 130 100 20],'ButtonPushedFcn', @openDir);%(btn,event) refresh(btn,ax));
+      excludeBtn = uibutton(f,'push','text','grey out','Position',[268 130 100 20],'ButtonPushedFcn', @greyOut);%(btn,event) refresh(btn,ax));
+      unexcludeBtn = uibutton(f,'push','text','un-grey out','Position',[268 100 100 20],'ButtonPushedFcn', @ungreyOut);
  end
 % try
 %     disp(ctfroot);
@@ -78,11 +81,47 @@ else
     
 end
 
-    function openDir(e,d,f)
-        disp(['opening ' currentPath]);
-        projViewer(currentPath)
+
+
+    function greyOut(e,d,f)
+        disp(['greyout: ' currentPath]);
+        disp([currentPath ' should be greyed Out.']);
+        psonFileName='gal2_Filter.pson';
+        fr.greyOut{end+1}=currentPath;
+        psonwrite(psonFileName,fr)
+        try
+            %set(parentNode,'Icon',[ctfroot '\S3T\unprocesssed_icon.png']);
+            set(currentNode,'Icon',[ctfroot '\S3T\grey_icon.png']);
+        catch
+            % set(parentNode,'Icon',['unprocesssed_icon.png']);
+            set(currentNode,'Icon',['grey_icon.png']);
+        end
+      
     end
 
+    function ungreyOut(e,d,f)
+        disp(['ungrey: ' currentPath]);
+        disp([currentPath ' should be ungreyed']);
+        psonFileName='gal2_Filter.pson';
+        for i=length(fr.greyOut):-1:1
+            p = strcmp(fr.greyOut{i},currentPath);
+            if p==1
+                fr.greyOut(i)=[];
+            end
+        end
+        psonwrite(psonFileName,fr)
+        try
+            set(currentNode,'Icon',[ctfroot '\S3T\processsed_icon.png']);
+        catch
+            set(currentNode,'Icon',['processsed_icon.png']);
+        end
+    end
+
+    function openDir(e,d,f)
+        disp(['opening ' currentPath]);
+        rr=strfind(currentPath,'\');
+        projViewer(currentPath(1:rr(end)))
+    end
 
     function createStructFieldNodes(parentNode,s2,fnj)%s2=s.(fn{j})
         % creates for each field in the struct a node
@@ -171,31 +210,49 @@ end
         
     end
 
+    function currentAnalysis2 = checkCurrentAnalysis(thePath,currentAnalysis2)
+        if isfile([thePath '\' currentAnalysis2 '_Analysis\mask_overview.png'])
+            %avgFile=[thePath '\' currentAnalysis2 '_Analysis\mask_overview.png'];
+        else
+            Analysises=dir([thePath '\*_Analysis']);
+            if ~isempty(Analysises)
+                %avgFile=[Analysises(1).folder '\' Analysises(1).name '\mask_overview.png'];%'\' 'mask_overview.png'];
+                ca = Analysises(1).name;
+                currentAnalysis2 = ca(1:end-(length('_Analysis')));
+            else
+                error(['could not find file: ' thePath] );
+                %error();
+            end
+        end
+    end
+
     function nodechange(src,event)
         %check here if the particular node has some more information, which
         %can be retreived.
         node = event.SelectedNodes;
+        currentNode = node;
         thecolor= [0 0 1; 1 0 0; 0 1 0; 1 1 0; 0 1 1; 1 0 1];%colormap(jet);
         hold off
         compoundAvg=[];
         legendLabels=[];
         % clear figure 1;
-        figure(1);
+        %figure(1);
         clf;
         
-        bcp='2exp';%'none'; % Bleach correction polytype
-        for sel=1:size(node,1) % nB of selections = different compounds
+        bcp='none';%2exp';%'none'; % Bleach correction polytype
+        nSelections=size(node,1);
+        for sel=1:nSelections % nB of selections = different compounds
             display(node(sel).NodeData);
             display(node(sel).Text);
             %dir(['/**/*' node.Text])
             %        thePath=node(sel).Text
-                    level=0; 
-                    p=node(sel).Parent;
-                     while (isprop(p,'Text')) %Go up the tree, until there is no text field
-                       %  thePath=[p.Text '\' thePath];
-                         p=p.Parent;
-                         level=level+1;
-                     end
+            level=0;
+            p=node(sel).Parent;
+            while (isprop(p,'Text')) %Go up the tree, until there is no text field
+                %  thePath=[p.Text '\' thePath];
+                p=p.Parent;
+                level=level+1;
+            end
             %         if strcmp(rootDir(end),'\')
             %             thePath=strrep(thePath,[rootName '\'],rootDir);
             %         else
@@ -204,151 +261,333 @@ end
             %hold off
             plateAvg=[];
             plateTime=[];
-            switch level 
+            level
+            i=0;
+            switch level
                 case 1 % Compound selected
                     K=length(node(sel).Children);
                     node3=node(sel).Children;
                 case 2 % Plate selected
                     K=length(node(sel));
                     node3=node(sel);
-            end
-            
-            
-                 %% Check if on exclude or gray list
-                 K2=K;
-                for k=K:-1:1 % All wells with compound
-                    node2=node3(k);
-                    thePath=node2.Children.NodeData;
-                    %tifPath = [thePath '\' dcs(c(i)).name(1:end-11) '.tif'];
-                    if isExcluded(thePath,fr)
-                       node3(k)=[];
-                        K2=K2-1;
-                    else
-                        if isGreyedOut(thePath,fr)
-                            node3(k)=[];
-                            K2=K2-1;
-                        end
+                case 3 % Well selected
+                    K=length(node(sel));
+                    node3=node(sel).Parent;
+                case 4 % Synapse selected
+                    K=length(node(sel));
+                    node3=node(sel).Parent;
+            end    
+            %%
+          
+            switch level
+                case 4 % Synapse selected
+                    thePath  = node(sel).Parent.Parent.Children(1).NodeData;
+                    currentPath = thePath;
+                    tifPath = [thePath '\' node(sel).Text(1:end-11) '.tif'];
+                    currentAnalysis2 = checkCurrentAnalysis(thePath,currentAnalysis2);
+                    str = readtable([thePath  '\' currentAnalysis2 '_Analysis\output\SynapseDetails\' node(sel).Parent.Text(1:end-11) '_synTraces.csv']);
+                    %figure(1)
+                    plot(str.time,str.(node(sel).Text));
+                case 3 % Well selected
+                    thePath  = node(sel).Parent.Children(1).NodeData;
+                    tifPath = [thePath '\' node(sel).Text(1:end-11) '.tif'];
+                    currentPath = tifPath;
+                    currentAnalysis2 = checkCurrentAnalysis(thePath,currentAnalysis2);
+                    % Looking at wells, show synapses
+                    for jjjj=length(node(sel).Children):-1:1 % Always remove and recreate fields from here.
+                        node(sel).Children(jjjj).delete;
                     end
-                end
-                %%
-                K=K2;
-            
-            
-%%
-            for k=1:K % All plates with particular compound
-                node2=node3(k);
-                thePath=node2.Children.NodeData;
-                %thePath=strrep(thePath,rootName,rootDir);
-                currentPath = thePath;
-                %  displayNode(thePath,node.Text);
-                %gg=strfind(thePath,'\');
-                Analysises=dir([thePath '\*_Analysis']);
-                if isfile([thePath '\' currentAnalysis2 '_Analysis\mask_overview.png'])
-                    avgFile=[thePath '\' currentAnalysis2 '_Analysis\mask_overview.png'];
-                else
-                    if ~isempty(Analysises)
-                        avgFile=[Analysises(1).folder '\' Analysises(1).name '\mask_overview.png'];%'\' 'mask_overview.png'];
-                        ca = Analysises(1).name;
-                        currentAnalysis2 = ca(1:end-(length('_Analysis')));
-                    else
-                        error(['could not find file: ' thePath] );
-                        %error();
-                         
-                     end
-                end
-                
-                %imagesc(imresize(imread(avgFile),'OutputSize',[3102/2.3,5170/2.3 ]));
-%                aw=csvread([thePath  '\plateLayout_' node2.Parent.Text '.csv']);
-                aw=readtable([thePath  '\' Analysises(1).name '\output\AllWells.txt']);
-                
-                compoundName = node2.Parent.Text;
-                cfn = aw.FileNumber(~isnan(aw.(text2OKname(compoundName)))); % Compound file number(s)
-                if isempty(cfn) 
-                    disp( 'The compound well is not in this plate directory.');
-                else
-                inputDir = [thePath  '\' Analysises(1).name '\output\'];
-                dcs=dir([inputDir '\*_traces.csv']); % Directory Csv'S
-                disp(inputDir);
-                
-                [r,c] = find(cfn==extractNumber({dcs(:).name}));
-                
-                %% Check if on exclude or gray list:
-                for i=length(c):-1:1 % All wells with compound
-                    disp([dcs(c(i)).folder '\' dcs(c(i)).name]);
-                    tifPath = [thePath '\' dcs(c(i)).name(1:end-11) '.tif'];
-                    if isExcluded(tifPath,fr)
-                        c(i)=[];
-                    else
-                        if isGreyedOut(tifPath,fr)
-                            c(i)=[];
+                    
+                    wtr = readtable([thePath  '\' currentAnalysis2 '_Analysis\output\' node(sel).Text(1:end-11) '_traces.csv']);
+                    wta=table2array(wtr);
+                    %figure(1);
+                    
+                    if nSelections <2 % Only plot individual synapses when no multiple selections
+                        str = readtable([thePath  '\' currentAnalysis2 '_Analysis\output\SynapseDetails\' node(sel).Text(1:end-11) '_synTraces.csv']);
+                        for jjj=1:width(str) % Show all synapses in Tree
+                            %synapseNode =
+                            uitreenode(node(sel),'Text',str.Properties.VariableNames{jjj},'NodeData',[tifPath]);
                         end
-                    end
-                end
-                
-                %%
-                 Wellavg=[];
-                 WellTime=[];
-                for i=1:length(c) % All wells with compound
-                    disp(dcs(c(i)).name)
-                    tr{i} = readtable([dcs(c(i)).folder '\' dcs(c(i)).name]);
-                    
-                        Wellavg(:,i)=tr{i}.PixelAverage; %SynapseAverage,PixelAverage,rawAverageResponse,SWSynapseAverage,SynapseAverage
-                        WellTime(:,i)=tr{i}.time;   
-                    
-                    if size(node,1)>1 % When multiple files selected.
-                        %%  plot(tr{i}.time,tr{i}.rawAverageResponse,'color',thecolor(sel,:)); %PixelAverage,rawAverageResponse
-                        %hold on;
-                       % Wellavg(:,i)=tr{i}.PixelAverage;
-                        
-                    else %Single File selected
-                        plot(tr{i}.time, findBaseFluorPoints(Wellavg(:,i)',bcp,0)'); %PixelAverage,rawAverageResponse,SWSynapseAverage,SynapseAverage
+                        sta=table2array(str);
+                        plot(str.time,sta(:,2:end),'color',[0.5 0.5 0.5]);
                         hold on;
-                    end
-                    
-                end
-                mW = findBaseFluorPoints(mean(Wellavg,2)',bcp,0)';
-                wT = mean(WellTime,2);
-                if size(mW,1)==size(plateAvg,1)
-                    plateAvg(:,k) = mW;
-                    plateTime(:,k) = wT;
-                    
-                else % Change the size of the smallest to the largest by adding zeros.
-                    if size(mW,1)<size(plateAvg,1)
-                        dsize=size(plateAvg,1)-size(mW,1);
-                        plateAvg(:,k) = [mW; zeros(dsize,1)];
-
-                        plateTime(:,k) = [wT; wT(end)+(wT(2)-wT(1))*(1:dsize)'];
-                    else
-                        dsize=size(mW,1)-size(plateAvg,1);
-                        plateAvg = [plateAvg; zeros(dsize,size(plateAvg,2))];
-                        plateAvg(:,k) = mW;
-                        if isempty(plateTime)
-                            plateTime(:,k) = wT;
-                        else
-                            plateTime = [plateTime; plateTime(end,:)+(plateTime(2,:)-plateTime(1,:)).*(1:dsize)' ];
-                            plateTime(:,k) = wT;
-                        end
-                    end
-                    
-                end
-                figure(1);
-                if size(node,1)==1 %Single compound selection, => show all plates avg.
-                    try
-                        plot( plateTime(:,k),plateAvg(:,k),'color',thecolor(mod(sel-1,6)+1,:),'LineWidth',3); %PixelAverage,rawAverageResponse
-                    catch
-                        plot( plateTime(:,k),plateAvg(:,k),'color',thecolor(mod(sel-1,6)+1,:),'LineWidth',3); %PixelAverage,rawAverageResponse
+                        plot(str.time,mean(sta(:,2:end),2),'color',[0.0 0 0],'LineWidth',3);
                     end
                     hold on;
-                end
-                end
+                    plot(wtr.time,wta(:,2),'color',[1.0 0 0],'LineWidth',1);
+
+                case 2  % Plate selected
+                    
+                          %% Check if plate is on exclude or gray list and remove from list
+                    K2=K;
+                    for k=K:-1:1 % All wells with compound
+                        isIncluded = 0;
+                        node2=node3(k);
+                        thePath=node2.Children(1).NodeData;
+                        currentPath = thePath;
+                        if isExcluded(thePath,fr)
+                            node3(k)=[];
+                            K2=K2-1;
+                        else
+                            if isGreyedOut(thePath,fr)
+                                node3(k)=[];
+                                K2=K2-1;
+                            else
+                                 isIncluded = 1;
+                            end
+                        end
+                    end
+                    K=K2;
+                    
+                    %%
+                    if K2>0 % All plates with particular compound
+                        node2=node3(k);
+                        thePath=node2.Children(1).NodeData;
+                        
+                        %thePath=strrep(thePath,rootName,rootDir);
+                        currentPath = thePath;
+                        %  displayNode(thePath,node.Text);
+                        %gg=strfind(thePath,'\');
+                        
+                        
+                        %% Check current Analysis
+                        currentAnalysis2 = checkCurrentAnalysis(thePath,currentAnalysis2);
+                        
+                        %%
+                        %imagesc(imresize(imread(avgFile),'OutputSize',[3102/2.3,5170/2.3 ]));
+                        %                aw=csvread([thePath  '\plateLayout_' node2.Parent.Text '.csv']);
+                        aw=readtable([thePath  '\' currentAnalysis2 '_Analysis\output\AllWells.txt']);
+                        
+                        compoundName = node2.Parent.Text;
+                        cfn = aw.FileNumber(~isnan(aw.(text2OKname(compoundName)))); % Compound file number(s)
+                        if isempty(cfn)
+                            disp( 'The compound well is not in this plate directory.');
+                        else
+                            inputDir = [thePath  '\' currentAnalysis2 '_Analysis\output\'];
+                            dcs=dir([inputDir '\*_traces.csv']); % Directory Csv'S
+                            disp(inputDir);
+                            
+                            [r,c] = find(cfn==extractNumber({dcs(:).name}));
+                            isIncluded = 0;
+                            
+                            %% Check if well is on exclude or gray list:
+                            for i=length(c):-1:1 % All wells with compound
+                                disp([dcs(c(i)).folder '\' dcs(c(i)).name]);
+                                tifPath = [thePath '\' dcs(c(i)).name(1:end-11) '.tif'];
+                                if isExcluded(tifPath,fr)
+                                    c(i)=[];
+                                else
+                                    if isGreyedOut(tifPath,fr)
+                                        c(i)=[];
+                                    else
+                                        isIncluded = 1;
+                                    end
+                                end
+                            end
+                            
+                            %%
+                            if isIncluded 
+                            Wellavg=[];
+                            WellTime=[];
+                            if 1 %level ==2 % plate selected, remove wells
+                                for jjjj=length(node(sel).Children):-1:2 % Always remove and recreate fields from here.
+                                    node(sel).Children(jjjj).delete;
+                                end
+                            end
+                            for i=1:length(c) % All wells with compound
+                                disp(dcs(c(i)).name)
+                                if level == 2 % Looking at plates, show wells
+                                    tifPath = [thePath '\' dcs(c(i)).name(1:end-11) '.tif'];
+                                    leaveNode = uitreenode(node(sel),'Text',dcs(c(i)).name,'NodeData',[tifPath]);
+                                end
+                                
+                                tr{i} = readtable([dcs(c(i)).folder '\' dcs(c(i)).name]);
+                                Wellavg(:,i)=tr{i}.PixelAverage; %SynapseAverage,PixelAverage,rawAverageResponse,SWSynapseAverage,SynapseAverage
+                                WellTime(:,i)=tr{i}.time;
+                                
+                                if nSelections>1 % When multiple files selected.
+                                    %%  plot(tr{i}.time,tr{i}.rawAverageResponse,'color',thecolor(sel,:)); %PixelAverage,rawAverageResponse
+                                    %hold on;
+                                    % Wellavg(:,i)=tr{i}.PixelAverage;
+                                    
+                                else %Single File selected, Show all well avgs
+                                    plot(tr{i}.time, findBaseFluorPoints(Wellavg(:,i)',bcp,0)'); %PixelAverage,rawAverageResponse,SWSynapseAverage,SynapseAverage
+                                    hold on;
+                                end
+                                
+                            end
+                            
+                            mW = findBaseFluorPoints(mean(Wellavg,2)',bcp,0)';
+                            wT = mean(WellTime,2);
+                            if size(mW,1)==size(plateAvg,1) % Check length recordings
+                                plateAvg(:,k) = mW;
+                                plateTime(:,k) = wT;
+                                
+                            else % Change the size of the shortest to the longest recording by adding zeros.
+                                if size(mW,1)<size(plateAvg,1)
+                                    dsize=size(plateAvg,1)-size(mW,1);
+                                    plateAvg(:,k) = [mW; zeros(dsize,1)];
+                                    
+                                    plateTime(:,k) = [wT; wT(end)+(wT(2)-wT(1))*(1:dsize)'];
+                                else
+                                    dsize=size(mW,1)-size(plateAvg,1);
+                                    plateAvg = [plateAvg; zeros(dsize,size(plateAvg,2))];
+                                    plateAvg(:,k) = mW;
+                                    if isempty(plateTime)
+                                        plateTime(:,k) = wT;
+                                    else
+                                        plateTime = [plateTime; plateTime(end,:)+(plateTime(2,:)-plateTime(1,:)).*(1:dsize)' ];
+                                        plateTime(:,k) = wT;
+                                    end
+                                end
+                                
+                            end
+                            end
+                        end
+                        %figure(1);
+                        if size(node,1)==1 %Single compound selection, => show all plates avg.
+                            try
+                                plot( plateTime(:,k),plateAvg(:,k),'color',thecolor(mod(sel-1,6)+1,:),'LineWidth',3); %PixelAverage,rawAverageResponse
+                            catch
+                                plot( plateTime(:,k),plateAvg(:,k),'color',thecolor(mod(sel-1,6)+1,:),'LineWidth',3); %PixelAverage,rawAverageResponse
+                            end
+                            hold on;
+                        end
+                    end
+                    
+                case 1 % Compound Selected
+                    %% Check if plate is on exclude or gray list and remove from list
+                    K2=K;
+                    for k=K:-1:1 % All wells with compound
+                        isIncluded = 0;
+                        node2=node3(k);
+                        thePath=node2.Children(1).NodeData;
+                        if isExcluded(thePath,fr)
+                            node3(k)=[];
+                            K2=K2-1;
+                        else
+                            if isGreyedOut(thePath,fr)
+                                node3(k)=[];
+                                K2=K2-1;
+                            else
+                                 isIncluded = 1;
+                            end
+                        end
+                    end
+                    K=K2;
+                    
+                    %%
+                    for k=1:K % All plates with particular compound
+                        node2=node3(k);
+                        thePath=node2.Children(1).NodeData;
+                        
+                        %thePath=strrep(thePath,rootName,rootDir);
+                        currentPath = thePath;
+                        %  displayNode(thePath,node.Text);
+                        %gg=strfind(thePath,'\');
+                        
+                        
+                        %% Check current Analysis
+                        currentAnalysis2 = checkCurrentAnalysis(thePath,currentAnalysis2);
+                        
+                        %%
+                        %imagesc(imresize(imread(avgFile),'OutputSize',[3102/2.3,5170/2.3 ]));
+                        %                aw=csvread([thePath  '\plateLayout_' node2.Parent.Text '.csv']);
+                        aw=readtable([thePath  '\' currentAnalysis2 '_Analysis\output\AllWells.txt']);
+                        
+                        compoundName = node2.Parent.Text;
+                        cfn = aw.FileNumber(~isnan(aw.(text2OKname(compoundName)))); % Compound file number(s)
+                        if isempty(cfn)
+                            disp( 'The compound well is not in this plate directory.');
+                        else
+                            inputDir = [thePath  '\' currentAnalysis2 '_Analysis\output\'];
+                            dcs=dir([inputDir '\*_traces.csv']); % Directory Csv'S
+                            disp(inputDir);
+                            
+                            [r,c] = find(cfn==extractNumber({dcs(:).name}));
+                            isIncluded = 0;
+                            
+                            %% Check if well is on exclude or gray list:
+                            for i=length(c):-1:1 % All wells with compound
+                                disp([dcs(c(i)).folder '\' dcs(c(i)).name]);
+                                tifPath = [thePath '\' dcs(c(i)).name(1:end-11) '.tif'];
+                                if isExcluded(tifPath,fr)
+                                    c(i)=[];
+                                else
+                                    if isGreyedOut(tifPath,fr)
+                                        c(i)=[];
+                                    else
+                                        isIncluded = 1;
+                                    end
+                                end
+                            end
+                            
+                            %%
+                            if isIncluded 
+                            Wellavg=[];
+                            WellTime=[];
+                            for i=1:length(c) % All wells with compound
+                                disp(dcs(c(i)).name)
+                                tr{i} = readtable([dcs(c(i)).folder '\' dcs(c(i)).name]);
+                                Wellavg(:,i)=tr{i}.PixelAverage; %SynapseAverage,PixelAverage,rawAverageResponse,SWSynapseAverage,SynapseAverage
+                                WellTime(:,i)=tr{i}.time;
+                            end
+                            
+                            mW = findBaseFluorPoints(mean(Wellavg,2)',bcp,0)';
+                            wT = mean(WellTime,2);
+                            if size(mW,1)==size(plateAvg,1) % Check length recordings
+                                plateAvg(:,k) = mW;
+                                plateTime(:,k) = wT;
+                                
+                            else % Change the size of the shortest to the longest recording by adding zeros.
+                                if size(mW,1)<size(plateAvg,1)
+                                    dsize=size(plateAvg,1)-size(mW,1);
+                                    plateAvg(:,k) = [mW; zeros(dsize,1)];
+                                    
+                                    plateTime(:,k) = [wT; wT(end)+(wT(2)-wT(1))*(1:dsize)'];
+                                else
+                                    dsize=size(mW,1)-size(plateAvg,1);
+                                    plateAvg = [plateAvg; zeros(dsize,size(plateAvg,2))];
+                                    plateAvg(:,k) = mW;
+                                    if isempty(plateTime)
+                                        plateTime(:,k) = wT;
+                                    else
+                                        plateTime = [plateTime; plateTime(end,:)+(plateTime(2,:)-plateTime(1,:)).*(1:dsize)' ];
+                                        plateTime(:,k) = wT;
+                                    end
+                                end
+                                
+                            end
+                            end
+                        end
+                        %figure(1);
+                        if size(node,1)==1 %Single compound selection, => show all plates avg.
+                            try
+                                plot( plateTime(:,k),plateAvg(:,k),'color',thecolor(mod(sel-1,6)+1,:),'LineWidth',3); %PixelAverage,rawAverageResponse
+                            catch
+                                plot( plateTime(:,k),plateAvg(:,k),'color',thecolor(mod(sel-1,6)+1,:),'LineWidth',3); %PixelAverage,rawAverageResponse
+                            end
+                            hold on;
+                        end
+                    end
             end
-            legendLabels{sel}=node(sel).Text;
             
+            switch level
+                case 1
+                     legendLabels{sel}=node(sel).Text;  
+                case 2
+                    if isIncluded
+                        legendLabels={dcs(c).name};
+                    end
+                case 3
+                case 4
+            end
+         
             compoundAvg{sel}=findBaseFluorPoints(mean(plateAvg,2)',bcp,0)';
             compoundTime{sel}=mean(plateTime,2);
-            figure(1);
-            if size(node,1)>1 % if multiple selections
-                plot(compoundTime{sel},compoundAvg{sel},'color',thecolor(mod(sel-1,6)+1,:),'LineWidth',3); %PixelAverage,rawAverageResponse
+            %figure(1);
+            if (nSelections>1) || (level==1)% if multiple selections, show compound Avg
+                plot(compoundTime{sel},compoundAvg{sel},'color',thecolor(mod(sel-1+1,6)+1,:),'LineWidth',8); %PixelAverage,rawAverageResponse
                 hold on;
             end
         end

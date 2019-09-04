@@ -219,6 +219,20 @@ end
     function setBackgroundImage(src, e)
         backgroundImageSelection = backgroundImageBtn.String{...
             backgroundImageBtn.Value};
+        
+        % Load the mask
+        gg=strfind(plateFilename2,'_');
+        dd2=[plateFilename2(1:gg(end)-1)];
+        mask = imread([plateDir '..\..\' dd2 '.tif_mask.png']);
+        
+        
+        % Load the avg
+        try
+            wellAvg = imread([plateDir '..\..\..\commonOutput\avg\' dd2 '.tif_avg.png']);
+        catch
+            warning(['No average projection found in: ' plateDir dd2]);
+            %text(['No average projection found in: ' plateDir dd2]);
+        end
         updatePlot(); 
     end
 
@@ -807,10 +821,11 @@ function jitterToggle(e,d,r)
         if strcmp(plateFilename{1}(1:end),'AllSynapses.txt')
             currentLevel='plateLevel';
         end
-        
-        if (~isempty(strfind(plateFilename{1}(end-10:end),'_eig'))) && (strcmp(plateFilename{1}(end-3:end),'.csv'))
-            currentLevel='wellLevel';
-            eigData = 1;
+        if length(plateFilename{1})>10
+            if (~isempty(strfind(plateFilename{1}(end-10:end),'_eig'))) && (strcmp(plateFilename{1}(end-3:end),'.csv'))
+                currentLevel='wellLevel';
+                eigData = 1;
+            end
         end
         
         if ~eigData

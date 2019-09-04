@@ -1,4 +1,4 @@
-function fhandles=segGUIV1(myDir,headless)
+function fhandles=segGUIV1(myDir,headless,startProcessing)
 % Segmentation GUI V1
 % segGUIV1()
 % Starts the main S³T GUI and allows you to process automatically all tif files the dir and/or subdir.
@@ -103,6 +103,9 @@ global NumbAvgSamples;
 maskTimeProjectionMethod='SVD';
 preCommand = 'disp(''precommand'')';
 postCommand = 'disp(''postCommand'')';
+%%
+startProcessing = 1;
+
 %% Set default values on load
 stimFreq = 0.2;
 NOS = 3; % Number of stimuli
@@ -148,6 +151,7 @@ if nargin>0
         end
     end
 end
+
     function startUp()
         fullVersion = 0;
         bgc=[.35 .35 .38];
@@ -172,7 +176,29 @@ end
         
         mmenu = uimenu('Text','Create Sample');
         mitem = uimenu(mmenu,'Text','Create Sample Recordings');
+        mitem2 = uimenu(mmenu,'Text','Create tifPalceHolders');
+        mitem3 = uimenu(mmenu,'Text','Remove tifPalceHolders');
+        mitem4 = uimenu(mmenu,'Text','Recreate Tif from SVD');
         mitem.MenuSelectedFcn = @doCreateSpineMovie;
+        mitem2.MenuSelectedFcn = @doCreateTifPlaceholders;
+        mitem3.MenuSelectedFcn = @doRemoveTifPlaceholders;
+        mitem4.MenuSelectedFcn = @doRecreateMovie;
+        
+        function doRecreateMovie(r,g,h)
+            recreateMovie();
+        end
+        
+     
+        
+        
+        function doCreateTifPlaceholders(e,s,h)
+            createTifPlaceholders();
+        end
+                
+        function doRemoveTifPlaceholders(e,s,h)
+            removeTifPlaceholders();
+        end
+        
         
         function doCreateSpineMovie(e,f,s)
             createSpineMovie();
@@ -2260,7 +2286,7 @@ end
         end
     end
 
-    function [isProcessed, currentfolder]=writeProcessStart(expnm,iii,currentfolder)
+    function [isProcessed, currentfolder] = writeProcessStart(expnm,iii,currentfolder)
         % Visualise we do new experiment.
         if (~strcmp(expnm{iii}.folder,currentfolder) )
             mkdir([expnm{iii}.folder '\process\']);
@@ -2377,9 +2403,11 @@ end
                                 writeAnalysisStart(expnm,EID,analysisList(i).name);
                                 loadAnalysis(analysisList(i));
                                 try
+                                    if ~isempty(preCommand)
                                     preCommandCellArray = text2cell(preCommand);
                                     for ii=1:length(preCommandCellArray)
                                         eval(preCommandCellArray{ii});
+                                    end
                                     end
                                                                        
                                 catch
@@ -2396,12 +2424,14 @@ end
                                     moveResults(analysisList(i).name, getFN(pathname));
                                     writeProcessEnd(expnm,EID);
                                 end
-                                  postCommandCellArray = text2cell(postCommand);
+                               
                                 try
-                                    for ii=1:length(postCommandCellArray)
-                                        eval(postCommandCellArray{ii});
+                                    if ~isempty(postCommand)
+                                        postCommandCellArray = text2cell(postCommand);
+                                        for ii=1:length(postCommandCellArray)
+                                            eval(postCommandCellArray{ii});
+                                        end
                                     end
-                                 
                                 catch
                                     warning('failed to run postCommand');
                                     disp(postCommandCellArray{ii});
@@ -2461,7 +2491,13 @@ end
         else 
             AN = analysisListName(1:end-4);
         end
-        movefile([dirname ifname '*_avg.png'],[dirname 'commonOutput\avg\']);
+        if fastLoad==0
+            try
+                movefile([dirname ifname '*_avg.png'],[dirname 'commonOutput\avg\']);
+            catch
+                warning('Strange, but could not find and move avg file.')
+            end
+        end
         movefile([dirname ifname '*.png'],[dirname AN '\']);
         movefile([dirname ffname '*.png'],[dirname AN '\']);
         try
@@ -3649,7 +3685,7 @@ function setSkipMovie(value)
             d2(~[d2.isdir])=[]; % remove files, keep subdirs
             for  i=1:(length(d2)-2) % remove . and ..
                 goAllSubDir(func,filterOptions,[dataDirname '\' d2(i+2).name])
-                func([dataDirname '\' d2(i+2).name]);
+                %func([dataDirname '\' d2(i+2).name]);
             end
         end
   end

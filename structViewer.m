@@ -11,7 +11,12 @@ tifViewMode='mask';
 currentAnalysis  = 1;
 global displayNodeFct;
 displayNodeFct =@displayNode;
+global setNodeUnprocessedIconFct
+setNodeUnprocessedIconFct = @setNodeUnprocessedIcon;
 global isPlaying;
+
+currentNode=[]; %set the currentNode empty so it can be used in all subroutines.
+
 
 if nargin<3
     f = uifigure;
@@ -101,6 +106,15 @@ end
         end
     end
 
+
+    function setNodeUnprocessedIcon(currentPath)
+        try
+            set(currentNode,'Icon',[ctfroot '\S3T\unprocesssed_icon.png']);
+        catch
+            set(currentNode,'Icon',['unprocesssed_icon.png']);
+        end
+    end
+
 % If node is a leave display the leave
     function showLeave(parentNode,s2,fnj)%s2=s.(fn{j}),fn{j}
         try ctfroot()
@@ -150,6 +164,7 @@ end
         %check here if the particular node has some more information, which
         %can be retreived.
         node = event.SelectedNodes;
+        currentNode = node;
         display(node.NodeData);
         display(node.Text);
        %dir(['/**/*' node.Text])

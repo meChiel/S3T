@@ -37,6 +37,10 @@ f2 = figure('Visible','on','name','S3T: analysis Configuration tool',...
     'NumberTitle','off');
 set(f2,'MenuBar', 'figure');
 javaFrame = get(f2,'JavaFrame');
+
+if ~isempty(defaultDir) && (~isnumeric(defaultDir))
+    stimCfgFN.folder = defaultDir;
+end
 try
     javaFrame.setFigureIcon(javax.swing.ImageIcon([ctfroot '\S3T\PlateLayout_icon.png']));
 catch
@@ -469,9 +473,9 @@ createButtonsUI();
         end
     end
     function loadSettings(e,g,h)
-        [ stimCfgFN.name, folderReturn] = uigetfile([stimCfgFN.folder '*.xml']);
+        [stimCfgFN.name, folderReturn] = uigetfile([stimCfgFN.folder '\*.xml']);
         if folderReturn
-            stimCfgFN.folder=folderReturn;
+            stimCfgFN.folder = folderReturn;
         end
         stimCfg = xmlSettingsExtractor(stimCfgFN);
         setNOS(stimCfg.pulseCount);

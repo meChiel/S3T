@@ -5,6 +5,7 @@ global tifViewMode analysisLst currentAnalysis
 global isPlaying
 global currentPath
 global displayNodeFct;
+global setNodeUnprocessedIconFct;
 displayNodeFct=@(x) disp(x); % Temporary implementation to be overwritten by structViewer immplementation.
 
 
@@ -113,7 +114,8 @@ startt();
             gg= strfind(currentPath,'\');
             delete([currentPath(1:gg(end)) 'process\process_' currentPath((gg(end)+1):end) '.txt']);
         end
-        segGUIV1(currentPath);
+        setNodeUnprocessedIconFct(currentPath);
+        %segGUIV1(currentPath);
     end
 
     function changeAnalysis(e,f,g)

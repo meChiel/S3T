@@ -17,7 +17,7 @@ Sref=S;
 V=squeeze(mean(mean(A)));
 %% Decompose reference in photobleach- and synapse-signal
 %[bcresponse, dff, BC, mstart]=findBaseFluorPoints(V(:,1)',2);
-[bcresponse, dff, BC, mstart]=findBaseFluorPoints(V(:)',2);
+[bcresponse, dff, BC, mstart]=findBaseFluorPoints(V(:)','2exp');
 
 % The first signal will be used for the mask creation when using DICT.
 Vref=[bcresponse' BC'];
