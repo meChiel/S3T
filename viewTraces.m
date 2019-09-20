@@ -3,7 +3,7 @@ function viewTraces(inputDir)
 if nargin<1
     inputDir=uigetdir('','Select the output dir in the analysis folder.');
 end
-dcs=dir([inputDir '\*.csv']); % Directory Csv'S
+dcs=dir([inputDir '\*_traces.csv']); % Directory Csv'S
 
 for i=1:length(dcs)
     daTab{i} = readtable([inputDir '\' dcs(i).name]);

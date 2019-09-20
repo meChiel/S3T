@@ -2343,19 +2343,19 @@ end
                     % Load the data
                     fNmTxt.String=['loading..' expnm{EID}.name];
                     if fastLoadChkButton.Value
-                        [data, pathname, fname, dirname,U,S,V,invalidFileError] = loadTiff([expnm{EID}.folder '\' expnm{EID}.name],fastLoadChkButton.Value );
+                        [data, pathname, fname, dirname,U,S,V,invalidFileError,fps,fmsg] = loadTiff([expnm{EID}.folder '\' expnm{EID}.name],fastLoadChkButton.Value );
                         imageEigen(U,S,V);
                         wx = size(data,2); wy = size(data,1);wt = size(data,3);
                         synProb = reshape(U(:,EVN),[wy,wx]);
                     else
-                        [data, pathname, fname, dirname,~,~,~,invalidFileError] = loadTiff([expnm{EID}.folder '\' expnm{EID}.name],fastLoadChkButton.Value );
+                        [data, pathname, fname, dirname,~,~,~,invalidFileError,fps,fmsg] = loadTiff([expnm{EID}.folder '\' expnm{EID}.name],fastLoadChkButton.Value );
                     end
                     wx = size(data,2); wy = size(data,1);wt = size(data,3);
                     if size(data,3)<2
                         invalidFileError=1;
                         disp('This file is not a movie, but a picture.')
                     end
-                    
+                    writeProcessMessage(expnm,EID,fmsg);
                     
                     if   ~invalidFileError
                         defaultDir = dirname;
@@ -2538,6 +2538,16 @@ end
     end
 
 
+
+    function writeProcessMessage(expnm,iii,message)
+        %AP10Response(iii) = mASR;
+        fid =fopen([expnm{iii}.folder '\process\process_' expnm{iii}.name '.txt'],'a');
+        fprintf(fid,[':\n ' ]);
+        fprintf(fid,[' ' message]);
+        fclose(fid);
+    end
+
+
  function writeProcessFail(expnm,iii,message)
         %AP10Response(iii) = mASR;
         fid =fopen([expnm{iii}.folder '\process\process_' expnm{iii}.name '.txt'],'a');
@@ -2686,6 +2696,23 @@ end
       %Don't think this is needed any more, is calculated in analyseAvgResponse
       imageMetrics=calcImageMetrics(data)  ;
       
+      %% Create some names 
+      resNames=[];
+        SNames=[];
+        for i=1:16
+            resNames{i} = ['res' num2str(i)];
+            SNames{i} = ['S' num2str(i)];
+        end
+        
+        
+        if isempty(res)
+            res=nan*zeros(16,1);
+        end
+        if isempty(S)
+            S=nan*zeros(16,16);
+        end
+        %%
+      
         mASR=0; miASR=0; mstdSR=0; fps=fps; UpHalfTime=0; DownHalfTime=0; expEqUp=0; expEqDown=0; tau1 = 0; ampSS=0; nSynapses=0; error=1;AUC=0;nAUC=0;
         mswASR=0; miswASR=0;amp=0;tau1PA=0; ampPA=0; t0PA=0;TempSynSTD=0; TSpAPA=0; TSpAPAi=0;
         t =array2table([mASR mstdSR miASR  mswASR miswASR fps ...
@@ -2694,7 +2721,7 @@ end
             t0PA RSTmean RSTABSmean error...
             ,TempSynSTD,...
             TSpAPA, TSpAPAi,...
-            [imageMetrics.value]  ],...
+             [imageMetrics.value], res' diag(S(1:16,1:16))'],...
             'VariableNames',{...
             'peakAmp', 'mstdSR', 'miASR', 'sizeWeightedMASR', 'swmiASR', 'fps', ...
             'UpHalfTime', 'downHalfTime', 'tau1', 'ampSS',...
@@ -2702,7 +2729,7 @@ end
             't0PA' , 'RSTmean', 'RSTABSmean', 'error'...
             ,'TempSynSTD',...
             'TSpAPA', 'TSpAPAi',...
-            imageMetrics.name});
+             imageMetrics.name resNames{:} SNames{:}} );
         
         %t =array2table([mASR miASR fps UpHalfTime DownHalfTime expEqUp expEqDown error],'VariableNAmes',{'mASR', 'miASR', 'fps', 'UpHalfTime', 'downHalfTime', 'expEqy0', 'upA1', 'upx0', 'upT1', 'expEqdwny0', 'dwnA1', 'dwnx0', 'dwnT1', 'invalid'});
         %t =array2table([mASR miASR fps UpHalfTime DownHalfTime expEqUp expEqDown ],'VariableNAmes',{'mASR', 'miASR', 'fps', 'UpHalfTime', 'downHalfTime', 'expEqy0', 'upA1', 'upx0', 'upT1', 'upA2', 'upT2', 'expEqdwny0', 'dwnA1', 'dwnx0', 'dwnT1', 'dwnA2', 'dwnT2'});
@@ -3201,6 +3228,7 @@ end
                 disp('Multi Response to 1 error, press any key to crash, or set a breakpoint to investigate')
                  %pause;
                 disp(['error: ' pathname]);
+                disp(' ');
                 disp('run analysisCfgGenerator(), to resolve analysis errors');
                 error(e.message);
                 
@@ -3294,7 +3322,17 @@ end
         interStimPeriod = floor(1/sFq2*s.fps);
         iSP = interStimPeriod;
            dCOF=s.dCOF2;%utyCycleOnFrames2; % DutyCycleOnFrames.  |--dCOF--|____|-----|____
-        if (dCOF==0 || dCOF>iSP)
+        % Auto set when is 0
+       if (dCOF==0)
+            if (s.dCOF~=0)
+                dCOF = s.dCOF;
+            else
+                dCOF = floor(iSP);
+            end
+       end
+        
+        % Sanity check correction
+        if (dCOF>iSP)
             dCOF = floor(iSP);
         end
         
@@ -3685,7 +3723,7 @@ function setSkipMovie(value)
             d2(~[d2.isdir])=[]; % remove files, keep subdirs
             for  i=1:(length(d2)-2) % remove . and ..
                 goAllSubDir(func,filterOptions,[dataDirname '\' d2(i+2).name])
-                %func([dataDirname '\' d2(i+2).name]);
+               % func([dataDirname '\' d2(i+2).name]);
             end
         end
   end

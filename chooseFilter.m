@@ -13,6 +13,7 @@ uicontrol('Style', 'Text', 'String',  {'Choose Filter:'},...
     'Position', [150 290 250 30], 'Fontsize',16,...
     ...%'BackgroundColor',[.35 .35 .38],
     'ForegroundColor',[.05 .05 .08] );
+
 if strcmp(dd(end-3:end),'.tif') % Check if it is a file
     gg=strfind(dd,'\');    
     dname=dd(1:gg(end));
@@ -27,6 +28,7 @@ else % or it's a dir
     ad=dir([dd  '\*_Filter.pson']); %Analysis direct.
     isfile=0;
 end
+
 al={''};
 for i=1:size(ad,1)
     endA=strfind(ad(i).name,'_Filter.pson');
@@ -46,16 +48,12 @@ ctButton = uicontrol('Style', 'pushbutton', 'String',  {'Continue..'},...
     'Callback', @ct);
 chosen =0 ;
 while (~chosen)
-pause(0.1);
+    pause(0.1);
 end
 
-    function ct(e,g,j)
+    function ct(e,g,j) % continue
         ctButton.String='OK, We built the database can take some time.';
         pause(.01)
-           fid = fopen('default_Filter.pson', 'r');
-    c = fread(fid,inf,'uint8=>char')';
- 
-    fclose(fid);
     
         listSelection=filterLst.String(filterLst.Value)
         if isfile % Check if it is a file
@@ -64,6 +62,10 @@ end
             
         else % It's a dir
             dfp = [dname '\' listSelection{1} '_Filter.pson'];
+             fid = fopen(dfp, 'r');
+    c = fread(fid,inf,'uint8=>char')';
+ 
+    fclose(fid);
             %dataBaseViewer;%( [dname listSelection{1}]);
         end
         chosen = 1;

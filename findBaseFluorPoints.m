@@ -21,6 +21,8 @@ function [bcresponse, dff, BC, mstart]=findBaseFluorPoints(seq,polyType,doplot)
 % 1) is a linear fit or a
 % 2) 2exp fit. (default)
 % A linear fit is a lot faster.
+%
+% 'autoZeroFit' 'autoLinFit' 'none' 'lin' '2exp' 'poly' '1expa'
 %%
 if nargin<2
     polyType='2exp';
@@ -148,7 +150,7 @@ else
         plot(allPoints,LMSricox(2)*allPoints+LMSricox(1));
         %drawnow();
     end
-    
+
     switch polyType
         case  'autoZeroFit' % polyType==0
             BC = mean(minPoints);
@@ -280,7 +282,7 @@ else
                 %BC = real(a') + real(b)' .* exp(real(p)'* (1:LM))+real(c)'.*exp(real(q)'*(1:LM)); % using Matlab * expansion
                 seqx=seq-BC;
                 %Do not update stdx, stdx=std(seqx(pointsx));
-                dseq=(1.57-atan([0; abs(diff(smooth(seqx)))]));
+                dseq=(1.57-atan([0; abs(diff(smoothM(seqx)))]));
                 pointsx = allPoints((seqx-3*stdx*dseq)<(0+stdx*3));
                 stdi=3;
                 while (length(pointsx)<rangeI) % update intervalsize until at least 5% samples are there

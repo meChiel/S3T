@@ -1,4 +1,5 @@
 function ffhandles=analysisCfgGenerator()
+global defaultDir
 global ptitle3 NOStxt3 stimFreqtxt3 OnOffsettxt3 fpsTxt3 DCOFtxt3 DCOF2txt NOS2txt  stimFreq2txt data trace ...
     OnOffsettxt2;
 global frameSelectionTxt frameSelection maskTimeProjLst SVDLst SVDtxt createDictBtn createDicttxt ...
@@ -37,9 +38,12 @@ f2 = figure('Visible','on','name','S3T: analysis Configuration tool',...
     'NumberTitle','off');
 set(f2,'MenuBar', 'figure');
 javaFrame = get(f2,'JavaFrame');
-
+if exist('defaultDir','var')
 if ~isempty(defaultDir) && (~isnumeric(defaultDir))
     stimCfgFN.folder = defaultDir;
+end
+else
+    
 end
 try
     javaFrame.setFigureIcon(javax.swing.ImageIcon([ctfroot '\S3T\PlateLayout_icon.png']));
@@ -511,7 +515,12 @@ createButtonsUI();
         for i=1:size(MpreC2,1)
             MpreC3 = [MpreC3 MpreC2(i,:) 'ENTER'];%
         end
-        MPreCellArray= text2cell(MpreC3);
+        if isempty(MpreC3)
+            MPreCellArray = {};
+        else
+            MPreCellArray= text2cell(MpreC3);    
+        end
+        
         
         % Allocate space for char matrix and fill
         ml=0;
@@ -542,8 +551,11 @@ createButtonsUI();
         for i=1:size(MpostC2,1)
             MpostC3 = [MpostC3 MpostC2(i,:) 'ENTER'];%
         end
-        MPostCellArray= text2cell(MpostC3);
-        
+        if isempty(MpostC3 )
+            MPostCellArray= {};
+        else
+            MPostCellArray= text2cell(MpostC3);
+        end
         % Allocate space for char matrix and fill
         ml=0;
         for i=1:length(MPostCellArray)

@@ -2,7 +2,7 @@ global fr currentPath
 % Read Filter
 disp(' Read Filter')
 if ~exist('dfp','var')
-    dfp = chooseFilter('D:\my E drive\bckup\testSegV1');
+    dfp = chooseFilter(pwd);%'D:\my E drive\bckup\testSegV1');
    % dfp='default_Filter.pson';
 end
     fid = fopen(dfp, 'r');

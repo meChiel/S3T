@@ -2,7 +2,7 @@
 %fname = '../../data/Experiment 1_iglu spontaneous.tif';
 %fname = '../../data/data_endoscope.tif';
 
-function [A, fname, FileName, PathName, U, S, V, error]=loadTiff(fname,fastload,autocorrect,framenumbers)
+function [A, fname, FileName, PathName, U, S, V, error,fps,msg]=loadTiff(fname,fastload,autocorrect,framenumbers)
 % Set Fastload Default value
 if nargin<2
    fastload=0;
@@ -75,13 +75,35 @@ else % Normal Load
     end
     
     %%
+    
+    if isfield(info,'Software') %Andor IQ tiff files don't have a Software field, Andor Solis does
+        %The script only works for Andor IQ generated tiff files.
+        genSoft='Andor Solis';
+    else
+        genSoft='Andor IQ';        
+    end
+    
+    if strcmp(genSoft,'Andor Solis')
+        autocorrect=0;
+        disp('Files acquired with Andor Solis can not be checked or autocorrected for skipped frames.');
+        fps=nan;
+        msg='Not an Andor IQ file and so can not be checked for skipped frames or fps extraction.';
+    end
+    %%
     % Auto correct for skipped frames
     if autocorrect
         timings=readExactAndorTifTime(fname);
-        [~, ~, cfs] = findSkippedFrames(timings);
+        fps=1./median(diff(timings))*1000;
+        [out, ~, cfs] = findSkippedFrames(timings);
+        nSkippedFrames = length(out);
         A=frameswap(A,cfs);
+        msg = [num2str(nSkippedFrames) ' missing frames fixed.'];
+        if nargin<1
+            disp(['fps: ' num2str(fps)]);
+        end
     end
 
+    
 end
 
 %% You want more?

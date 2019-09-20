@@ -19,10 +19,10 @@ else
         d=[tifDir '\']
     end
 end
-
-if nargin<2
-    chooseFilter(d);
-end
+% 
+% if nargin<2
+%     chooseFilter(d);
+% end
 
 
 defaultdir=d;
