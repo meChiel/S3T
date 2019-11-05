@@ -1,15 +1,25 @@
 function [out, skippedDt, cfs] = findSkippedFrames(timings)
 dt = diff(timings);
 zeroTiming = [0 cumsum(dt)];
-skipped=floor((dt+6)./median(dt))-1;%Calculate the numbers of skipped frames, 6ms as std
+skipped=floor((dt+6)./prctile(dt,15))-1;%Calculate the numbers of skipped frames, 6ms as std
+% Median changed into prctile because, sometimes there are alot of frames skipped.
+% min is also an option but then you get really the left tail side of the normal
+% distribution around the dt.And you want the mean.
 %figure;
+if min(skipped)<0
+    error('something wrong with timing extraction')
+end
+ms=max(skipped);
 plot(skipped);
 out = find(skipped);
 % out1 = find(skipped==1);
 % out2 = find(skipped==2);
 % out3 = find(skipped==3);
 % out4 = find(skipped==4);
-N = 1:30;
+if ms>30
+    warning([num2str(ms) 'consecutive frames where lost, interpolation for recovery might make no sense any more.'])
+end
+N = 1:ms;
 tout=[];
 for i=1:length(N)
     n=N(i);
@@ -22,7 +32,7 @@ for i=1:length(N)
 end
 out10 = find(skipped>30);
 if sum(out10)
-    error ('More than 10 consecutive frames are lost')
+    warning ('More than 10 consecutive frames are lost')
 end
 disp(['Correcting for: '  num2str(length(out)) ' dropped frames.'])
 skippedDt = dt(out);

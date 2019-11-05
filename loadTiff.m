@@ -51,6 +51,8 @@ if fastload % Fast Load
     warning('Using fastload');
     extra=0; %Don't animate with fastload.
     num_images=size(A,3); % If eigs where calculated on a part of the movie, and the 
+    fps=nan;
+    msg='fast load';
 
 else % Normal Load
     info = imfinfo(fname);
@@ -119,7 +121,8 @@ if extra
     
     %% Look at average reponse:
     for k = 1:num_images
-        ss(k) = mean(mean(A(:,:,k)-Avg));
+        %ss(k) = mean(mean(A(:,:,k)-Avg));
+        ss(k) = mean(mean(A(:,:,k)));
     end
     %fig=figure;
     subplot(4,4,10);

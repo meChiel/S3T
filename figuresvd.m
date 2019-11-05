@@ -3,21 +3,22 @@
 
 sx=size(A,2);336;512; 
 sy=size(A,1);256;512;
-R=reshape(U(:,1),sy,sx);
-G=reshape(U(:,2),sy,sx);
-B=reshape(U(:,3),sy,sx);
+E1=reshape(U(:,1),sy,sx);
+E2=reshape(U(:,2),sy,sx);
+E3=reshape(U(:,3),sy,sx);
 P=[];
-P(:,:,1)=G;
-P(:,:,2)=R;
-P(:,:,3)=B;
+P(:,:,1)=E2; %R
+P(:,:,2)=E1; %G
+P(:,:,3)=E3; %B
 
 figure('color',[0 0 0]);
-subplot(1,4,1);imagesc(R);
+subplot(1,4,1);imagesc(E1);
 subplot(1,4,2);
-imagesc(G);
-subplot(1,4,3);imagesc(B);
+imagesc(E2);
+subplot(1,4,3);imagesc(E3);
 subplot(1,4,4);image(P*100);
 colormap gray
+axis equal
 
 %%
 

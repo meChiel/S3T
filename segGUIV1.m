@@ -15,7 +15,7 @@ function fhandles=segGUIV1(myDir,headless,startProcessing)
 % segGUIV1(myDir,headless=1)
 % Headless: will limit the GUI output. (default==0) 
 global Version
-Version = 'V0.88-dev';
+Version = 'V0.90-dev';
 %% Much better dataviewer
 % full export
 
@@ -23,6 +23,7 @@ fhandles.foldData=@foldData;
 fhandles.foldData2=@foldData2;
 fhandles.multiResponseto1=@multiResponseto1;
 fhandles.setFastLoad=@setFastLoad;
+fhandles.processDir=@processDir;
 %% Feature requests:
 % AllSynapse file.
 % export % - explanation of the SVD components
@@ -63,7 +64,7 @@ global U S V; % eigv decomposition
 global m; %This is the struct where all the main(m) window buttons and variables should be in.
 global wx wy wt;
 global synsignal dffsynsignal;
-global EVN eigTxt; % Defines wich eigen value is used to create the mask
+global EVN eigTxt changeEVN; % Defines wich eigen value is used to create the mask
 global synProb; % Image before threshold for segmentation.
 global TValue;  % Threshold value
 global dt fps fpsTxt;
@@ -1308,8 +1309,20 @@ end
             end
         end
         if EVN==0
-            EVNtxt= (inputdlg('Which Eigen Vector to use','EigenVector',1,{'2','1'}));
-            EVN=str2num(EVNtxt{1});
+           prt = figure('KeyPressFcn', @keyPress);
+           text(0,0,'Press space to change eigen value.');
+           axis('off')
+           changeEVN=0;
+           pause(4)
+           prt.delete;
+            if changeEVN==0
+                warning('interactive mode disabled, eigen vector 2 hardcoded.');
+                EVN=2;
+                pause(1)
+            else
+                EVNtxt= (inputdlg('Which Eigen Vector to use','EigenVector',1,{'2','1'}));
+                EVN=str2num(EVNtxt{1});
+            end 
         end
         
         res = zeros(16,1);
@@ -1365,7 +1378,11 @@ end
        
        % Set the threshold.
        if sig2rb.Value      % Sigma 2 Radio Button
-         setTvalue(mean(synProb(:))+2*std(synProb(:)));
+           [counts,x] = imhist(synProb,16);
+           Totsu = otsuthresh(counts);
+           T = mean(synProb(:))+2*std(synProb(:));
+           disp(['Totsu: ' num2str(Totsu) 'T 2sigma ' num2str(T)]);
+           setTvalue(T);
        else
            if sig3rb.Value % Sigma 3 Radio Button
                setTvalue(mean(synProb(:))+3*std(synProb(:)));
@@ -1670,6 +1687,9 @@ end
             case 'd'
                 disp('starting doProcessing');
                 doProcessDir();
+             case 'space'
+                changeEVN=1;
+                
                 
         end
     end
@@ -1983,7 +2003,12 @@ end
         end
         
         % Down
-        downIC50 = find(ASR>(mASR/2),1,'last');
+        
+        
+        %downIC50 = find(ASR>(mASR/2),1,'last');
+        dwnResp = ASR(miASR:end);
+        tdownIC50 = find(dwnResp<(mASR/2),1,'first');
+        downIC50 = tdownIC50 + miASR-2;
         if length(downIC50) == 0
             miASR=nan;
             DownHalfTime=nan;
@@ -1997,6 +2022,10 @@ end
             framePart = (mASR/2-ASR(downIC50+1)) / (ASR(downIC50)-ASR(downIC50+1)) * 1; % Lin. interpolat between frames
             downFrames = downIC50 + 1 - framePart -1;
             DownHalfTime = downFrames * dt;
+            if DownHalfTime<0
+                disp('downhalftime<0')
+            end
+            
             %text(DownHalfTime,mASR*0.5 ,['DOWN_{50}: ' num2str(DownHalfTime)],'HorizontalAlignment','left');
             %text(DownHalfTime,0.0 ,{'DOWN_{50}: ', [num2str(DownHalfTime) 's']},'HorizontalAlignment','left','VerticalAlignment','Top','FontSize',8,'Rotation',-45);
             text(DownHalfTime,0.0 ,{ ['    ' num2str(DownHalfTime) 's']},'HorizontalAlignment','left','VerticalAlignment','Bottom','FontSize',8,'Rotation',-45);
@@ -2610,9 +2639,9 @@ end
                 %EVN=1; warning ('eigenvalue hacked 2->1');
                 warning('processMovie hacked for neuron body processing' )
             else % Synapses
-                dd=preProcessFrames();
-                warning('extra preprocess step');
-                pause(1);
+                %dd=preProcessFrames();
+                %warning('extra preprocess step');
+                %pause(1);
                 data2=data; %backup data
                 %data=-dd; %overwrite data temporary
                 
@@ -3389,7 +3418,7 @@ end
         bbox=[nan,nan,nan,nan]; AUC=nan; nAUC=nan;
          rawDFF=nan; rawDFluor=nan; rawMaxFluor = nan; rawBaseFluor=nan;
             rawPartDF=nan; rawPartMaxFluor= nan; rawPartMinFluor=nan;
-        
+        tdown=[];
         for i=1:size(dffsynsignal2,2)
             if isempty(synsignal)
                 rawFoldedData=nan*ones(size(dffsynsignal2)); %When no synapses
@@ -3465,6 +3494,28 @@ end
                 end
                 %downResponse = ASR(miASR:miASR+floor(3.0/dt));
                 downResponse = pSignal(miSig:end);
+                down50=find(downResponse<mSig/2,1,'first');
+                if isempty(down50 )
+                    down50=nan;
+                    frameInterpol=nan;
+                else %normal
+                    if down50==1
+                        frameInterpol=0;
+                    else
+                    try
+                        frameInterpol=(mSig/2 - downResponse(down50))/(downResponse(down50-1)-downResponse(down50));
+                    catch
+                        disp('Frame Probleem');
+                    end
+                    end
+                end
+                
+                
+                try
+                    tdown(i,j)=(down50+frameInterpol+miSig)*dt;
+                catch
+                    disp('oh ooh, probleem.')
+                end
                 expdata.x = (0:(length(downResponse)-1))*dt;
                 expdata.y = downResponse;
                 %[expEqDown, fitCurve2] = curveFitV1(expdata,[0 1 0 2 1 2]);
@@ -3489,7 +3540,7 @@ end
      
         end
             
-        UpHalfTime=tau1*0; DownHalfTime=tau1*0;
+        UpHalfTime=tau1*0; DownHalfTime=tdown;
         error=tau1*0;
         
         tauL=labelVar('tau_',NOS2);
@@ -3698,7 +3749,7 @@ function setSkipMovie(value)
         % goAllSubDir will evaluate the function func on specific files in
         % current directory or subdirectory. 
        
-        %global defaultDir;
+        % global defaultDir;
         if nargin<3  
             if exist('defaultDir')
             [dataDirname] = uigetdir(defaultDir,'Select dir:');

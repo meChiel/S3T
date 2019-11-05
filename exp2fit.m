@@ -7,6 +7,8 @@ function [a,b,c,p,q]=exp2fit(x,y)
     % local derivatives are calculated/approximated.
     fail=0;
     n=length(x);
+    mx=max(x);
+    %x=x/mx;
     if n<6
         disp('sp?? exp2fit');
         warning('sp?? exp2fit');
@@ -45,7 +47,9 @@ function [a,b,c,p,q]=exp2fit(x,y)
         sum(x.*y); ...
         sum(y)];
     
-    if cond(SSS)<1e9
+    SSS = SSS+eye(5)*max(SSS(:)*1e-11);
+    
+    if cond(SSS)<1e12
 % 
      SSSreg = SSS;
      BBreg=BB;
@@ -75,6 +79,11 @@ function [a,b,c,p,q]=exp2fit(x,y)
 
     p=1/2*(B+sqrt(B^2 + 4*A));
     q=1/2*(B-sqrt(B^2 + 4*A));
+    
+    
+    p=real(1/2*(B+sqrt(B^2 + 4*A)));
+    q=real(1/2*(B-sqrt(B^2 + 4*A)));
+    
     
     if imag(q)~=0
         SSSreg = SSS(1:2,:);
@@ -108,6 +117,8 @@ function [a,b,c,p,q]=exp2fit(x,y)
                 disp('normal');
             end
             B4=[sum(y);sum(beta.*y);sum(neta.*y) ];
+            
+             S4=S4+eye(3,3)*max(S4(:))*1e-12; %regularize S4;
             xO=S4\B4;
             a=xO(1);b=xO(2);c=xO(3);
         else % if condition number makes no sense.
@@ -122,6 +133,7 @@ function [a,b,c,p,q]=exp2fit(x,y)
         end
         if isnan(a+b+c+p+q)
             fail=1;
+            disp('nan in answer')
         end
     else
         fail=1;

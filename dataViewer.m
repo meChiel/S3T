@@ -7,10 +7,15 @@ global seeWellBtn stimLstX stimLstY Xtxt Ytxt
 global filterFieldLst lessMoreLst filterThresholdEdt markerSelectionBtn
 global doFilterBtn HistBtn levelDownBtn levelUpBtn ExportBtn fitBtn
 global lineSizeBtn LineStyleBtn logXChk logYChk wowChkBtn wow backgroundImageBtn backgroundImageSelection
-global useXlabelChk jitterChk  
+global useXlabelChk jitterChk jitterChk2 jitterChk3 usecolorCategoriesChk
 global addFileBtn
 global data;
 global wellAvg mask
+global x y useXlabels addJitter colorCategories;
+useXlabels = 0;
+addJitter = 0;
+colorCategories = 0;
+
 createButons();
 if nargin>0
     g=strfind(inputFile,'\');
@@ -122,9 +127,24 @@ end
             'Position', [10 380 150 25], 'BackgroundColor',bgc, 'ForegroundColor',[.05 .05 .08],...
             'CallBack',@useXlabelToggle);
         
-        jitterChk = uicontrol('Visible','off','Style', 'checkbox', 'String','Jitter',...
-            'Position', [10 360 150 25], 'BackgroundColor',bgc, 'ForegroundColor',[.05 .05 .08],...
+        usecolorCategoriesChk = uicontrol('Visible','off','Style', 'checkbox', 'String','color Categories',...
+            'Position', [10 340 150 25], 'BackgroundColor',bgc, 'ForegroundColor',[.05 .05 .08],...
+            'CallBack',@usecolorCategoriesToggle);
+        
+        
+        
+        jitterChk = uicontrol('Visible','off','Style', 'checkbox', 'String',' ',...
+            'Position', [10 360 10 25], 'BackgroundColor',bgc, 'ForegroundColor',[.05 .05 .08],...
             'CallBack',@jitterToggle);
+        
+        jitterChk2 = uicontrol('Visible','off','Style', 'checkbox', 'String','',...
+            'Position', [20 360 10 25], 'BackgroundColor',bgc, 'ForegroundColor',[.05 .05 .08],...
+            'CallBack',@jitterToggle);
+        
+        jitterChk3 = uicontrol('Visible','off','Style', 'checkbox', 'String','Jitter',...
+            'Position', [30 360 150 25], 'BackgroundColor',bgc, 'ForegroundColor',[.05 .05 .08],...
+            'CallBack',@jitterToggle);
+        
         
         Xtxt = uicontrol('Style', 'text','String', 'X',...
             'Position', [10 415 150 175],...
@@ -312,7 +332,10 @@ showButtons=1;
         Xtxt.Visible = visTExt; 
         Ytxt.Visible = visTExt; 
         useXlabelChk.Visible = visTExt;
+        usecolorCategoriesChk.Visible = visTExt;
         jitterChk.Visible = visTExt;
+        jitterChk2.Visible = visTExt;
+        jitterChk3.Visible = visTExt;
         
     end
     function wowToggle(e,d,r)
@@ -333,8 +356,14 @@ showButtons=1;
         useXlabels=useXlabelChk.Value;
         updatePlot();
     end
+
+    function usecolorCategoriesToggle(e,d,r)
+        colorCategories=usecolorCategoriesChk.Value;
+        updatePlot();
+    end
+
 function jitterToggle(e,d,r)
-        addJitter=jitterChk.Value;
+        addJitter=jitterChk.Value+jitterChk2.Value*10+jitterChk3.Value*10;
         updatePlot();
     end
 
@@ -470,10 +499,10 @@ function jitterToggle(e,d,r)
             dd2 = [tempDirFn '..\' tempFFn(1:end-13) '.tif_avg.png'];
         end
         if ~exist([plateDir dd2],'file')
-            dd2 = [tempDirFn '..\..\output\avg\' tempFFn(1:end-13) '.tif_avg.png'];
+            dd2 = [tempDirFn '..\..\commonOutput\avg\' tempFFn(1:end-13) '.tif_avg.png'];
         end
         if ~exist([plateDir dd2],'file')
-            dd2 = [tempDirFn '..\..\..\output\avg\' tempFFn(1:end-13) '.tif_avg.png'];
+            dd2 = [tempDirFn '..\..\..\commonOutput\avg\' tempFFn(1:end-13) '.tif_avg.png'];
         end
 
         wellAvg = 200*ones(512);
@@ -529,10 +558,22 @@ function jitterToggle(e,d,r)
                     XTL=[]; % Multiple selection: X Tick Labels
                     for ms=1:length(stimLstX.Value)
                         if useXlabels
-                            currentDataX(:,ms)=(ms-1)+0*data{i}.(text2OKname(stimLstX.String{stimLstX.Value(ms)}));
-                            XTL{ms}=text2OKname(stimLstX.String{stimLstX.Value(ms)});
+                           % colorCategories=1;
+                            if ~colorCategories % Plot spaced next to each other
+                                currentDataX(:,ms)=(ms-1)+0*data{i}.(text2OKname(stimLstX.String{stimLstX.Value(ms)}));
+                                XTL{ms}=OKname2text(stimLstX.String{stimLstX.Value(ms)});
+                            else % Use first x selection, next different colors.
+                                if ms>1 % Discard first selection since that is teh on which is plotted on x-axis the other are colored
+                                    mss=ms-1;
+                                else
+                                    mss=ms;
+                                end
+                                currentDataX(:,mss)=data{i}.(text2OKname(stimLstX.String{stimLstX.Value(1)})).*(data{i}.(text2OKname(stimLstX.String{stimLstX.Value(ms)}))*0+1);%(ms-1)+0*data{i}.(text2OKname(stimLstX.String{stimLstX.Value(ms)}));
+                                XTL{mss}=OKname2text(stimLstX.String{stimLstX.Value(ms)});
+                                
+                            end
                         else % Use x values for correlations
-                            currentDataX(:,ms)=data{i}.(text2OKname(stimLstX.String{stimLstX.Value(ms)}));
+                            currentDataX(:,ms)=data{i}.(OKname2text(stimLstX.String{stimLstX.Value(ms)}));
                         end
                     end
                     
@@ -902,9 +943,8 @@ function jitterToggle(e,d,r)
         end
         updatePlot();
     end
-global x y useXlabels addJitter;
-useXlabels = 0;
-addJitter = 0;
+
+
     function updatePlot(e,g,h)
         
         subplot(4,4,[2:3,6:7,10:11,14:15])
@@ -954,15 +994,15 @@ addJitter = 0;
                         else
                             L=0;
                         end
-                        if addJitter
-                            xnoise=pseudoRandom(size(x{i}))*.10-0.05;
+                        if addJitter>0
+                            xnoise=(pseudoRandom(size(x{i}))*.10-0.05)*addJitter;
                         else % No jitter
                             xnoise=pseudoRandom(size(x{i}))*0;
                         end
                         plot(x{i}.*(1+xnoise+L),y{i},'Marker',marker,'LineWidth',lineSize,'LineStyle', LineStyle )
-                    else
-                        if addJitter
-                            xnoise=pseudoRandom(size(x{i},1),size(x{i},2))*0.09;
+                    else % if not logx
+                        if addJitter>0
+                            xnoise=(pseudoRandom(size(x{i},1),size(x{i},2))*0.1-0.025)*addJitter;
                         else % No jitter
                             xnoise=pseudoRandom(size(x{i},1),size(x{i},2))*0;
                         end
@@ -971,8 +1011,13 @@ addJitter = 0;
                     end
                     hold on;
                     if useXlabels
-                        xticklabels(XTL);
-                        xticks(0:(length(XTL)-1))
+                        if colorCategories
+                            % Show nothing, different categories are
+                            % colorcoded.
+                        else
+                            xticklabels(XTL);
+                            xticks(0:(length(XTL)-1))
+                        end
                     end
                     
                     %% Plot a piecewise fit.
@@ -987,9 +1032,12 @@ addJitter = 0;
                             dx=3;
                         end
                         
-                        for i3=1:length(xcats) % For all unique X values
+                        for i3=1:length(xcats) % For all unique X values make fit
                             if useXlabels
+                                if colorCategories
+                                else
                                 sel = yy(~isnan(xx(:,i3)));
+                                end
                             else
                                 sel = yy(xcats(i3)==xx);
                             end
@@ -1052,7 +1100,19 @@ addJitter = 0;
                 
             end
             if histtt
-                updateHist(y{currentFile},ca,currentFile);
+                if colorCategories
+                    for i8=1:size(x{1},2)
+                        xx=x{1};
+                        yy=y{1};
+                        ysel{i8} = yy(~isnan(xx(:,i8)));
+                        
+                    end
+                     updateHist(ysel,ca,currentFile); 
+                    
+                else
+                    updateHist(y{currentFile},ca,currentFile);
+                end
+                
             else % No Histogram/ clear histogram
                 subplot(4,4,[4,8,12,16])
                 cla;
@@ -1060,8 +1120,11 @@ addJitter = 0;
                 aa.Visible='off';
                 subplot(4,4,[2:3,6:7,10:11,14:15]);
             end
-            if ~useXlabels
+            if ~useXlabels 
                 xlabel(OKname2text(xlabelText),'FontName','Helvetica','FontSize',18);
+            end
+            if colorCategories
+                 xlabel(OKname2text(xlabelText{1}),'FontName','Helvetica','FontSize',18);                 
             end
             ylabel(OKname2text(ylabelText),'FontName','Helvetica','FontSize',18);
             if logX==1
@@ -1082,8 +1145,11 @@ addJitter = 0;
             %        for i=1:length()
             %leg{}=leg{};
             %        end
-            
-            legend(plateFilename);
+            if colorCategories                
+                legend(XTL);                
+            else
+                legend(plateFilename);
+            end
         end
     end
 
@@ -1112,12 +1178,21 @@ addJitter = 0;
             0.64    0.08    0.18;...
             0       0.45    0.74
             ];
-        if size(hdata,1)==1
-            histogram(hdata,100,'orientation','horizontal','BinLimits',[ca.YLim(1),ca.YLim(2)],'FaceColor',colors(mod(colorsNum-1,8)+1,:));
-        else
+        
+        
+        if colorCategories
             for i=1:size(hdata,2)
-                histogram(hdata(:,i),100,'orientation','horizontal','BinLimits',[ca.YLim(1),ca.YLim(2)],'FaceColor',colors(mod(colorsNum-1+i-1,8)+1,:));
+                histogram(hdata{i},100,'orientation','horizontal','BinLimits',[ca.YLim(1),ca.YLim(2)],'FaceColor',colors(mod(colorsNum-1+i-1,8)+1,:));
                 hold on;
+            end
+        else
+            if size(hdata,1)==1
+                histogram(hdata,100,'orientation','horizontal','BinLimits',[ca.YLim(1),ca.YLim(2)],'FaceColor',colors(mod(colorsNum-1,8)+1,:));
+            else
+                for i=1:size(hdata,2)
+                    histogram(hdata(:,i),100,'orientation','horizontal','BinLimits',[ca.YLim(1),ca.YLim(2)],'FaceColor',colors(mod(colorsNum-1+i-1,8)+1,:));
+                    hold on;
+                end
             end
         end
     
@@ -1125,8 +1200,17 @@ addJitter = 0;
         cap = ca.Position;
         
         aa.Position(1) = cap(1)+cap(3);
-        my = mean(hdata);
-        stdy = std(hdata);
+        
+        if colorCategories
+            for i8=1:size(hdata,2)
+                my(i8) = mean(hdata{i8});
+                stdy(i8) = std(hdata{i8});
+            end
+        else
+            my = mean(hdata);
+            stdy = std(hdata);
+        end
+        
         hold on;
         
         for jj=1:length(my) %For all selections

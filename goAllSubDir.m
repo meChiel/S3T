@@ -18,11 +18,16 @@ function goAllSubDir(func,filterOptions,rootDir)
         if nargin<2
             filterOptions='\*.tif';
         end
+        
+       if ~isempty(dir([dataDirname '\' filterOptions]))
+            func([dataDirname]);
+        end
+        
         if 1%~isempty(dir([dataDirname filterOptions]))
             d2= dir([dataDirname '\*.*']);
             d2(~[d2.isdir])=[]; % remove files, keep subdirs
             for  i=1:(length(d2)-2) % remove . and ..
                 goAllSubDir(func,filterOptions,[dataDirname '\' d2(i+2).name])
-                func([dataDirname '\' d2(i+2).name]);
+                %func([dataDirname '\' d2(i+2).name]);
             end
         end

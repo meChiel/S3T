@@ -290,6 +290,9 @@ else
         ss=strfind(aa(rr(1):end),'<Val>');
         ss2=strfind(aa(rr(1)+(ss(1)):end),'</Val>');
         NumAvgSamples=str2num(aa(rr(1)+ss(1)+4:rr(1)+ss(1)+ss2(1)-2));
+        if isempty(NumAvgSamples)
+            disp('NumAvgSamples is set to 30 since it is empty in analysis file.')
+        end
     else
         disp('Did not find Number Average Samples type, using 30.')
         NumAvgSamples = 30; %Number of samples to use to calculate the base fluoresence/photobleach 2exp fit

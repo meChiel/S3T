@@ -54,6 +54,10 @@ end
     function ct(e,g,j) % continue
         ctButton.String='OK, We built the database can take some time.';
         pause(.01)
+%           fid = fopen('default_Filter.pson', 'r');
+%    c = fread(fid,inf,'uint8=>char')';
+% 
+%    fclose(fid);
     
         listSelection=filterLst.String(filterLst.Value)
         if isfile % Check if it is a file

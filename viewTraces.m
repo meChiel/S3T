@@ -1,5 +1,5 @@
 function viewTraces(inputDir)
-
+% Input dir is the output dir of the specific analysis.
 if nargin<1
     inputDir=uigetdir('','Select the output dir in the analysis folder.');
 end
@@ -59,7 +59,7 @@ dataViewerBtn = uicontrol('Style', 'pushbutton', 'String', 'Data Viewer',...
     'Callback', @openDataViewer);
 
 
-plotType = uicontrol('Style', 'popup', 'String', {'normal', 'hist','boxplot'},...
+plotType = uicontrol('Style', 'popup', 'String', {'normal', 'hist','boxplot','compound'},...
     'Position', [10 400 150 25], 'BackgroundColor',[.35 .35 .38], 'ForegroundColor',[.05 .05 .08],...
     'CallBack',@changePlotType );
 
@@ -128,8 +128,11 @@ imageTypes = 0;
 isStarted = 0;
 sp = []; % SubPlots, to accelrate Psubplotting
 hh = []; % Plot handles
+bh = []; % bar handles
 ImA = [];% Image Handles
 wellViewNumber = 15;
+luc=1; % Variable to store number of compounds in compoundview mode
+spaa=[]; % Array to store subplot handles of compound viewer
 %
 updatePlot();
 %%
@@ -340,8 +343,43 @@ updatePlot();
              setMin(bpmin);
              setMax(bpmax);
       end
-     
-     
+      
+      
+      %% For compound view mode
+      [cindex, cnames, clegend, cin] = generatePlateSummary([inputDir '\..\..\' ],1);
+       [uc, ia, ic] = unique(reshape(cindex,8*12,3),'rows');
+       
+       uc = squeeze(clegend);
+       ic=cin(:);
+       
+      %figure;image(permute(uc,[3 1 2]));
+      % Find the max number of replicates of a
+      % compound.
+      occ=[];
+      for t=1:size(uc,1)
+          occ(t)=sum(ic==(t-1));
+      end
+      % Dimensions of the subplot matrix
+      luc=size(uc,1);
+      occ(occ==36)=1; % change 36 (#== empty wells) to 1 before calculating max
+      moc=max(occ);
+      tc=ones(luc,1); % Counts how many are in each compound collumn
+      tcf=gcf();
+      figure(3)
+      clf();
+      figure(tcf)
+%       if isempty(spaa)
+%           for i4 =1:96
+%               spaa(i4)=subplot(1,96,i4);
+%           end
+%       end
+      
+      
+      
+      
+      
+      %%
+      
      for ii=fts
          if (isStarted == 0 ) && ~wellViewOn %|| pngOn==0
              sp(ii)=subplot(8,12,logicalPosition(ii));
@@ -388,32 +426,71 @@ updatePlot();
                      set(ImA(ii),'CData',tdata');
                  end
              else % No heat image
-                     if synapseOn==1
-                         tXdata=table2array(as(as.FileNumber==EDCSN(ii),stimLstX.Value));
-                         tYdata=table2array(as(as.FileNumber==EDCSN(ii),stimLstY.Value));
-                     else
-                         tXdata=dataT2(:,stimLstX.Value,ii);
-                         tYdata=dataT2(:,stimLstY.Value,ii);
-                     end
-                     
-                 if  (~exist('hh','var')) || (isStarted==0) % If axis don't exist, create axis
+                 Cdata = [0 0 1];
+                 if synapseOn==1
+                     tXdata=table2array(as(as.FileNumber==EDCSN(ii),stimLstX.Value));
+                     tYdata=table2array(as(as.FileNumber==EDCSN(ii),stimLstY.Value));
+                 else
+                     tXdata=dataT2(:,stimLstX.Value,ii);
+                     tYdata=dataT2(:,stimLstY.Value,ii);
+                % Cdata = [0 0 1];
+                  
+                 end
+                 
+                 if 1% (~exist('hh','var')) || (isStarted==0) % If axis don't exist, create axis
                      
                      switch plotType.Value
                          case 1 %normal
                              try
-                             hh(ii) = plot(tXdata,tYdata);
+                                 [ci, ri] = ind2sub([12,8],logicalPosition(ii));
+                                 Cdata = squeeze(cindex(ri,ci,:));
+%                              hh(ii) = 
+                             plot(tXdata,tYdata,'Color',Cdata);
+%                              bh(ii) = 
+                             bar(tXdata,tYdata,1,'Facecolor',Cdata);
                              catch
                                  wahatswronf
                              end
                              axis([min(0,min(tXdata)) max(tXdata)*1.1+1e-6 tmin tmax*1.1 ]);
-                         case 2%hist
+                         case 2 %Hist
                              hist(tYdata,histX );
                              axis([plateminX platemaxX 0 platemaxCounts]);
                              hh(ii)=gca();
-                         case 3%boxplot
+                         case 3 %Boxplot
                              boxplot(tYdata);
                              axis([0.5 1.5 bpmin bpmax*1.1 ]);
                              hh(ii)=gca();
+                         case 4 %CompoundView
+                             [ci, ri] = ind2sub([12,8],logicalPosition(ii));
+                             Cdata = squeeze(cindex(ri,ci,:));
+                             
+                             % Look which compound it is
+                             uindex = find(sum(uc-Cdata',2)==0);
+                             t = uindex;
+                             tt = tc(uindex);
+                             
+                             
+                             % The vertical count
+                             tcf=gcf();
+                             figure(3)
+                         
+                             try
+                            % subplot(moc,luc,(tt-1)*luc+t);
+                              %spaa((tt-1)*luc+t)=ssubplot(moc,luc,(tt-1)*luc+t,spaa((tt-1)*luc+t));
+                                ssubplot(moc,luc,(tt-1)*luc+t);
+                             
+                             catch
+                                 disp('pffdf');
+                             end
+                             hh(ii) = plot(tXdata,tYdata,'Color',Cdata);
+                             bh(ii) = bar(tXdata,tYdata,1,'Facecolor',Cdata);
+                             axis([min(0,min(tXdata)) max(tXdata)*0.8+1e-6 tmin tmax*1.1 ]);
+                             axis('off');
+                             if tt==1
+                                 title(OKname2text(cnames(t)));
+                             end
+                             figure(tcf);
+                             tc(uindex) = tc(uindex)+1;
                      end
                      
                      

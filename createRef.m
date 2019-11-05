@@ -9,10 +9,16 @@ function createRef()
 % The result is written in a Vref.csv table.
 % The first collumn is the collumn which is used to create the mask when
 % using the DICT. option.
-[A, fname, FileName, PathName, U, S, V, error]=loadTiff([],1);
-Uref=U;
-Vref=V;
-Sref=S;
+try
+    [A, fname, FileName, PathName, U, S, V, error]=loadTiff([],1);
+    
+    Uref=U;
+    Vref=V;
+    Sref=S;
+catch
+    [A, fname, FileName, PathName, U, S, V, error]=loadTiff([],0);
+end
+
 %%
 V=squeeze(mean(mean(A)));
 %% Decompose reference in photobleach- and synapse-signal
@@ -28,7 +34,8 @@ try
 catch
     tf=text2OKname(FileName);
 end
-writetable(array2table(Vref,'VariableNames',{[tf '_SynResponse'], [tf '_PhotoBleach']}),[PathName '\Vref.csv']);
+ [filename, PathName]=uiputfile([PathName '\Vref.csv'],'Select save location of Vref.');
+writetable(array2table(Vref,'VariableNames',{[tf '_SynResponse'], [tf '_PhotoBleach']}), [PathName filename]);
 
 
 end

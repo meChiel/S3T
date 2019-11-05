@@ -22,6 +22,7 @@ fps3=33;
 dutyCycleOnFrames3=0;
 dutyCycleOnFrames2=0;
 SVDNumber = 2;
+NumAvgSamples = fps3;
 maskTimeProj='SVD';
 PhotoBleach='linInt'; %linInt or 2expInt
 FastLoad=0;ReloadMovie=1;ReuseMask=0;

@@ -302,7 +302,10 @@ end
                         %%
                         aw=readtable([thePath  '\' currentAnalysis2 '_Analysis\output\AllWells.txt']);
                         compoundName = plateNode.Parent.Text;
-                        cfn = aw.FileNumber(~isnan(aw.(text2OKname(compoundName)))); % Compound file number(s)
+                        fff=~isnan(aw.(text2OKname(compoundName)));
+                        fff2=~(0==(aw.(text2OKname(compoundName))));
+                        fff3=fff & fff2;
+                        cfn = aw.FileNumber(fff3); % Compound file number(s)
                         if isempty(cfn)
                             disp( 'The compound well is not in this plate directory.');
                         else
@@ -432,7 +435,10 @@ end
                        %%
                        aw=readtable([thePath  '\' currentAnalysis2 '_Analysis\output\AllWells.txt']);
                         compoundName = plateNode.Parent.Text;
-                        cfn = aw.FileNumber(~isnan(aw.(text2OKname(compoundName)))); % Compound file number(s)
+                         fff=~isnan(aw.(text2OKname(compoundName)));
+                        fff2=~(0==(aw.(text2OKname(compoundName))));
+                        fff3=fff & fff2;
+                        cfn = aw.FileNumber(fff3); % Compound file number(s)
                         if isempty(cfn)
                             disp( 'The compound well is not in this plate directory.');
                         else

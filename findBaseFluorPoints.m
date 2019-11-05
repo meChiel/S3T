@@ -26,7 +26,8 @@ function [bcresponse, dff, BC, mstart]=findBaseFluorPoints(seq,polyType,doplot)
 %%
 if nargin<2
     polyType='2exp';
-    polyType='none';% {'none','2exp','poly','1expa'} 'autoLinFit'
+    %polyType='poly';
+    %polyType='none';% {'none','2exp','poly','1expa'} 'autoLinFit'
 end
 
 
@@ -202,11 +203,13 @@ else
             
             m30=min(length(minPointsx),130); % For emphasising the (max:130) first points,
             k=0;
-            K=3;
+            K=8;
             while (k<K) %length(pointsx)~=oldLengthPointsx
-                k=k+1
+                k=k+1;
                 y=[repmat(minPointsx(1:m30)',1,200) minPointsx'];
                 x=[repmat(pointsx(1:m30)',1,200) pointsx'];
+                
+                
                 %
                 %          y= minPointsx;
                 %          x= pointsx;
@@ -231,6 +234,7 @@ else
                 totatalRange=max(allPoints)-min(allPoints);
                 startExrapolation = (min(pointsx)-min(allPoints))/totatalRange;
                 endExtrapolation = (max(allPoints)-max(pointsx))/totatalRange;
+                
                 
                 if strcmp(polyType,'2exp') && k==K
                     if(startExrapolation + endExtrapolation) > 0.125
@@ -262,11 +266,52 @@ else
                         x=pointsx';
                         y=minPointsx';
                         
-                        [a,b,c,p,q]=exp2fit(x,y);
-                        BC = real(a') + real(b)' .* exp(real(p)'* (allPoints))+real(c)'.*exp(real(q)'*(allPoints)); % using Matlab * expansion
-                        base=BC(1);
+                        x1=x(1);
+                        x=[allPoints(1)-0.1*(allPoints(end)-allPoints(1)) x allPoints(end)+0.1*(allPoints(end)-allPoints(1))];
+                        % Find the left most maximum value, not in the
+                        % point selection and add it outside of the interval.
+                        y=[y(1)+1*(max(seq(1:x1))-y(1)) y min(y(end-4:end))];
+                        
+                        % construct a piecewise linear approximation toa dd
+                        % extra data for the fit. To prevent the algorithm
+                        % of omitting big parts of the data and just
+                        % connecting begin with end.
+                        cm=allPoints(1:ceil(length(allPoints)/30):end); %course mesh
+                        Vq = interp1(x,y,cm,'Linear');
+                        
+                        x=[x cm'];
+                        y=[y Vq'];
+                        
+                        if 1%k<(K)
+                          
+                            opol=2;
+                            [p,s,mu] = polyfit(x,y,opol);
+                            BC = polyval(p,allPoints,[],mu);
+                            base=BC(1);
+                        else
+                            mx=max(x);
+                            %x=x/mx;
+                            [a,b,c,p,q]=exp2fit(x/mx,y); % /mx hier!
+                            normAllPoints = allPoints /max(allPoints);
+                            %normAllPoints = allPoints ;
+                           % BC = real(a') + real(b)' .* exp(real(p)'* (allPoints))+real(c)'.*exp(real(q)'*(allPoints)); % using Matlab * expansion
+                            BC = real(a') + real(b)' .* exp(real(p)'* (normAllPoints))+real(c)'.*exp(real(q)'*(normAllPoints)); % using Matlab * expansion
+                            base=BC(1);
+                            %x=x*mx;
+                        end
+                        
+                        
                     case 'poly'
-                        opol = 5;
+                        opol = 2;
+                        
+                        x=pointsx';
+                        y=minPointsx';
+                        
+                        if k<(K-1)
+                            x=[allPoints(1)-0.1*(allPoints(end)-allPoints(1)) x allPoints(end)+0.1*(allPoints(end)-allPoints(1))];
+                            y=[y(1)+1*(max(seq)-y(1)) y y(end)];
+                        end
+                        
                         [p,s,mu] = polyfit(x,y,opol);
                         BC = polyval(p,allPoints,[],mu);
                         base=p(end);
@@ -305,6 +350,7 @@ else
                     plot(allPoints,seq);hold on;
                     plot(BC(:),'r','LineWidth',1)
                     plot(pointsx,minPointsx,'g');
+                    plot(x,y,'g+');
                     %     plot(allPoints,LMSricox(2)*allPoints+LMSricox(1));
                     drawnow();
                     %pause(.1);

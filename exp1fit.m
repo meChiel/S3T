@@ -10,46 +10,59 @@ if y20<min(x)
     y20=min(x);
     disp('Used min amp i.s.o. 10%')
 end
-y80=amp*0.6;
+y80=amp*0.80;
 if y80<min(x)
     y80=max(x);
-    disp('Used max amp i.s.o. 60%')
+    %disp('Used max amp i.s.o. 60%')
 end
 
 %frame20 = find(x<=y20, 1,'first');
 pointy80='last';%'first'
 pointy20='firstAfter80';%'last';%'first';%'firstAfter80'
 
+[frame80, frame20 ]= getframes(t,x,y80,y20,pointy80,pointy20);
 
-switch pointy80
-    case 'first'
-        frame80 = find(x<=y80, 1,'first');
-    case 'last'
-        frame80 = find(x>y80, 1,'last');
+if isnan(frame20) % The sequence did not go down enough, let's try again, taking the first 80% point
+    pointy80='first';%'first'
+    pointy20='firstAfter80';%'last';%'first';%'firstAfter80'
+    [frame80, frame20 ]= getframes(t,x,y80,y20,pointy80,pointy20);
+    disp('No 20% point found.')
 end
-if isempty(frame80)
-frame80=nan;
-end
-if ~isnan(frame80)
-    switch pointy20
-        case 'first'
-            frame20 = find(x<=y20, 1,'first');
-        case 'last'
-            frame20 = find(x>y20, 1,'last');
-        case 'firstAfter80'
-try
-   
-    frame20 = frame80+find(x(frame80:end)<=y20(frame80:end), 1,'first');
-catch
-    error('ff')
-end
-end
-else
-    frame20=nan;
-end
-if isempty(frame20)
-frame20=nan;
-end
+
+    function [frame80, frame20 ]= getframes(t,x,y80,y20,pointy80,pointy20)
+        
+        switch pointy80
+            case 'first'
+                frame80 = find(x<=y80, 1,'first');
+            case 'last'
+                frame80 = find(x>y80, 1,'last');
+        end
+        if isempty(frame80)
+            frame80=nan;
+        end
+        if ~isnan(frame80)
+            switch pointy20
+                case 'first'
+                    frame20 = find(x<=y20, 1,'first');
+                case 'last'
+                    frame20 = find(x>y20, 1,'last');
+                case 'firstAfter80'
+                    try
+                        
+                        frame20 = frame80-1+find(x(frame80:end)<=y20, 1,'first');
+                    catch
+                        error('ff')
+                    end
+            end
+        else
+            frame20=nan;
+        end
+        if isempty(frame20)
+            frame20=nan;
+        end
+        
+    end
+
 
 
 try
@@ -113,4 +126,9 @@ t0 = t80 + log(y80/amp)*tau1;
 % plot([t80 t80],[0 amp]);
 % pause(.1)
 %pause
+if isnan(tau1)
+    disp('tau is nan');
+end
+
+
 end
