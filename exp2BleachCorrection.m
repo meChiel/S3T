@@ -37,7 +37,8 @@ for i=1:size(signal,1)
     
     y=[mstart];% repmat(mend,1,200)]; % exp2fit should have ascending x and no doubles. So no repmat
 
-[a(i),b(i),c(i),p(i),q(i)]=exp2fit(x,y);
+%[a(i),b(i),c(i),p(i),q(i)]=exp2fit(x,y);
+[a(i),b(i),c(i),p(i),q(i)]=exp2fitM(x,y); % Using Matlab NLinFit
 end
 end
 BC = real(a') + real(b)' .* exp(real(p)'* (1:LM))+real(c)'.*exp(real(q)'*(1:LM)); % using Matlab * expansion

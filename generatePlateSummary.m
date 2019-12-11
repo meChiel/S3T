@@ -7,7 +7,7 @@ function [im, compoundName, clegendd, Y]=generatePlateSummary(dd,color)
 if nargin<2
     color =0;
 end
-dcsv=dir([dd 'PlateLayout_*.csv']);
+dcsv=dir([dd '\PlateLayout_*.csv']);
 
 r=zeros(8,12,length(dcsv));
 for i=1:length(dcsv)

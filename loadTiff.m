@@ -78,11 +78,25 @@ else % Normal Load
     
     %%
     
-    if isfield(info,'Software') %Andor IQ tiff files don't have a Software field, Andor Solis does
+    
+    if isfield(info,'UnknownTags') %Andor IQ tiff files don't have a Software field, Andor Solis does
         %The script only works for Andor IQ generated tiff files.
-        genSoft='Andor Solis';
+        isAndor=1;
     else
-        genSoft='Andor IQ';        
+        isAndor=0;
+    end
+    
+    if isAndor
+        if isfield(info,'Software') %Andor IQ tiff files don't have a Software field, Andor Solis does
+            %The script only works for Andor IQ generated tiff files.
+            genSoft='Andor Solis';
+        else
+            genSoft='Andor IQ';
+        end
+    else
+        genSoft='other';
+        autocorrect=0;
+        msg='unknown data creation source';
     end
     
     if strcmp(genSoft,'Andor Solis')
@@ -103,6 +117,10 @@ else % Normal Load
         if nargin<1
             disp(['fps: ' num2str(fps)]);
         end
+    else
+        fps=[];
+   
+        
     end
 
     

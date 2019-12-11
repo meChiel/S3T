@@ -3,6 +3,16 @@ function viewTraces(inputDir)
 if nargin<1
     inputDir=uigetdir('','Select the output dir in the analysis folder.');
 end
+if strcmp(inputDir(end),'\')
+    inputDir=inputDir(1:end-1);
+end
+
+ButtonName='Yes';
+while ((length(inputDir)<6) || ~strcmp(inputDir(end-6:end),'\output')) && (strcmp(ButtonName,'Yes'))
+    inputDir=uigetdir('','Select the output dir in an analysis folder.');
+    ButtonName = questdlg(['No output folder selected, want to try again?                                        '...
+           'Please select a folder named output in the analysis folder.'] , 'Error', 'Yes', 'No', 'Yes');
+end
 dcs=dir([inputDir '\*_traces.csv']); % Directory Csv'S
 
 for i=1:length(dcs)
@@ -29,7 +39,7 @@ try
     
 catch e
     warning ('No AllWells file found, showing files alphabetically!')
-    text(0,0,'No AllWells file found, showing files alphabetically!')
+    text(0.4,0.5,'No AllWells file found, showing files alphabetically!')
     logicalPosition =1:length(dcs);
 end
 %%
@@ -133,6 +143,8 @@ ImA = [];% Image Handles
 wellViewNumber = 15;
 luc=1; % Variable to store number of compounds in compoundview mode
 spaa=[]; % Array to store subplot handles of compound viewer
+global compClustData;
+
 %
 updatePlot();
 %%
@@ -347,7 +359,8 @@ updatePlot();
       
       %% For compound view mode
       [cindex, cnames, clegend, cin] = generatePlateSummary([inputDir '\..\..\' ],1);
-       [uc, ia, ic] = unique(reshape(cindex,8*12,3),'rows');
+       %[uc, ia, ic] = unique(reshape(cindex,8*12,3),'rows');
+       compClustData=[];
        
        uc = squeeze(clegend);
        ic=cin(:);
@@ -381,8 +394,11 @@ updatePlot();
       %%
       
      for ii=fts
+         isStarted=0;
          if (isStarted == 0 ) && ~wellViewOn %|| pngOn==0
-             sp(ii)=subplot(8,12,logicalPosition(ii));
+             %sp(ii)=    
+             subplot(8,12,logicalPosition(ii));
+            
              %                else
              %                   try  axes(sp(logicalPosition(ii)));
              %                   catch
@@ -390,6 +406,7 @@ updatePlot();
              %                       isStarted=0;
              %                   end
          end
+          %set(sp(ii));
          
          if pngOn
              selImType = imageTypes(stimLstY.Value);
@@ -437,8 +454,8 @@ updatePlot();
                   
                  end
                  
-                 if 1% (~exist('hh','var')) || (isStarted==0) % If axis don't exist, create axis
-                     
+                 if  (~exist('hh','var')) || (isStarted==0) % If axis don't exist, create axis
+             hold off;        
                      switch plotType.Value
                          case 1 %normal
                              try
@@ -482,6 +499,7 @@ updatePlot();
                              catch
                                  disp('pffdf');
                              end
+                             compClustData{(tt-1)*luc+t}=tYdata;
                              hh(ii) = plot(tXdata,tYdata,'Color',Cdata);
                              bh(ii) = bar(tXdata,tYdata,1,'Facecolor',Cdata);
                              axis([min(0,min(tXdata)) max(tXdata)*0.8+1e-6 tmin tmax*1.1 ]);
@@ -501,7 +519,9 @@ updatePlot();
                                  if autoscaleOn
                                      error();
                                  else
-                                     set(hh(ii),'ydata',tYdata);
+                                     [ci, ri] = ind2sub([12,8],logicalPosition(ii));
+                                     Cdata = squeeze(cindex(ri,ci,:));
+                                     set(hh(ii),'ydata',tYdata,'Color',Cdata);
                                  end
                              catch
                                  subplot(8,12,logicalPosition(ii));
@@ -555,9 +575,72 @@ updatePlot();
          else
              axis off
          end
+     end %for loop
+     
+     
+     
+     
+     
+     if plotType.Value==4
+         %% Calculate some compound averages
+         if length(compClustData)<(moc*luc)
+             compClustData{moc*luc}=[];
+         end
+         f=reshape(compClustData,[luc,moc]);
+         
+         figure(5)
+         for i4=1:moc
+             for j=1:luc
+                 subplot(moc+1,luc,(i4-1)*luc+j)
+                 plot(f{j,i4})
+                 if i4==1
+                     title(OKname2text(cnames(j)));
+                 end
+                 axis('off')
+             end
+         end
+         
+         %% Convert cells to matrices per compound
+         k=[];
+         for j=1:luc
+             k{j}=[];
+             i5=1;
+             while ~isempty(f(j,i5)) && i5<size(f,2)%i=1:
+                 k{j}=[k{j}; f{j,i5}'];
+                 i5=i5+1;
+             end
+         end
+         
+         %%
+         figure(6);
+         clf
+         tt=uc;%colormap('jet');%'jet');
+         mk=[];
+         sk=[];
+         for j=1:luc
+             if ~isnan(mean(k{j}))
+                 mk(j,:)=mean(k{j});
+                 sk(j,:)=std(k{j})/sqrt(size(k{j},1));
+             end
+         end
+         mmk=max(max(mk+sk));
+         
+         for j=1:luc
+             ssubplot(1,luc,j)
+             bar((mk(j,:)+0*sk(j,:))',1,'faceColor',tt(j,:))
+             hold on
+             plot((mk(j,:))','color',[.1 .1 .1])
+             plot((mk(j,:)+sk(j,:))','color',[.8 .5 .5])
+             axis([0 size(mk,2) 0 mmk]);
+             
+             title(OKname2text(cnames(j)));
+             
+             axis ('off')
+         end
+         
+         figure(tcf);
      end
-        
-    % Add text and labels to 96 well view.
+    %% Add text and labels to 96 well view.
       if wellViewOn || plotType.Value==3
       else
           if isStarted==0

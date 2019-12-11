@@ -7,7 +7,7 @@ global seeWellBtn stimLstX stimLstY Xtxt Ytxt
 global filterFieldLst lessMoreLst filterThresholdEdt markerSelectionBtn
 global doFilterBtn HistBtn levelDownBtn levelUpBtn ExportBtn fitBtn
 global lineSizeBtn LineStyleBtn logXChk logYChk wowChkBtn wow backgroundImageBtn backgroundImageSelection
-global useXlabelChk jitterChk jitterChk2 jitterChk3 usecolorCategoriesChk
+global useXlabelChk jitterChk jitterChk2 jitterChk3 usecolorCategoriesChk jitterTypeLst jitterType
 global addFileBtn
 global data;
 global wellAvg mask
@@ -144,6 +144,10 @@ end
         jitterChk3 = uicontrol('Visible','off','Style', 'checkbox', 'String','Jitter',...
             'Position', [30 360 150 25], 'BackgroundColor',bgc, 'ForegroundColor',[.05 .05 .08],...
             'CallBack',@jitterToggle);
+        
+        jitterTypeLst = uicontrol('Visible','off','Style', 'popup', 'String',{'Jitter','ViolinDots','ViolinDraw','ViolinBar','STD','SEM'},...
+            'Position', [75 360 75 25], 'BackgroundColor',bgc, 'ForegroundColor',[.05 .05 .08],...
+            'CallBack',@jitterTypeChange);
         
         
         Xtxt = uicontrol('Style', 'text','String', 'X',...
@@ -336,6 +340,7 @@ showButtons=1;
         jitterChk.Visible = visTExt;
         jitterChk2.Visible = visTExt;
         jitterChk3.Visible = visTExt;
+        jitterTypeLst.Visible = visTExt;
         
     end
     function wowToggle(e,d,r)
@@ -362,10 +367,20 @@ showButtons=1;
         updatePlot();
     end
 
+
+
 function jitterToggle(e,d,r)
         addJitter=jitterChk.Value+jitterChk2.Value*10+jitterChk3.Value*10;
         updatePlot();
-    end
+end
+
+function jitterTypeChange(e,d,r)
+        tt=jitterTypeLst.String(jitterTypeLst.Value);%
+        jitterType=tt{1};
+        updatePlot();
+end
+
+
 
     function logYToggle(e,d,r)
         logY=logYChk.Value;
@@ -474,11 +489,17 @@ function jitterToggle(e,d,r)
         subplot(4,4,1)
         relPath=strrep(relPath,'_PPsynapses','_synapses');
         [tempFFn, tempDirFn]=getFN(relPath);
-            
-        dd2 = [tempDirFn '..\..\' tempFFn(1:end-13) '.tif_mask.png'];
+
+        dd2 = [tempDirFn '..\' tempFFn(1:end-13) '.tif_mask.png'];
+        % Check if mask in directory directly below: when All well, well
+        % level, if at synapse level, check 2 levels below, caomming from
+        % synapse details.
         if ~exist([plateDir dd2],'file')
-            dd2 = [tempDirFn '..\' tempFFn(1:end-13) '.tif_mask.png'];
+            dd2 = [tempDirFn '..\..\' tempFFn(1:end-13) '.tif_mask.png'];
         end
+%         if ~exist([plateDir dd2],'file')
+%             dd2 = [tempDirFn '..\' tempFFn(1:end-13) '.tif_mask.png'];
+%         end
         
         mask = imread([plateDir dd2]);
         [wy, wx] = size(mask);
@@ -546,58 +567,103 @@ function jitterToggle(e,d,r)
 %         end
     end
 
-    function [currentDataX, currentDataY,xlabelText,XTL]=makeRenderData2(i,animValue,af,oldX, oldY, lwow)
+    function [currentDataX, currentDataY,xlabelText,XTL] = makeRenderData2(i,animValue,af,oldX, oldY, lwow)
     % OLD code: y{i}=currentDataY; x{i}=currentDataX
         if ~strcmp(stimLstX.String(stimLstX.Value),'fileName')
             if ~lwow % Normal case/ geen animatie
                 if length(stimLstX.Value)==1 % Single selection
-                    ppp=data{i}.(text2OKname(stimLstX.String{stimLstX.Value}));
-                    currentDataX=ppp(:); % To make sure this is a collumn
-                    XTL=(text2OKname(stimLstX.String{stimLstX.Value}));
+                    ppp = data{i}.(text2OKname(stimLstX.String{stimLstX.Value}));
+                    currentDataX = ppp(:); % To make sure this is a collumn
+                    XTL = (text2OKname(stimLstX.String{stimLstX.Value}));
                 else % Multiple select
-                    XTL=[]; % Multiple selection: X Tick Labels
-                    for ms=1:length(stimLstX.Value)
+                    XTL = []; % Multiple selection: X Tick Labels
+                    for ms = 1:length(stimLstX.Value)
                         if useXlabels
                            % colorCategories=1;
                             if ~colorCategories % Plot spaced next to each other
-                                currentDataX(:,ms)=(ms-1)+0*data{i}.(text2OKname(stimLstX.String{stimLstX.Value(ms)}));
-                                XTL{ms}=OKname2text(stimLstX.String{stimLstX.Value(ms)});
+                                currentDataX(:,ms) = (ms-1)+0*data{i}.(text2OKname(stimLstX.String{stimLstX.Value(ms)}));
+                                XTL{ms} = OKname2text(stimLstX.String{stimLstX.Value(ms)});
                             else % Use first x selection, next different colors.
                                 if ms>1 % Discard first selection since that is teh on which is plotted on x-axis the other are colored
-                                    mss=ms-1;
+                                    mss = ms-1;
                                 else
-                                    mss=ms;
+                                    mss = ms;
                                 end
-                                currentDataX(:,mss)=data{i}.(text2OKname(stimLstX.String{stimLstX.Value(1)})).*(data{i}.(text2OKname(stimLstX.String{stimLstX.Value(ms)}))*0+1);%(ms-1)+0*data{i}.(text2OKname(stimLstX.String{stimLstX.Value(ms)}));
-                                XTL{mss}=OKname2text(stimLstX.String{stimLstX.Value(ms)});
+                                currentDataX(:,mss) = data{i}.(text2OKname(stimLstX.String{stimLstX.Value(1)})).*(data{i}.(text2OKname(stimLstX.String{stimLstX.Value(ms)}))*0+1);%(ms-1)+0*data{i}.(text2OKname(stimLstX.String{stimLstX.Value(ms)}));
+                                XTL{mss} = OKname2text(stimLstX.String{stimLstX.Value(ms)});
                                 
                             end
                         else % Use x values for correlations
-                            currentDataX(:,ms)=data{i}.(OKname2text(stimLstX.String{stimLstX.Value(ms)}));
+                            currentDataX(:,ms)=data{i}.(text2OKname(stimLstX.String{stimLstX.Value(ms)}));
+                            XTL{ms} = OKname2text(stimLstX.String{stimLstX.Value(ms)});
                         end
                     end
                     
                 end
             else % Animation case
-                XTL=[];%temp hack, to supress error
-                % tempX=data{i}.(stimLstX.Value);
-                tempX=data{i}.(text2OKname(stimLstX.String{stimLstX.Value}));
-                if exist('oldX','var')
-                    try
-                        ppp=tempX+animValue(af)*(oldX{i}(:)-tempX);
-                        currentDataX=ppp(:);
-                    catch
-                        
+                if length(stimLstX.Value)==1 % Single selection
+                    XTL=[];%temp hack, to supress error
+                    % tempX=data{i}.(stimLstX.Value);
+                    tempX = data{i}.(text2OKname(stimLstX.String{stimLstX.Value}));
+                    if exist('oldX','var')
                         try
-                            currentDataX=zeros(size(tempX));
+                            ppp=tempX+animValue(af)*(oldX{i}(:)-tempX);
+                            currentDataX=ppp(:);
                         catch
-                            x=[];
-                            warning('error in animation!');
+                            try
+                                currentDataX = zeros(size(tempX));
+                            catch
+                                x = [];
+                                warning('error in animation!');
+                            end
+                            currentDataX = tempX(:);
                         end
-                        currentDataX=tempX(:);
+                    else
+                        currentDataX = tempX(:);
                     end
-                else
-                    currentDataX=tempX(:);
+                    % Animation case
+                else % Multiple select
+                    XTL = []; % Multiple selection: X Tick Labels
+                    for ms = 1:length(stimLstX.Value)
+                        if useXlabels
+                            % colorCategories=1;
+                            if ~colorCategories % Plot spaced next to each other
+                                % currentDataX(:,ms) = (ms-1)+0*data{i}.(text2OKname(stimLstX.String{stimLstX.Value(ms)}));
+                                 XTL{ms} = OKname2text(stimLstX.String{stimLstX.Value(ms)});
+                               
+                                tempX(:,ms) = (ms-1)+0*data{i}.(text2OKname(stimLstX.String{stimLstX.Value(ms)}));
+                                try
+                                    ppp=tempX(:,ms)+animValue(af)*(oldX{i}(:,ms)-tempX(:,ms));
+                                catch
+                                    oldX{i}=tempX;
+                                    ppp=tempX(:,ms)+animValue(af)*(oldX{i}(:,ms)-tempX(:,ms));
+                                end
+                                currentDataX(:,ms)=ppp(:);
+                                
+                            else % Use first x selection, next different colors.
+                                if ms>1 % Discard first selection since that is teh on which is plotted on x-axis the other are colored
+                                    mss = ms-1;
+                                else
+                                    mss = ms;
+                                end
+                                currentDataX(:,mss) = data{i}.(text2OKname(stimLstX.String{stimLstX.Value(1)})).*(data{i}.(text2OKname(stimLstX.String{stimLstX.Value(ms)}))*0+1);%(ms-1)+0*data{i}.(text2OKname(stimLstX.String{stimLstX.Value(ms)}));
+                                XTL{mss} = OKname2text(stimLstX.String{stimLstX.Value(ms)});
+                                
+                            end
+                        else % Use x values for correlations
+                            % currentDataX(:,ms)=data{i}.(OKname2text(stimLstX.String{stimLstX.Value(ms)}));
+                            tempX(:,ms)=data{i}.(text2OKname(stimLstX.String{stimLstX.Value(ms)}));
+                            try
+                                ppp=tempX(:,ms)+animValue(af)*(oldX{i}(:,ms)-tempX(:,ms));
+                            catch
+                                oldX{i}=tempX;
+                                ppp=tempX(:,ms)+animValue(af)*(oldX{i}(:,ms)-tempX(:,ms));
+                            end
+                            currentDataX(:,ms)=ppp(:); 
+                            XTL{ms} = OKname2text(stimLstX.String{stimLstX.Value(ms)});
+                        end
+                    end
+                    
                 end
             end
             xlabelText = stimLstX.String(stimLstX.Value);
@@ -816,6 +882,9 @@ function jitterToggle(e,d,r)
         r = mod((1:n)*6.3,5)'/10;
         end
     end
+
+   
+
     function doOpenFiles(d,f,e)
        
         [plateFilename, plateDir] = uigetfile({'*.txt', 'Analysis File';...
@@ -949,9 +1018,10 @@ function jitterToggle(e,d,r)
         
         subplot(4,4,[2:3,6:7,10:11,14:15])
         if wow
-            animationNumber=50;
-            animValue=[1:50]/animationNumber;
-            animValue=[(tanh(linspace(-pi,pi,animationNumber))+1)/2];
+            animationNumber=20;
+            animValue=[1:20]/animationNumber;
+            animValue=[(tanh(linspace(-pi,pi,animationNumber))+1)];
+            animValue=animValue/animValue(end);
             animValue=1-animValue;
             oab=axis();
         else
@@ -982,101 +1052,219 @@ function jitterToggle(e,d,r)
                 y{i}=currentDataY;
                 
                 barplot=0;
-                if barplot
-                    bar(x{i},y{i});
-                else % No barPlot
-                    xnoise=0;rand(size(x{i})).*0.2-0.1;
-                    %  plot(x{i}+xnoise,y{i},'Marker',marker,'LineWidth',lineSize,'LineStyle', LineStyle );
-                    
-                    if logX
+                plotType='normal';
+                
+                switch plotType
+                    case 'violin'
+                        
+                    case 'barplot'
+                        bar(x{i},y{i});
+                    case 'normal'
+                        xnoise=0;rand(size(x{i})).*0.2-0.1;
+                        %  plot(x{i}+xnoise,y{i},'Marker',marker,'LineWidth',lineSize,'LineStyle', LineStyle );
+                        
+                        if logX
+                            if useXlabels
+                                L=(i-1)*.3; %Shift between files
+                            else
+                                L=0;
+                            end
+                            if addJitter>0
+                                xnoise=(pseudoRandom(size(x{i}))*.10-0.05)*addJitter;
+                            else % No jitter
+                                xnoise=pseudoRandom(size(x{i}))*0;
+                            end
+                            plot(x{i}.*(1+xnoise+L),y{i},'Marker',marker,'LineWidth',lineSize,'LineStyle', LineStyle )
+                        else % if not logx
+                            violinPlot=0;
+                           
+                                 hold off
+                                 violinPlot=0;
+                                switch jitterType
+                                    case {'Jitter','SEM','STD'}
+                                        xnoise=(pseudoRandom(size(x{i},1),size(x{i},2))*0.1-0.025)*addJitter;
+                                        fittt=0;
+                                    case 'ViolinDraw'
+                                         violinPlot=2;
+                                         fittt=0;
+                                    case 'ViolinBar'
+                                         violinPlot=3;
+                                         fittt=0;
+                                    case 'ViolinDots'
+                                         violinPlot=1;
+                                         fittt=0;
+                                end
+                                switch jitterType
+                                    case 'SEM'
+                                         violinPlot=0;
+                                         fittt=1;
+                                    case 'STD'
+                                        violinPlot=0;
+                                        fittt=1;
+                                end
+                      %           
+                      if addJitter>0
+                             % violinPlot=1;
+                              if violinPlot
+                                  pp=x{i};
+                                  pp(isnan(x{i}))=[]; %remove NaN
+                                  xcats=unique(pp);
+                                  yy=y{i};
+                                  xx=x{i};
+                                  [hx, hxx]=hist(yy,400);
+                                  mh=max(hx);
+                                 
+                                  xnoise=zeros(size(xx,1),size(xx,2));
+                                  for i3=1:length(xcats) % For all unique X values make fit
+                                      sel = yy(~isnan(xx(:,i3)));
+                                      [hx, hy]=hist(sel,hxx);
+                                      %mbar(hy,1/mh*hx,x{i}(1),getColor(i3));
+                                      
+                                      %hold on
+                                      if violinPlot ==1
+                                            xnoise(~isnan(xx(:,i3)),i3)=(pseudoViolinRandom(sel,1,hxx)/mh*2-0.00)*addJitter;
+                                      end
+                                      if violinPlot==2
+                                          % plot Line
+                                          plot(xcats(i3)+hx*addJitter/10/mh,hy,'color',getColor(i3));
+                                          hold on
+                                          plot(xcats(i3)-hx*addJitter/10/mh,hy,'color',getColor(i3));
+                                      end
+                                      if violinPlot==3
+                                          % plot Bar
+                                          
+                                    plot(nan);
+                                          mbar(hy,1/mh*hx*addJitter/10,xcats(i3),getColor(i3));
+                                      end
+                                      yyt=yy(max(x{i}==xcats(i3),[],2));
+                                      %xnoise(x{i}==xcats(i3))=(pseudoViolinRandom(yyt,1,hxx)/mh-0.00)*addJitter;
+                                    
+                                  end
+                              end
+                            else % No jitter
+                                xnoise=pseudoRandom(size(x{i},1),size(x{i},2))*0;
+                            end
+                            % The real plot command:
+%                              violinPlot=0;
+%                               if violinPlot
+%                                   pp=x{i};
+%                                   pp(isnan(x{i}))=[]; %remove NaN
+%                                   xcats=unique(pp);
+%                                   
+%                                   
+%                                   [hx, hxx]=hist(yy,100);
+%                                   mh=max(hx);
+%                                   
+%                                   for i3=1:length(xcats) % For all unique X values make fit
+%                                       
+%                                       [hx, hy]=hist(y{i});%,hxx);
+%                                       mh=10;
+%                                       mbar(hy,1/mh*hx,x{i}(1),getColor(i3));
+%                                       
+%                                       plot(xcats(i3)+hx/mh,hy,'color',getColor(i3));
+%                                       plot(xcats(i3)-hx/mh,hy,'color',getColor(i3));
+%                                   end
+%                                   
+%                                   plot(x{i}+xnoise,y{i},'Marker',marker,'LineWidth',lineSize,'LineStyle', LineStyle );
+%                               else % Normal
+                                if violinPlot<2
+                                    plot(x{i}+xnoise,y{i},'Marker',marker,'LineWidth',lineSize,'LineStyle', LineStyle );
+                                
+                                end
+%                               end
+                            
+                        end
+                        hold on;
                         if useXlabels
-                            L=(i-1)*.3; %Shift between files
-                        else
-                            L=0;
-                        end
-                        if addJitter>0
-                            xnoise=(pseudoRandom(size(x{i}))*.10-0.05)*addJitter;
-                        else % No jitter
-                            xnoise=pseudoRandom(size(x{i}))*0;
-                        end
-                        plot(x{i}.*(1+xnoise+L),y{i},'Marker',marker,'LineWidth',lineSize,'LineStyle', LineStyle )
-                    else % if not logx
-                        if addJitter>0
-                            xnoise=(pseudoRandom(size(x{i},1),size(x{i},2))*0.1-0.025)*addJitter;
-                        else % No jitter
-                            xnoise=pseudoRandom(size(x{i},1),size(x{i},2))*0;
-                        end
-                        % The real plot command:
-                        plot(x{i}+xnoise,y{i},'Marker',marker,'LineWidth',lineSize,'LineStyle', LineStyle );
-                    end
-                    hold on;
-                    if useXlabels
-                        if colorCategories
-                            % Show nothing, different categories are
-                            % colorcoded.
-                        else
-                            xticklabels(XTL);
-                            xticks(0:(length(XTL)-1))
-                        end
-                    end
-                    
-                    %% Plot a piecewise fit.
-                    if (fittt==1)
-                        pp=x{i};
-                        pp(isnan(x{i}))=[]; %remove NaN
-                        xcats=unique(pp);
-                        yy=y{i};
-                        xx=x{i};
-                        dx=max(max(x{i}))-min(min(x{i}));
-                        if dx==0
-                            dx=3;
+                            if colorCategories
+                                % Show nothing, different categories are
+                                % colorcoded.
+                            else
+                                xticklabels(XTL);
+                                xticks(0:(length(XTL)-1))
+                            end
                         end
                         
-                        for i3=1:length(xcats) % For all unique X values make fit
-                            if useXlabels
-                                if colorCategories
+                        %% Plot a piecewise fit.
+                        if (fittt==1)
+                            pp=x{i};
+                            pp(isnan(x{i}))=[]; %remove NaN
+                            xcats=unique(pp);
+                            yy=y{i};
+                            xx=x{i};
+                            dx=max(max(x{i}))-min(min(x{i}));
+                            if dx==0
+                                dx=3;
+                            end
+                            
+                            [hx, hxx]=hist(yy,100);
+                            mh=max(hx);
+                            
+                            
+                            for i3=1:length(xcats) % For all unique X values make fit
+                                if useXlabels
+                                    if colorCategories
+                                    else
+                                        sel = yy(~isnan(xx(:,i3)));
+                                    end
                                 else
-                                sel = yy(~isnan(xx(:,i3)));
+                                    sel = yy(xcats(i3)==xx);
                                 end
-                            else
-                                sel = yy(xcats(i3)==xx);
+                                violinPlot=0;
+                                if violinPlot
+                                    [hx, hy]=hist(sel,hxx);
+                                    mbar(hy,1/mh*hx,xcats(i3),getColor(i3));
+                                    plot(xcats(i3)+hx/mh,hy,'color',getColor(i3))
+                                    plot(xcats(i3)-hx/mh,hy,'color',getColor(i3))
+                                else
+                                msel=mean(sel);
+                                msell(i3)=msel;
+                                 P95=0;
+                                if strcmp(jitterType,'SEM')
+                                    P95=1;
+                                %P95=0;% Show P95% S.E.M.
+                                %if P95
+                                    ssel=std(sel)/sqrt(length(sel))*1.96;
+                                end
+                                if strcmp(jitterType,'STD')
+                                % Show STD
+                                    ssel=std(sel);%
+                                end
+                                if logX
+                                    h=plot([xcats(i3)*(1-1/dx+L),xcats(i3)*(1-1/dx+L),xcats(i3)*(1+1/dx+L),xcats(i3)*(1+1/dx+L),xcats(i3)*(1+1/dx+L),xcats(i3)*(1-1/dx+L)],[msel-ssel,msel+ssel,msel+ssel,msel-ssel,msel-ssel,msel-ssel],'b','LineWidth',lineSize)
+                                    set(get(get(h,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
+                                    h=plot([xcats(i3)*(1-1/dx+L),xcats(i3)*(1+1/dx+L)],[msel,msel],'r','LineWidth',lineSize);
+                                    set(get(get(h,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
+                                    if P95
+                                        text(xcats(i3)*(1-1/dx+L),msel+ssel*1.3,'SEM:95%');
+                                    else
+                                        % text(xcats(i3)*(1-1/dx+L),msel+ssel*1.3,'St.Dev.');
+                                    end
+                                else % linear X, not logX
+                                   % mbar(xcats(i3))
+                                    
+                                    
+                                    plot([xcats(i3)-1/dx,xcats(i3)-1/dx,xcats(i3)+1/dx,xcats(i3)+1/dx,xcats(i3)+1/dx,xcats(i3)-1/dx],...
+                                        [msel-ssel,msel+ssel,msel+ssel,msel-ssel,msel-ssel,msel-ssel]...
+                                        ,'b','LineWidth',lineSize); %Draw box
+                                    plot([xcats(i3)-1/dx,xcats(i3)+1/dx],[msel,msel],'r','LineWidth',lineSize); %Draw mean line
+                                    if P95
+                                        text(xcats(i3)-1/dx,msel+ssel*1.3,'SEM:95%');
+                                    else
+                                        %text(xcats(i3)-1/dx,msel+ssel*1.3,'St.Dev.');
+                                    end
+                                end
+                                end
+                                %plot([xcats(i3),xcats(i3)],[msel-ssel,msel+ssel],'r','LineWidth',lineSize)
+                                %     boxplot([xcats(i3),xcats(i3)],[msel-ssel,msel+ssel]);%,'r','LineWidth',lineSize)
                             end
-                            msel=mean(sel);
-                            msell(i3)=msel;
-                            P95=0;% Show P95% S.E.M.
-                            if P95
-                                ssel=std(sel)/sqrt(length(sel))*1.96;
-                            else % Show STD
-                                ssel=std(sel);%
-                            end
-                            if logX
-                                h=plot([xcats(i3)*(1-1/dx+L),xcats(i3)*(1-1/dx+L),xcats(i3)*(1+1/dx+L),xcats(i3)*(1+1/dx+L),xcats(i3)*(1+1/dx+L),xcats(i3)*(1-1/dx+L)],[msel-ssel,msel+ssel,msel+ssel,msel-ssel,msel-ssel,msel-ssel],'b','LineWidth',lineSize)
+                            % boxplot(xx,yy);%,'r','LineWidth',lineSize)
+                            connectionLine=0;
+                            if connectionLine
+                                h= plot(xcats,msell,'k','LineWidth',lineSize); %Draw black connection line
                                 set(get(get(h,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
-                                h=plot([xcats(i3)*(1-1/dx+L),xcats(i3)*(1+1/dx+L)],[msel,msel],'r','LineWidth',lineSize);
-                                set(get(get(h,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
-                                if P95
-                                    text(xcats(i3)*(1-1/dx+L),msel+ssel*1.3,'SEM:95%');
-                                else
-                                    % text(xcats(i3)*(1-1/dx+L),msel+ssel*1.3,'St.Dev.');
-                                end
-                            else % linear X, not logX
-                                plot([xcats(i3)-1/dx,xcats(i3)-1/dx,xcats(i3)+1/dx,xcats(i3)+1/dx,xcats(i3)+1/dx,xcats(i3)-1/dx],...
-                                    [msel-ssel,msel+ssel,msel+ssel,msel-ssel,msel-ssel,msel-ssel]...
-                                    ,'b','LineWidth',lineSize); %Draw box
-                                plot([xcats(i3)-1/dx,xcats(i3)+1/dx],[msel,msel],'r','LineWidth',lineSize); %Draw mean line
-                                if P95
-                                    text(xcats(i3)-1/dx,msel+ssel*1.3,'SEM:95%');
-                                else
-                                    %text(xcats(i3)-1/dx,msel+ssel*1.3,'St.Dev.');
-                                end
                             end
-                            %plot([xcats(i3),xcats(i3)],[msel-ssel,msel+ssel],'r','LineWidth',lineSize)
-                            %     boxplot([xcats(i3),xcats(i3)],[msel-ssel,msel+ssel]);%,'r','LineWidth',lineSize)
                         end
-                        % boxplot(xx,yy);%,'r','LineWidth',lineSize)
-                        h= plot(xcats,msell,'k','LineWidth',lineSize); %Draw black connection line
-                        set(get(get(h,'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
-                    end
                 end
             end
             
@@ -1105,10 +1293,8 @@ function jitterToggle(e,d,r)
                         xx=x{1};
                         yy=y{1};
                         ysel{i8} = yy(~isnan(xx(:,i8)));
-                        
                     end
                      updateHist(ysel,ca,currentFile); 
-                    
                 else
                     updateHist(y{currentFile},ca,currentFile);
                 end
@@ -1116,8 +1302,8 @@ function jitterToggle(e,d,r)
             else % No Histogram/ clear histogram
                 subplot(4,4,[4,8,12,16])
                 cla;
-                aa =gca();
-                aa.Visible='off';
+                aa = gca();
+                aa.Visible = 'off';
                 subplot(4,4,[2:3,6:7,10:11,14:15]);
             end
             if ~useXlabels 
@@ -1137,6 +1323,34 @@ function jitterToggle(e,d,r)
                 ca.XLim =[-0.2 1.2];
             end
             if wow
+%                 if ca.XLim(2)>oab(2) 
+%                     oab(2)=oab(2)+0.1*(ca.XLim(2)-oab(2));
+%                 end
+%                  if ca.XLim(2)<oab(2) 
+%                     oab(2)=oab(2)+0.1*(ca.XLim(2)-oab(2));
+%                 end
+%                 if ca.YLim(2)>oab(4) 
+%                     oab(4)=oab(4)+0.1*(ca.YLim(2)-oab(4));
+%                 end
+%                 if ca.YLim(2)<oab(4) 
+%                     oab(4)=oab(4)+0.1*(ca.YLim(2)-oab(4));
+%                 end
+                
+                
+                naf=max(0.7,(1-animValue(af)));
+                     oab(1)=oab(1)+naf*(ca.XLim(1)-oab(1));
+                     oab(2)=oab(2)+naf*(ca.XLim(2)-oab(2));
+                     oab(3)=oab(3)+naf*(ca.YLim(1)-oab(3));
+                     oab(4)=oab(4)+naf*(ca.YLim(2)-oab(4));
+                     
+%                     oab(1)=ca.XLim(1);
+%                     oab(2)=ca.XLim(2);
+%                     oab(3)=ca.YLim(1);
+%                     oab(4)=ca.YLim(2);
+                    
+               
+                
+                
                 axis(oab); %
                 drawnow();
                 %disp(af);

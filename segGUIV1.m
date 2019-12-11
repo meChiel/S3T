@@ -15,7 +15,7 @@ function fhandles=segGUIV1(myDir,headless,startProcessing)
 % segGUIV1(myDir,headless=1)
 % Headless: will limit the GUI output. (default==0) 
 global Version
-Version = 'V0.90-dev';
+Version = 'V0.91-rel';
 %% Much better dataviewer
 % full export
 
@@ -24,6 +24,7 @@ fhandles.foldData2=@foldData2;
 fhandles.multiResponseto1=@multiResponseto1;
 fhandles.setFastLoad=@setFastLoad;
 fhandles.processDir=@processDir;
+
 %% Feature requests:
 % AllSynapse file.
 % export % - explanation of the SVD components
@@ -84,6 +85,7 @@ global TSpAPA TSpAPAi
 global synSTD; 
 global noSynapsesFound;
 global invalidFileError;
+global segmentType asynTimings;
 
 % For experiment:
 global C1Data C1pathname C1fname C1dirname                                 % Control 1AP
@@ -118,7 +120,7 @@ dt = 1/fps;
 debug = 0;
 dutyCycleOnFrames = 0;
 dutyCycleOnFrames2 = 0;
-fastLoad=0;
+fastLoad = 0;
 setNumbAvgSamples(30);
 setPhotoBleachingTxt('linInt');
 setwriteSVD(1);
@@ -157,14 +159,23 @@ end
         fullVersion = 0;
         bgc=[.35 .35 .38];
         %bgc=[.95 .95 .95];
+        
+%         ScrSize = get(0,'ScreenSize');
+% set(gcf,'Units','pixels','Position',ScrSize);
+        
         f2 = figure('Visible','on','name','S3T: Stimulated Synapse Segmentation Tool',...
             'Color',bgc,...
             'NumberTitle','off',...
+            'units','normalized','outerposition',[-0.0035 0.03 1.1 0.97],... % set maximize
+            ...%'units','normalized','outerposition',ScrSize,...
+            'Visible','off',...
             'KeyPressFcn', @keyPress);
         set(f2,'MenuBar', 'figure');
+        
         %set(f2,'MenuBar', 'none');
         %set(f2, 'ToolBar', 'auto');
         %set(f2, 'ToolBar', 'none');
+        fhandles.f2=f2; % The main figure handle
         try disp(ctfroot)    
         catch
         end
@@ -174,23 +185,26 @@ end
         catch
             javaFrame.setFigureIcon(javax.swing.ImageIcon(['my_icon.png']));
         end
-        
+         %javaFrame.setMaximized(1);
         mmenu = uimenu('Text','Create Sample');
         mitem = uimenu(mmenu,'Text','Create Sample Recordings');
         mitem2 = uimenu(mmenu,'Text','Create tifPalceHolders');
         mitem3 = uimenu(mmenu,'Text','Remove tifPalceHolders');
         mitem4 = uimenu(mmenu,'Text','Recreate Tif from SVD');
+        mitem5 = uimenu(mmenu,'Text','Tiff Manipulator');
         mitem.MenuSelectedFcn = @doCreateSpineMovie;
         mitem2.MenuSelectedFcn = @doCreateTifPlaceholders;
         mitem3.MenuSelectedFcn = @doRemoveTifPlaceholders;
         mitem4.MenuSelectedFcn = @doRecreateMovie;
+        mitem5.MenuSelectedFcn = @doTiffManipulator;
         
         function doRecreateMovie(r,g,h)
             recreateMovie();
+        end        
+         
+        function doTiffManipulator(r,g,h)
+            tiffManipulator();
         end
-        
-     
-        
         
         function doCreateTifPlaceholders(e,s,h)
             createTifPlaceholders();
@@ -199,7 +213,6 @@ end
         function doRemoveTifPlaceholders(e,s,h)
             removeTifPlaceholders();
         end
-        
         
         function doCreateSpineMovie(e,f,s)
             createSpineMovie();
@@ -377,24 +390,24 @@ end
             'Callback', @doDataViewer);
         
            
-        viewTracesBtn = uicontrol('Style', 'pushbutton', 'String', 'View traces',...
+        viewTracesBtn = uicontrol('Style', 'pushbutton', 'String', 'Plate Viewer',...
             'BackgroundColor', [0.50,0.60,0.65],...
             'Position', [30 by(19) 120 20],...
             'Callback', @doviewTraces);
-       projViewerBtn = uicontrol('Style', 'pushbutton', 'String', 'View Projects',...
+       projViewerBtn = uicontrol('Style', 'pushbutton', 'String', 'Project Viewer',...
             'BackgroundColor', [0.50,0.60,0.65],...
             'Position', [30 by(20) 120 20],...
             'Callback', @doProjViewer);
         
             
             
-%            r1 = rectangle(...
- %               'Position', [20+50 by(-5) 200 200]...
-  %              );
-           % annotation(f2,'rectangle',...
-   % 'Position',[70 by(-5) 200 200]);
-
-            
+        %            r1 = rectangle(...
+        %               'Position', [20+50 by(-5) 200 200]...
+        %              );
+        % annotation(f2,'rectangle',...
+        % 'Position',[70 by(-5) 200 200]);
+        
+        
        
             if fullVersion
                 loadDefaultBtn = uicontrol('Style', 'pushbutton', 'String', 'loadDefault!',...
@@ -474,6 +487,7 @@ end
             
             sig2rb.Value=1;
         end
+        
         function createRadioButtons2()
             
            rb2title = uicontrol('Style', 'Text', 'String',  {'/ Temporal Threshold'},...
@@ -924,6 +938,29 @@ end
         segmentCellBodies=a;
     end
 
+
+    function setAnalysistype(a)
+        type=a;
+        switch type
+            case '0'
+                %The default
+                Analysistype='synapses';
+                segmentType='synapses';
+            case 'Minis' % To look for asynchronous responding synapses
+                %Analysistype='minis';
+                segmentType = 'minis';
+            case '1x1AP'
+                % To implement, but schould set some values automatically
+            case '1x10AP'
+                % To implement, but schould set some values automatically
+            otherwise
+                disp('Analysis type not found, using synapse settings.')
+                pause(2);
+                segmentType='synapses';
+        end
+    end
+
+
     function doSetFPS(s,e,h)
      setFPS(str2double(fpsTxt.String));
     end
@@ -1019,6 +1056,16 @@ end
         end
     end
     function extractSignals(source,event,handles)
+        % Creates:
+        %         synSTD: struct with some synapse pixel statistics
+        %         synsignal: the synapse signals
+        %         noSynapsesFound: if no synapses are found, flag is set.
+        % Based on:
+        %         synRegio: Struct with regions of interest
+        %         data: the raw data file
+        %         synProb: the probality that a pixel is a synapse.
+        %         
+        
         s2=synRegio;
         synsignal=[];
         spaceTimeSTD=zeros(1,length(s2));
@@ -1235,8 +1282,8 @@ end
         f2 = mean(sortedData2(floor(end/10):end)); % Take brightest ones
         
         
-        [bg, bgI] = mink(reshape(data,[],size(data,3)),floor(wy*wx*.04)); % Take 10% darkest pixels in each frame
-        mbg = mean(bg);
+        [bg3, bgI] = mink(reshape(data,[],size(data,3)),floor(wy*wx*.04)); % Take 10% darkest pixels in each frame
+        mbg = mean(bg3);
         [fg, fgI] = maxk(reshape(data,[],size(data,3)),floor(wy*wx*.01)); % Take 10% darkest pixels in each frame
         mfg = mean(fg);
         bh=hist(bgI(:),1:(wy*wx));
@@ -1702,7 +1749,6 @@ end
         AR = dff(dd); % Average over all pixels, average Response
         [TSpAPA , TSpAPAi] = max(mdd); %Temporal spike Averaged Pixel Amplitude
         
-        
         nSynapses = size(synsignal,2);
         hold off
      
@@ -1711,7 +1757,7 @@ end
             %ASR = mean(dffsynsignal,1); % Average over all synapses
             ASR = dff(mean(synsignal,2)'); % Average over all synapses
             
-%                imageMetrics(5).name = 'Temporal spike Averaged Pixel Amplitude';
+%         imageMetrics(5).name = 'Temporal spike Averaged Pixel Amplitude';
         
 %         imageMetrics(5).value= TSpAPA;
 %         imageMetrics(6).name = 'Temporal spike Averaged Pixel Amplitude Index';
@@ -1748,6 +1794,21 @@ end
         writetable(t,[dirname 'output\' fname(1:end-4) '_traces.csv']);
     end
 
+
+    function r = asynFoldto1(trace,timing)
+        for k=1:size(trace,2)
+            r(:,k) = asynFoldData(trace(:,k),timing(k));
+        end
+    end
+
+    function r = asynFoldData(trace,timing)
+        if ~isnan(timing)
+            r = trace(timing+(1:30));
+        else
+            r= trace;
+        end
+    end
+
     function analyseSingSynResponse(s,e,v)
     %    stimulationStartTime = 1.0;
     %    stimulationStartFrame = floor(stimulationStartTime /dt);
@@ -1770,7 +1831,11 @@ end
             synapseSize(i) = nan;
         
             else
-                rawFoldedData=mean(foldData(synsignal(:,i)),2);
+                if strcmp(segmentType,'minis')
+                    rawFoldedData=asynFoldData(synsignal(:,i),asynTimings(i));
+                else
+                    rawFoldedData=mean(foldData(synsignal(:,i)),2);
+                end
                 centre = mean(synRegio(i).PixelList,1);
             xCentPos(i) = centre(2); 
             yCentPos(i) = centre(1);
@@ -1792,9 +1857,13 @@ end
             signal = dffsynsignal2(:,i);
             synapseNbr(i) = i;
             
+            if strcmp(segmentType,'minis')
+                signal = asynFoldto1(signal,asynTimings(i));
+            else
+                signal = multiResponseto1(signal,0);
+            end
             
             
-            signal = multiResponseto1(signal,0);
             [mSig, miSig] = max(signal,[],1); % Find max ampl of the Average Synaptic Response
             mSigA(i)=mSig;
             miSigA(i)=miSig;
@@ -2629,26 +2698,43 @@ end
               [synRegio, synProb] =  loadMask([pathname(1:end) '_mask.png']);
               setMask();
         else % Create a new mask:
-            if  segmentCellBodies
-                meanZ();
-                synProb = imsharpen(synProb,'Radius',16,'Amount',40);% ,'roberts');
-                setTvalue(mean(synProb(:))+1*std(synProb(:))); disp('sigma fixed to 1 sigma');
-                doThreshold(TValue);
-                cleanBW();
-     
-                %EVN=1; warning ('eigenvalue hacked 2->1');
-                warning('processMovie hacked for neuron body processing' )
-            else % Synapses
-                %dd=preProcessFrames();
-                %warning('extra preprocess step');
-                %pause(1);
-                data2=data; %backup data
-                %data=-dd; %overwrite data temporary
+            if ~exist('segmentType','var')
+                segmentType='synapses';
+            end
+            if segmentCellBodies == 1
+                segmentType='cellBodies';
+            end
+            switch segmentType
+                case 'cellBodies'
+                    %if  segmentCellBodies
+                    meanZ();
+                    synProb = imsharpen(synProb,'Radius',16,'Amount',40);% ,'roberts');
+                    setTvalue(mean(synProb(:))+1*std(synProb(:))); disp('sigma fixed to 1 sigma');
+                    doThreshold(TValue);
+                    cleanBW();
+                    
+                    %EVN=1; warning ('eigenvalue hacked 2->1');
+                    warning('processMovie hacked for neuron body processing' )
+                case 'synapses'
+                    %dd=preProcessFrames();
+                    %warning('extra preprocess step');
+                    %pause(1);
+                    data2=data; %backup data
+                    %data=-dd; %overwrite data temporary
+                    
+                    segment2(); % [synapseBW, synProb] = f(data)
+                    rmvBkGrnd(); % synapseBW = f(synapseBW, synProb) 2sigma is done
+                    
+                    data=data2; %restore data
+                    
+                case 'minis' % Asynchronous spiking synapses
+                    % doMiniAnalysis();
+                    time=150:5:470;
+                    [signal, mask, synProb, maskSize, asynTimings, synRegio] = miniAnalysis(data,time);
+                    synapseBW=mask>0;
+                otherwise
+                    error('unknown analysis.');
                 
-                segment2(); % [synapseBW, synProb] = f(data)
-                rmvBkGrnd(); % synapseBW = f(synapseBW, synProb) 2sigma is done
-                
-                data=data2; %restore data
             end
             
             %threeSigThreshold();
@@ -2657,14 +2743,21 @@ end
 %             threshold();
 %             warning('threshold Sigma = 1')
             %cleanBW();
-            detectIslands(); %  synRegio  = f(synapseBW)
+            if ~strcmp(segmentType,'minis')
+                detectIslands(); %  synRegio  = f(synapseBW)
+            end
             %%%subtractBckgrnd(); % data = f(data)
             %%%extractSignals(); % synsignal = f(synRegio)
             
             
             %loadTiff22();
             exportMask('_maskBTT.png'); % mask Before Temporal Thresholding
-            setMask(); % maskRegio  = synRegio 
+            if ~strcmp(segmentType,'minis')
+                setMask(); % maskRegio  = synRegio
+            else
+                maskRegio  = synRegio;
+            end
+            
         end
         
         
@@ -2675,7 +2768,7 @@ end
         RSTABSmean = mean(data(:)); %Raw spatioTemporalMeanAfterBlackLevelsubtraction.
         if (length(synRegio) ~=0)
             extractSignals();           % synsignal = f(synRegio,data)
-            dffsynsignal=dff(synsignal'); % Calculate global dff
+            dffsynsignal = dff(synsignal'); % Calculate global dff
             signalPlot();               % f(dff(synsignal'))
             exportSynapseSignals();     % tempThreshold(dff(synsignal'))
             exportMask('_mask.png'); % Mask after temporal Thresholding, =default to (reuse)
@@ -3187,8 +3280,32 @@ end
         [sz1, sz2, sz3]=size(data);
         backGroundStrength = getBkgrnd(data(:,:,:));
         backGroundStrength =reshape(backGroundStrength ,[ 1 1 sz3]);
-        data=data-repmat(backGroundStrength,[sz1 sz2 1]);        
+        data=data-repmat(backGroundStrength,[sz1 sz2 1]);   
+        if strcmp(PhotoBleachingTxt,'global')
+            globalBleachCorrect();
+        end
+        if strcmp(PhotoBleachingTxt,'loadPBProfile')
+            pbcrm = dlmread('PBprofile.dlm');
+            for i=1:size(data,3)
+                data(:,:,i)=data(:,:,i)*pbcrm(i);
+            end
+        end
     end
+
+
+    function globalBleachCorrect()
+        warning('Global bleach correct')
+        pause(0.5);
+        trace=(squeeze(mean(mean(data))));
+        [~,~,bc]=findBaseFluorPoints(trace');
+        pbcrm=trace(1)./bc;
+        dlmwrite('pbcrm.dlm',pbcrm,'-append')
+        for i=1:size(data,3)
+            data(:,:,i)=data(:,:,i)*pbcrm(i);
+        end
+    end
+
+
     function backGroundStrength=getBkgrnd(data)
         % Calculates the average background dynamics of the 5% darkest
         % pixels. The darkest pixels of the time average.
@@ -3265,6 +3382,14 @@ end
         end
         
     end
+
+
+    function doMiniAnalysis()
+        [signal, mask]=miniAnalysis(data)
+    end
+
+
+
     function meanData = multiResponseto1(data,exportPlot,settings)
         
         if nargin<3
@@ -3418,7 +3543,11 @@ end
         bbox=[nan,nan,nan,nan]; AUC=nan; nAUC=nan;
          rawDFF=nan; rawDFluor=nan; rawMaxFluor = nan; rawBaseFluor=nan;
             rawPartDF=nan; rawPartMaxFluor= nan; rawPartMinFluor=nan;
-        tdown=[];
+            if isempty(synsignal)
+                tdown=nan*ones(1,NOS2);
+            else
+                tdown=nan*ones(size(dffsynsignal2,2),NOS2);
+            end
         for i=1:size(dffsynsignal2,2)
             if isempty(synsignal)
                 rawFoldedData=nan*ones(size(dffsynsignal2)); %When no synapses
@@ -3571,7 +3700,7 @@ end
         
         
         
-   
+   try
         t = array2table([...
             synapseNbr', mSigA     miSigA synapseSize' noiseSTD ...
             aboveThreshold UpHalfTime    DownHalfTime    tau1    amp      ...
@@ -3590,6 +3719,11 @@ end
             , rawPartDFFL,...
             'spaceTimeSTD', 'spaceMeanTimeSTD' 'meanSpaceTimeSTD', ...
             'synProbSTD', 'laplaceSynProbSTD']);
+   catch
+            disp('Something wrong with the table properties.')
+            disp('I''ll stop here to prevent worse.')
+           error('fdsfsd');
+    end
         
         if(~isdir ([dirname 'output\']))
             mkdir ([dirname 'output\']);
@@ -3642,6 +3776,7 @@ end
         setCellBody(analysisCfg.cellBody);
         setOnOffset(round(analysisCfg.delayTime*analysisCfg.imageFreq/1000));
         setStimFreq(analysisCfg.stimFreq);
+        setAnalysistype(analysisCfg.analysisType);
         EVN = analysisCfg.eigenvalueNumber;
         setFrameSelectionTxt(analysisCfg.FrameSelectionTxt); %'(1:end)';
         

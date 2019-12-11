@@ -14,8 +14,21 @@ plateOnOff = [...
     0 1 1 1 1 1 1 1 1 1 1 0;
     0 0 0 0 0 0 0 0 0 0 0 0;
     ];
-%
 
+% plateOnOff = [...
+%     0 0 0 0 0 0 0 0 0 0 0 0;
+%     0 1 1 1 1 1 1 1 1 1 1 0;
+%     0 0 0 0 0 0 0 0 0 0 0 0;
+%     0 0 0 0 0 0 0 0 0 0 0 0;
+%     0 0 0 0 0 0 0 0 0 0 0 0;
+%     0 0 0 0 0 0 0 0 0 0 0 0;
+%     0 0 0 0 0 0 0 0 0 0 0 0;
+%     0 0 0 0 0 0 0 0 0 0 0 0;
+%     ]; % Transpose to make the serialisation from left to right is done
+
+
+%
+% 
 % plateOnOff = [...
 %     0 0 0 0 0 0 0 0 0 0 0 0;
 %     0 1 0 0 0 0 0 0 0 0 0 0;
@@ -26,20 +39,20 @@ plateOnOff = [...
 %     0 0 0 0 0 0 0 0 0 0 0 0;
 %     0 0 0 0 0 0 0 0 0 0 0 0;
 %     ]; % Transpose to make the serialisation from left to right is done
-%     %later with rot90.
-%  
+    %later with rot90.
+ 
 %%
 
 plateNoise = [...
     0 0 0 0 0 0 0 0 0 0 0 0;
-    0 0.0000 0.001 .01 .1 1 10 100 1000 10000 100000 0;
+    0 0.0001 0.001 .01 .1 1 10 100 1000 10000 100000 0;
     0 0.0001 0.001 .01 .1 1 10 100 1000 10000 100000 0;
     0 0.0001 0.001 .01 .1 1 10 100 1000 10000 100000 0;
     0 0.0001 0.001 .01 .1 1 10 100 1000 10000 100000 0;
     0 0.0001 0.001 .01 .1 1 10 100 1000 10000 100000 0;
     0 0.0001 0.001 .01 .1 1 10 100 1000 10000 100000 0;
     0 0 0 0 0 0 0 0 0 0 0 0;
-    ]*0+.001;
+    ]*1+.000;
 
 %% Plate Photo Bleaching Amplitude
 platePBA = [...
@@ -51,7 +64,7 @@ platePBA = [...
     0, 1 	1 		1 		1 		1 		1 		1 		1 		1 		1 		0 ;		
     0, 10 	10 		10 		10 		10 		10 		10 		10 		10 		10 		0 ;		
     0, 0 	0 		0 		0 		0 		0 		0 		0 		0 		0 		0 ;		
-    ]*0.0+.001; %x0 disables photobleach
+    ]*1.0+.00; %x0 disables photobleach
 
 %% Simulated synapse amplitude
 plateAmplitude = [...
@@ -63,7 +76,7 @@ plateAmplitude = [...
     0, 1 	1.1 	1.2		1.3 	1.4 	1.5 	1.6 	1.70	1.8000	1 		0 ;		
     0, 1 	1.1 	1.2		1.3 	1.4 	1.5 	1.6 	1.70	1.8000	1 		0 ;		
     0, 0 	0 		0 		0 		0 		0 		0 		0 		0 		0 		0 ;		
-    ]*1+.0; %
+    ]*0+500.0; %x0 disables 
 %% Simulated synapse decay constant
 
 plateDecay = 0.75./[...
@@ -75,7 +88,7 @@ plateDecay = 0.75./[...
     0, 1 	1 		1 		1 		1 		1 		1 		1 		1 		1 		0 ;		
     0, 1 	1 		1 		1 		1 		1 		1 		1 		1 		1 		0 ;		
     0, 0 	0 		0 		0 		0 		0 		0 		0 		0 		0 		0 ;		
-    ]*1+.0; %
+    ]*0+0.75; %x0 disables 
 
 %% Compound 1 conc.
 plateComp1 = [...
@@ -87,7 +100,7 @@ plateComp1 = [...
     0, 0 	0 		0 		0 		0 		0 		0 		0 		0 		0 		0 ;		
     0, 0 	0 		0 		0 		0 		0 		0 		0 		0 		0 		0 ;		
     0, 0 	0 		0 		0 		0 		0 		0 		0 		0 		0 		0 ;		
-    ]*1+.0; %
+    ]*0+1.0; %x0 disables 
 
 
 %% Compound 2 conc.
@@ -100,7 +113,7 @@ plateComp2 = [...
     0, 0 	0.01 	0.1		1 		10 		100 	1000	10000	100000	0 		0 ;		
     0, 0 	0.01 	0.1		1 		10 		100 	1000	10000	100000	0 		0 ;		
     0, 0 	0 		0 		0 		0 		0 		0 		0 		0 		0 		0 ;		
-    ]*1+.0; %
+    ]*0+1.0; %x0 disables 
 
 
 
@@ -127,16 +140,19 @@ rPlateAmplitude=rot90(plateAmplitude,-1);
 rPlateDecay=rot90(plateDecay,-1);
 idx = find(rPlateOnOff==1);
 %% Start simulation:
+Nspines = 20; % Active spines
+Nspines2 = 20; % Non-active spines
 
+fixedPos=ceil(412*rand(Nspines,2))+50;
+fixedPos2=ceil(512*rand(Nspines2,2));
 for jj=0:(numOfWells-1)
     Amp = rPlateAmplitude(idx(jj+1));
     Decay = rPlateDecay(idx(jj+1));
     nSpikes = 3;
     freqSpikes = 0.2;
-    Nspines = 20; % Active spines
-    Nspines2 = 0; % Non-active spines
     pos=ceil(512*rand(Nspines,2)); % Spine positions
     pos=ceil(412*rand(Nspines,2))+50; % Spine positions not at border
+    pos=fixedPos;
     pba=rPlatePBA(idx(jj+1));  disp(['Photo Bleaching amplitude: ' num2str(pba)]);
     noiseLevel = rPlateNoise(idx(jj+1)); disp(['Noise:' num2str(noiseLevel)]);
     PB=pba * ones(Nspines,1); % Photo Bleach
@@ -145,6 +161,7 @@ for jj=0:(numOfWells-1)
     bgF=500*ones(Nspines,1); % Background Fluorescence active spines
     bgF2=500*ones(Nspines2,1); % Background Fluorescence non-active spines
     pos2=ceil(512*rand(Nspines2,2)); % Postion of non-active spines
+    pos2=fixedPos2;
     
     spiketimes = 2.2*ones(Nspines,1)+0.00*randn(Nspines,1); % SpikeTime + random delay
     spiketimes2 = 7.2*ones(Nspines,1)+0.00*randn(Nspines,1); % SpikeTime + random delay
@@ -210,12 +227,14 @@ for jj=0:(numOfWells-1)
 %    figure(1);colormap gray;
 %     
     hold off
-     for f=1:totFrames
+     if 0
+         for f=1:totFrames
         image(image3(:,:,f)*.10);
         title(['creating movie: ' num2str(jj) ' frame:' num2str(f) '/' num2str(totFrames)]);
         pause(.0285);
      end
 %     
+     end
     %%
     %figure(2)
     hold off

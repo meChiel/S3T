@@ -26,13 +26,15 @@ function [bcresponse, dff, BC, mstart]=findBaseFluorPoints(seq,polyType,doplot)
 %%
 if nargin<2
     polyType='2exp';
-    %polyType='poly';
+    polyType='1expa';
+    
+    polyType='poly';
     %polyType='none';% {'none','2exp','poly','1expa'} 'autoLinFit'
 end
 
 
 if nargin<3
-    doplot=1;
+    doplot=0;
 end
 
 
@@ -67,8 +69,12 @@ else
     rangeI = ceil(length(sseq)*0.05);
     noiseRange = sseq(rangeI)-sseq(1); % Range of 5% lowest values
     rangeMean = mean(sseq(1:rangeI));
+    if noiseRange==0
+        noiseRange=rangeMean *.000001;
+    end
+    
     allPoints = (1:length(seq))';
-    points = allPoints(seq<(rangeMean+noiseRange*1));
+    points = allPoints(seq<(rangeMean+noiseRange*1)); %*1.00001 to compensate rounding errors
     minPoints = seq(points);
     
     
@@ -266,7 +272,11 @@ else
                         x=pointsx';
                         y=minPointsx';
                         
+                        try
                         x1=x(1);
+                        catch
+                            error('raar')
+                        end
                         x=[allPoints(1)-0.1*(allPoints(end)-allPoints(1)) x allPoints(end)+0.1*(allPoints(end)-allPoints(1))];
                         % Find the left most maximum value, not in the
                         % point selection and add it outside of the interval.
@@ -282,7 +292,7 @@ else
                         x=[x cm'];
                         y=[y Vq'];
                         
-                        if 1%k<(K)
+                        if 0%k<(K)
                           
                             opol=2;
                             [p,s,mu] = polyfit(x,y,opol);
@@ -291,7 +301,11 @@ else
                         else
                             mx=max(x);
                             %x=x/mx;
-                            [a,b,c,p,q]=exp2fit(x/mx,y); % /mx hier!
+                            try
+                                [a,b,c,p,q]=exp2fitM(x/mx,y); % /mx hier!
+                            catch
+                                error('oh no');
+                            end
                             normAllPoints = allPoints /max(allPoints);
                             %normAllPoints = allPoints ;
                            % BC = real(a') + real(b)' .* exp(real(p)'* (allPoints))+real(c)'.*exp(real(q)'*(allPoints)); % using Matlab * expansion
@@ -319,6 +333,65 @@ else
                         f = @(b,x) b(1).*exp(b(2).*x)+b(3);                         % Objective Function
                         B = fminsearch(@(b) norm(y - f(b,x)), [33; -.01; 100]);     % Estimate Parameters
                         BC=f(B,allPoints);
+                        base=B(3);
+                    case 'piecewise1expa'
+                        x=[1:100];
+                        rr=mean(signal(:,:));
+                        b1=mean(mean(signal(:,:)));
+                        y=rr(x);
+                        f1 = @(b,x) b(1).*exp(b(2).*x)+b(3);                         % Objective Function
+                        B1 = fminsearch(@(b) norm(y - f(b,x)), [33; -.01; b1]);     % Estimate Parameters
+                        BC1=f1(B1,1:800);
+                        
+                        
+                        x=[200:490];
+                        rr=mean(signal(:,:));
+                        b2=mean(mean(signal(:,:)));
+                        y=rr(x);
+                        f2 = @(b,x) b(1).*exp(b(2).*x)+b(3);                         % Objective Function
+                        B2 = fminsearch(@(b) norm(y - f(b,x)), [33; -.01; b1]);     % Estimate Parameters
+                        BC2=f2(B2,1:800);
+                        
+                        w=((atan(((1:800)-300)*.05)/(pi/2))+1)/2;
+                        BC=(1-w).*BC1 + (w).*BC2;
+                        
+                        figure;plot(BC1),hold on;plot(BC2);plot(BC)
+                        hold on;plot(x,y),plot(rr)
+                        base=B(3);
+                        
+                    case 'responseModelling'
+                        options.MaxIter=2e6;
+                        options.MaxFunEvals=2e6;
+                        x=[1:800];
+                        rr=mean(signal(:,:));
+                        b1=mean(mean(signal(:,:)));
+                        y=rr(x);
+                        %%
+                        f1 = @(b,x) b(1).*exp(b(2).*x)-b(3)*max(min((103-x)/3,1),0)+b(3).*exp(b(4).*max(0,(x-103)))-b(5)*max(min((509-x)/12,1),0)+b(5).*exp(b(6).*max(0,(x-509)))+b(7);                         % Objective Function
+                        B1 = fminsearch(@(b) norm(cumsum(y) - cumsum(f1(b,x))), [2150; -.01; 400; -0.01; 1300; -0.014; 7500],options);     % Estimate Parameters
+                        BC1=f1(B1,1:800);
+                        
+                        
+                        %%
+                        f1 = @(b,x) b(1).*exp(b(2).*x)-b(3)*max(min((b(10)-x)/b(8),1),0)+b(3).*exp(b(4).*max(0,(x-b(10))))-b(5)*max(min((b(11)-x)/b(9),1),0)+b(5).*exp(b(6).*max(0,(x-b(11))))+b(7);                         % Objective Function
+                        B1 = fminsearch(@(b) norm(cumsum(y) - cumsum(f1(b,x))), [2150; -.01; 400; -0.01; 1300; -0.014; 7500; 4; 12; 103;509],options);     % Estimate Parameters
+                        BC1=f1(B1,1:800);
+                        
+                        
+                        %%                        
+                        x=[200:490];
+                        rr=mean(signal(:,:));
+                        b2=mean(mean(signal(:,:)));
+                        y=rr(x);
+                        f2 = @(b,x) b(1).*exp(b(2).*x)+b(3);                         % Objective Function
+                        B2 = fminsearch(@(b) norm(y - f2(b,x)), [33; -.01; b1]);     % Estimate Parameters
+                        BC2=f2(B2,1:800);
+                        
+                        w=((atan(((1:800)-300)*.05)/(pi/2))+1)/2;
+                        BC=(1-w).*BC1 + (w).*BC2;
+                        
+                        figure;plot(BC1),%hold on;plot(BC2);plot(BC)
+                        hold on;plot(x,y)%,plot(rr)
                         base=B(3);
                 end
                 

@@ -68,27 +68,27 @@ drawnow();
 end
 %%
 switch kk
-    case 1
-fpSVD1=fp;
-fnSVD1=fn;
+%     case 1
+% fpSVD1=fp;
+% fnSVD1=fn;
 %%
     case 2
 fpSVD2=fp;
 fnSVD2=fn;
 %%
     case 3
-fpSVD3=fp;
-fnSVD3=fn;
+fpDICT=fp;
+fnDICT=fn;
 %%
-    case 4
+    case 1
 fpSTD=fp;
 fnSTD=fn;
 end
 end
 p3=toc
 %%
-figure;plot(fpSTD);hold on;plot(fpSVD1);plot(fpSVD2);plot(fpSVD3);legend('STD','SVD1','SVD2','SVD3');title('false postive [pixels]'); xlabel('artificial sample Number'); ylabel('misclassified number of pixels');
-figure;plot(fnSTD);hold on;plot(fnSVD1);plot(fnSVD2);plot(fnSVD3);legend('STD','SVD1','SVD2','SVD3');title('false negative [pixels]'); xlabel('artificial sample Number'); ylabel('misclassified number of pixels');
+figure;plot(fpSTD);hold on;plot(fpSVD1);plot(fpSVD2);plot(fpDICT);legend('STD','SVD1','DICT');title('false postive [pixels]'); xlabel('artificial sample Number'); ylabel('misclassified number of pixels');
+figure;plot(fnSTD);hold on;plot(fnSVD1);plot(fnSVD2);plot(fnDICT);legend('STD','SVD1','DICT');title('false negative [pixels]'); xlabel('artificial sample Number'); ylabel('misclassified number of pixels');
 
 
 %% plot ifo Noise
@@ -146,21 +146,21 @@ title('SVD2');
 %%
 %%
 figure;
-boxplot([fpSTD' fpSVD2' ],'Whisker',100,'Notch','off');
- xticklabels({'STD', 'SVD2'});
+boxplot([fpSTD' fpSVD2' fpDICT' ],'Whisker',100,'Notch','off');
+ xticklabels({'STD', 'SVD2','DICT'});
  ylabel ('# misclassified pixels');
 title('Method comparison: false positives');
 %%
 %anova1
 figure;
-boxplot([fnSTD' fnSVD2'],'Whisker',100,'Notch','off');
- xticklabels({'STD', 'SVD2'});
+boxplot([fnSTD' fnSVD2' fnDICT'],'Whisker',100,'Notch','off');
+ xticklabels({'STD', 'SVD2','DICT'});
  ylabel ('# misclassified pixels');
 title('Method comparison: false negatives');
 %%
 figure;
-boxplot([fnSTD'+fpSTD' fnSVD2'+fpSVD2' fnSVD1'+fpSVD1' fnSVD3'+fpSVD3'],'Notch','off');
- xticklabels({'STD', 'SVD2' 'SVD1' 'SVD3'});
+boxplot([fnSTD'+fpSTD' fnSVD2'+fpSVD2' fnDICT'+fpDICT'],'Notch','off');
+ xticklabels({'STD', 'SVD2' 'DICT'});
  ylabel ('# misclassified pixels');
 title('Method comparison: false pos.+neg.');
 

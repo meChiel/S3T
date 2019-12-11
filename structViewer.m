@@ -227,8 +227,8 @@ end
                     ttt(io).name=thePath(gg(end)+1:end);%nodeText;
                     if ~isempty(ttt)
                         for io=1:1%size(t,1)
-                        avgFile=[ttt(io).folder '\' ttt(io).name];
-                        avgFile=[ttt(io).folder '\' ttt(io).name '_avg.png'];
+                        %avgFile=[ttt(io).folder '\' ttt(io).name];
+                        avgFile=[ttt(io).folder '\..\commonOutput\avg\' ttt(io).name '_avg.png'];
                         imagesc(uia,imread(avgFile));
                         uia.Position=[700,-10,512*2,512*2 ];    
                         end
@@ -285,7 +285,8 @@ end
                     % Find the _Analysis folders/xml files.
                     ttt=dir([thePath(1:gg(end)) '*_Analysis']); % This takes a few ms which can be avoided, but is OK for now.
                     io=1;
-                    ttt(io).folder = [ttt(io).folder '\' ttt(io).name];
+                    %ttt(io).folder = [ttt(io).folder '\' ttt(io).name];
+                    ttt(io).folder = [ttt(io).folder '\' currentAnalysis '_Analysis'];
                     ttt(io).name=thePath(gg(end)+1:end);;
                     if ~isempty(ttt)
                         for io=1:1%size(t,1)
@@ -377,7 +378,7 @@ end
 %                                    dd2 = [tempDirFn '..\' tempFFn(1:end-13) '.tif_mask.png'];
 %                                end
                                
-                                avgFile=[ttt(io).folder '\' 'avg_overview.png'];
+                                avgFile=[ttt(io).folder '\' '..\commonOutput\avg\avg_overview.png'];
                                 imagesc(uia,imresize(imread(avgFile),'OutputSize',[3102/2.3,5170/2.3 ]));
                                 %uia.Position=[700,-10,512*2,512*2 ];
                                 uia.Position=[560,-600,3102/2.3,5170/2.3 ]

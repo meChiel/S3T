@@ -24,11 +24,11 @@ end
 
 [dirname, fname , ext] = fileparts(pname);
 fname = [fname ext];
-for evnI=1:accuracy
-    p = imread([dirname './eigs/' fname '_eigU' num2str(evnI) '.png']);
+for evnI=1:accuracy % ./eigs/??
+    p = imread([dirname '/eigs/' fname '_eigU' num2str(evnI) '.png']);
     U2(:,evnI) = ((double(p(:))-2^15)/length(p(:)));
-    V2(:,evnI) = csvread([dirname './eigs/' fname '_eigV' num2str(evnI) '.csv']);
-    S2(evnI,evnI) = csvread([dirname './eigs/' fname '_eigS' num2str(evnI) '.csv']);
+    V2(:,evnI) = csvread([dirname '/eigs/' fname '_eigV' num2str(evnI) '.csv']);
+    S2(evnI,evnI) = csvread([dirname '/eigs/' fname '_eigS' num2str(evnI) '.csv']);
     
 end
 sizeA=[size(p,1) size(p,2) size(V2,1)];

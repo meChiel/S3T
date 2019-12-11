@@ -86,10 +86,10 @@ if 0
 end
 
 %% Synapse player Viewer:
-movWrite=0;
+movWrite=1;
 if movWrite
     
-    vidObj = VideoWriter([dd fn(1:end-13) '__synapseOverviewVideo_a' num2str(accuracy) '.avi']);
+    vidObj = VideoWriter([dd fn(1:end-13) '__synapseResponseOverviewVideo_a' num2str(accuracy) '.avi']);
     
     %vidObj = VideoWriter('overviewVideo.avi','MPEG-4');
     % vidObj = VideoWriter('overviewVideo.avi','Motion JPEG 2000');
@@ -101,11 +101,12 @@ end
 %
 ix=0;iy=0;
 elSize=150;
+
 ov=zeros(elSize*16*2,elSize*9*2);
 
 f=figure('Name','Synapse Viewer','NumberTitle','off');
 set(f,'color',[0 0 0],'toolbar','none');
-imagesc(permute(ov,[2,1]));colormap gray;
+image(permute(ov,[2,1]));colormap hot;%gray;
 axis equal
 
 gg=gca;
@@ -114,7 +115,7 @@ axis tight
 axis off
 
 
-for t=1:10:length(V) %For all frames
+for t=1:1:length(V) %For all frames
     ix=0;iy=0;
     ov=zeros(elSize*16,elSize*9);
     
@@ -148,7 +149,8 @@ for t=1:10:length(V) %For all frames
     
     ov(floor(1:size(ov,2)/length(V)*t),1)=ov(floor(1:size(ov,2)/length(V)*t),1)+2000;
     
-    currFrame=permute(ov/2000,[2,1]);
+    %currFrame=permute(ov/2000,[2,1]);
+    currFrame=permute((ov)/18000,[2,1]);
     % Saturate
     currFrame(currFrame>1)=1;
     currFrame(currFrame<0)=0;
@@ -164,12 +166,12 @@ end
 %
 if movWrite
      close(vidObj);
-     disp([dd '\' fn(1:end-10) '__synapseOverviewVideo_a' num2str(accuracy) '.avi'])
+     disp([dd '\' fn(1:end-10) '__synapseResponseOverviewVideo_a' num2str(accuracy) '.avi'])
 end
 %%
 % Animate move original to structured synapse view.
 %%%
-movWrite=0;
+movWrite=1;
 if movWrite
     
     vidObj = VideoWriter([dd fn(1:end-13) '__synapseOverviewVideo_a' num2str(accuracy) '.avi']);
@@ -182,7 +184,7 @@ if movWrite
 end
 
 %
-nX=16;nY=13;
+nX=26;nY=23;
 
 ix=0;iy=0;
 ov=zeros(elSize*nX,elSize*nY);
