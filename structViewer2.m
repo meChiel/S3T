@@ -230,6 +230,7 @@ end
         bcp='autoLinFit';%2exp';%'none'; 
         % 'autoZeroFit' 'autoLinFit' 'none' 'lin' '2exp' 'poly' '1expa'
         nSelections=size(node,1);
+        includedPlates=[];
         for sel=1:nSelections % nB of selections = different compounds
             display(node(sel).NodeData);
             display(node(sel).Text);
@@ -262,24 +263,29 @@ end
                     for jjjj=length(sNode.Children):-1:1 % Always remove and recreate fields from here.
                         sNode.Children(jjjj).delete;
                     end
-                    
-                    wtr = readtable([thePath  '\' currentAnalysis2 '_Analysis\output\' sNode.Text(1:end-11) '_traces.csv']);
-                    wta=table2array(wtr);
-                    %figure(1);
-                    
-                    if nSelections <2 % Only plot individual synapses when no multiple selections
-                        str = readtable([thePath  '\' currentAnalysis2 '_Analysis\output\SynapseDetails\' sNode.Text(1:end-11) '_synTraces.csv']);
-                        for jjj=1:width(str) % Show all synapses in Tree
-                            %synapseNode =
-                            uitreenode(sNode,'Text',str.Properties.VariableNames{jjj},'NodeData',[tifPath]);
+                    if ~strcmp(sNode.Text(1:6),'Data: ') % To check you did not click the node with the path. Thisshould do nothing, but not errror.
+                        wtr = readtable([thePath  '\' currentAnalysis2 '_Analysis\output\' sNode.Text(1:end-11) '_traces.csv']);
+                        wta=table2array(wtr);
+                        %figure(1);
+                        
+                        if nSelections <2 % Only plot individual synapses when no multiple selections
+                            str = readtable([thePath  '\' currentAnalysis2 '_Analysis\output\SynapseDetails\' sNode.Text(1:end-11) '_synTraces.csv']);
+                            for jjj=1:width(str) % Show all synapses in Tree
+                                %synapseNode =
+                                uitreenode(sNode,'Text',str.Properties.VariableNames{jjj},'NodeData',[tifPath]);
+                            end
+                            sta=table2array(str);
+                            plot(str.time,sta(:,2:end),'color',[0.5 0.5 0.5]);
+                            hold on;
+                            plot(str.time,mean(sta(:,2:end),2),'color',[0.0 0 0],'LineWidth',3);
                         end
                         sta=table2array(str);
                         plot(str.time,sta(:,2:end),'color',[0.5 0.5 0.5]);
                         hold on;
-                        plot(str.time,mean(sta(:,2:end),2),'color',[0.0 0 0],'LineWidth',3);
+                        plot(wtr.time,wta(:,2),'color',[1.0 0 0],'LineWidth',1);
+                    else
+                        text(0.5,0.5,'Please don''t click here.')
                     end
-                    hold on;
-                    plot(wtr.time,wta(:,2),'color',[1.0 0 0],'LineWidth',1);
                 case 2 % Plate selected
                     % Check if plate is on exclude or gray list and remove from list
                     plateNode=sNode(1);
@@ -359,7 +365,9 @@ end
                                 settings.stimFreq = set2.stimFreq;
                                 settings.stimFreq2 = set2.stimFreq2;
                                 
-                                traceFrames = tr{i}.PixelAverage; %SynapseAverage,PixelAverage,rawAverageResponse,SWSynapseAverage,SynapseAverage
+                                %traceFrames = tr{i}.PixelAverage; %SynapseAverage,PixelAverage,rawAverageResponse,SWSynapseAverage,SynapseAverage
+                                traceFrames = tr{i}.SWSynapseAverage;
+                                
                                 Wellavg(:,i) = foldData(traceFrames,settings);
                                 WellTime(:,i) = tr{i}.time(1:(size(Wellavg(:,i),1)));
                                 end
@@ -479,7 +487,11 @@ end
                             for ii=1:length(iw) % All wells in plate with compound
                                 disp(dcs(iw(ii)).name);
                                 tr{ii} = readtable([dcs(iw(ii)).folder '\' dcs(iw(ii)).name]);
-                                Wellavg(:,ii)=tr{ii}.PixelAverage; %SynapseAverage,PixelAverage,rawAverageResponse,SWSynapseAverage,SynapseAverage
+                                %Wellavg(:,ii)=tr{ii}.PixelAverage; %SynapseAverage,PixelAverage,rawAverageResponse,SWSynapseAverage,SynapseAverage
+                                Wellavg(:,ii)=tr{ii}.SynapseAverage; 
+                                %Wellavg(:,ii)=tr{ii}.rawAverageResponse;
+                                %Wellavg(:,ii)=tr{ii}.SWSynapseAverage;
+                                
                                 WellTime(:,ii)=tr{ii}.time;
                             end
                             
@@ -488,17 +500,17 @@ end
                             
                            [plateAvg, plateTime] = updateAvg(plateAvg,plateTime,mW,wT,k2);
                          
-                       
-                        %figure(1);
-                        if size(node,1)==1 %Single compound selection, => show all plates avg.
-                            try
-                                plot( plateTime(:,k2),plateAvg(:,k2),'color',thecolor(mod(sel-1,6)+1,:),'LineWidth',3); %PixelAverage,rawAverageResponse
-                            catch
-                                plot( plateTime(:,k2),plateAvg(:,k2),'color',thecolor(mod(sel-1,6)+1,:),'LineWidth',3); %PixelAverage,rawAverageResponse
+                           
+                           %figure(1);
+                           if size(node,1)==1 %Single compound selection, => show all plates avg.
+                               try
+                                   plot( plateTime(:,k2),plateAvg(:,k2),'color',thecolor(mod(sel-1,6)+1,:),'LineWidth',3); %PixelAverage,rawAverageResponse
+                               catch
+                                   plot( plateTime(:,k2),plateAvg(:,k2),'color',thecolor(mod(sel-1,6)+1,:),'LineWidth',3); %PixelAverage,rawAverageResponse
+                               end
+                               hold on;
+                           end
                             end
-                            hold on;
-                        end
-                             end
                         end
                     end
             end
@@ -535,13 +547,29 @@ end
             compoundAvg{sel}=findBaseFluorPoints(mean(plateAvg,2)',bcp,0)';
             compoundTime{sel}=mean(plateTime,2);
             %figure(1);
+            subplotView=0;
             if (nSelections>1) || (level==1)% if multiple selections, show compound Avg
-                plot(compoundTime{sel},compoundAvg{sel},'color',thecolor(mod(sel-1+1,6)+1,:),'LineWidth',8); %PixelAverage,rawAverageResponse
+                if subplotView
+                    subplot(1, nSelections,sel)
+                    %plot(compoundTime{sel},compoundAvg{sel},'color',thecolor(mod(sel-1+1,6)+1,:),'LineWidth',1); %PixelAverage,rawAverageResponse
+                    %xdat{sel}=
+                    bar(compoundTime{sel},compoundAvg{sel},1,'facecolor',thecolor(mod(sel-1+1,6)+1,:));%,'width',1); %PixelAverage,rawAverageResponse
+                    title(legendLabels{sel});
+                    aa=axis();
+                    axis([aa(1) aa(2) -.5 1]);
+                    axis off;
+                else
+                    plot(compoundTime{sel},compoundAvg{sel},'color',thecolor(mod(sel-1+1,6)+1,:),'LineWidth',8); %PixelAverage,rawAverageResponse
+                end
                 hold on;
             end
         end
         % Show the legend
-        legend(legendLabels,'Interpreter','none');
+        if ~subplotView
+            legend(legendLabels,'Interpreter','none');
+        end
+        
+        sssubplot(6,5,[1:60],compoundTime,compoundAvg,legendLabels);
         
         %% Some helper sub-sub-functions:
         function [plateAvg, plateTime] = updateAvg(plateAvg,plateTime,mW,wT,k)

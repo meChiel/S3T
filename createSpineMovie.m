@@ -14,6 +14,7 @@ plateOnOff = [...
     0 1 1 1 1 1 1 1 1 1 1 0;
     0 0 0 0 0 0 0 0 0 0 0 0;
     ];
+%
 
 % plateOnOff = [...
 %     0 0 0 0 0 0 0 0 0 0 0 0;
@@ -39,8 +40,8 @@ plateOnOff = [...
 %     0 0 0 0 0 0 0 0 0 0 0 0;
 %     0 0 0 0 0 0 0 0 0 0 0 0;
 %     ]; % Transpose to make the serialisation from left to right is done
-    %later with rot90.
- 
+%     %later with rot90.
+%  
 %%
 
 plateNoise = [...
@@ -227,14 +228,12 @@ for jj=0:(numOfWells-1)
 %    figure(1);colormap gray;
 %     
     hold off
-     if 0
-         for f=1:totFrames
+     for f=1:totFrames
         image(image3(:,:,f)*.10);
         title(['creating movie: ' num2str(jj) ' frame:' num2str(f) '/' num2str(totFrames)]);
         pause(.0285);
      end
 %     
-     end
     %%
     %figure(2)
     hold off

@@ -15,6 +15,7 @@ global x y useXlabels addJitter colorCategories;
 useXlabels = 0;
 addJitter = 0;
 colorCategories = 0;
+jitterType='Jitter';
 
 createButons();
 if nargin>0
@@ -1112,17 +1113,27 @@ end
                                   yy=y{i};
                                   xx=x{i};
                                   [hx, hxx]=hist(yy,400);
-                                  mh=max(hx);
+                                  mh=max(max(hx));
                                  
                                   xnoise=zeros(size(xx,1),size(xx,2));
                                   for i3=1:length(xcats) % For all unique X values make fit
-                                      sel = yy(~isnan(xx(:,i3)));
+                                      singleTrace = 0;
+                                      if          singleTrace
+                                          isel=~isnan(xx(:,i3));
+                                      else
+                                          isel=xx(:,1)==xcats(i3);
+                                          
+                                      end
+                                      %sel = yy(~isnan(xx(:,i3)),min(i3,size(yy,2)));
+                                      %sel = yy(isel,min(i3,size(yy,2)));
+                                      sel = yy(isel,min(i3,size(yy,2)));
+
                                       [hx, hy]=hist(sel,hxx);
                                       %mbar(hy,1/mh*hx,x{i}(1),getColor(i3));
-                                      
+                                       
                                       %hold on
                                       if violinPlot ==1
-                                            xnoise(~isnan(xx(:,i3)),i3)=(pseudoViolinRandom(sel,1,hxx)/mh*2-0.00)*addJitter;
+                                            xnoise(isel,i3)=(pseudoViolinRandom(sel,1,hxx)/mh*2-0.00)*addJitter;
                                       end
                                       if violinPlot==2
                                           % plot Line
@@ -1243,11 +1254,11 @@ end
                                 else % linear X, not logX
                                    % mbar(xcats(i3))
                                     
-                                    
-                                    plot([xcats(i3)-1/dx,xcats(i3)-1/dx,xcats(i3)+1/dx,xcats(i3)+1/dx,xcats(i3)+1/dx,xcats(i3)-1/dx],...
+                                   aj= addJitter/3; 
+                                    plot([xcats(i3)-aj/dx,xcats(i3)-aj/dx,xcats(i3)+aj/dx,xcats(i3)+aj/dx,xcats(i3)+aj/dx,xcats(i3)-aj/dx],...
                                         [msel-ssel,msel+ssel,msel+ssel,msel-ssel,msel-ssel,msel-ssel]...
                                         ,'b','LineWidth',lineSize); %Draw box
-                                    plot([xcats(i3)-1/dx,xcats(i3)+1/dx],[msel,msel],'r','LineWidth',lineSize); %Draw mean line
+                                    plot([xcats(i3)-aj/dx,xcats(i3)+aj/dx],[msel,msel],'r','LineWidth',lineSize); %Draw mean line
                                     if P95
                                         text(xcats(i3)-1/dx,msel+ssel*1.3,'SEM:95%');
                                     else
@@ -1274,9 +1285,19 @@ end
             if exporttt
                 t=[];
                 for (i=1:size(plateFilename,2))
-                    t= [t;x{i}(:) y{i}(:) ones(length(y{i}(:)),1)*i];
+                    if (size(y,2)==1) && (size(x{i},2)~=1) % Multiple x for 1 y selected
+                       for j=1:size(x{i},2)
+                            t= [t;x{i}(:,j) y{i}(:,1) ones(length(y{i}(:)),1)*j];
+                       end
+                    else
+                        t= [t;x{i}(:) y{i}(:) ones(length(y{i}(:)),1)*i];
+                    end
                 end
+             
+                
                 if (~exportAll)
+                    t(isnan(t(:,1)),:)=[];
+                    t(isnan(t(:,2)),:)=[];
                     tt = array2table(t,'VariableNames',{text2OKname(xlabelText{1}) text2OKname(ylabelText{1}) 'color'});
                 else
                     tt = data{i};

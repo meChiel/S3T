@@ -49,6 +49,8 @@ if BC == 1  %Do Bleach Correction?
                 [~,dff] = findBaseFluorPoints(signal,'2exp');
             case 'autoLinInt'
                 [~,dff] = findBaseFluorPoints(signal,'none');
+            case 'autoPWLinFit'
+                [~,dff] = findBaseFluorPoints(signal,'autoPWLinFit');
             otherwise
                 error('Bleach correction Type not recognised.')
         end

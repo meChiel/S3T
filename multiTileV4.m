@@ -25,8 +25,8 @@ txtname  = 'F:\share\data\Michiel\photoshoot\NS_7_20190507_155510\NS_7.txt';
 
 fname= 'F:\share\data\Michiel\photoshoot\NS_920190507_162402_20190507_172619\NS_920190507_162402_m000000_tt0000.tif';
 txtname  = 'F:\share\data\Michiel\photoshoot\NS_920190507_162402_20190507_172619\NS_920190507_162402.txt';
-
-
+%%
+txtname='D:\data\Michiel\photoshoot\test\NS_920190507_162402.txt';
 
 %% open the text file
 fid = fopen(txtname);

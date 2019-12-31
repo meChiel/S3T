@@ -8,6 +8,7 @@ rr=find(y<(min(y)+ampest*1/3),1,'first');
 rr2=find(y<(min(y)+ampest*1/2),1,'first');
 ss=find(y<(min(y)+ampest*2/3),1,'first');
 ss2=find(y==min(y),1,'first');
+
 x00=[x(rr) x(rr2) x(ss) x(ss2)];
 y00=[y(rr) y(rr2) y(ss) y(ss2)];
 %fun = @(beta,x)(norm(g(P,x)-y) );

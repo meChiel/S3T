@@ -348,11 +348,10 @@ else
         end
         ss=strfind(aa(rr(1):end),'<Val>');
         ss2=strfind(aa(rr(1)+(ss(1)):end),'</Val>');
-        analysisType=str2num(aa(rr(1)+ss(1)+4:rr(1)+ss(1)+ss2(1)-2));
-        
+        analysisType=(aa(rr(1)+ss(1)+4:rr(1)+ss(1)+ss2(1)-2));
     else
         disp('Did not find Analysis type, using no.')
-        analysisType = 0; %1
+        analysisType = '0'; %1
     end
 %%     Mask Creation Time Projection
 rr = strfind(aa,'<Name>Mask Creation Time Projection</Name>');
@@ -417,6 +416,7 @@ stimCfg.skipMovie = skipMovie;
 stimCfg.dutyCycle = dutyCycle;
 stimCfg.dutyCycle2 = dutyCycle2;
 stimCfg.maskTimeProjectionMethod = maskTimeProjection;%'SVD';
+stimCfg.analysisType = analysisType; 
 stimCfg.preCommand=MPreC;
 stimCfg.postCommand=MPostC;
 

@@ -11,27 +11,31 @@ try
     catch
         rr=imread('mysplash.png');
     end
-%splF=figure;image(rr(8:end-25,35:end-35,:)); axis off;
-image(rr); 
-hAx=gca();
-set(hAx,'Unit','normalized','Position',[0.00 0.00 1 1]);
-axis off;
-
-splF.MenuBar='none';
-splF.ToolBar='none';
-splF.Name='S3T: Welcome ... ';
-splF.NumberTitle='off';
-splF.Color=[160 182 211]/255;
-splF.Color=0*[160 182 211]/255;
-
-javaFrame = get(splF,'JavaFrame');
-try
-    javaFrame.setFigureIcon(javax.swing.ImageIcon([ctfroot '\S3T\my_icon.png']));
+    %splF=figure;image(rr(8:end-25,35:end-35,:)); axis off;
+    image(rr);
+    hAx=gca();
+    set(hAx,'Unit','normalized','Position',[0.00 0.00 1 1]);
+    axis off;
+    
+    splF.MenuBar='none';
+    splF.ToolBar='none';
+    splF.Name='S3T: Welcome ... ';
+    splF.NumberTitle='off';
+    splF.Color=[160 182 211]/255;
+    splF.Color=0*[160 182 211]/255;
+    try
+        javaFrame = get(splF,'JavaFrame');
+        try
+            javaFrame.setFigureIcon(javax.swing.ImageIcon([ctfroot '\S3T\my_icon.png']));
+        catch
+            javaFrame.setFigureIcon(javax.swing.ImageIcon(['my_icon.png']));
+        end
+    catch
+        disp('no javafrme found.')
+    end
+    
 catch
-    javaFrame.setFigureIcon(javax.swing.ImageIcon(['my_icon.png']));
-end
-
-catch
+    disp('splash screen error.')
 end
 r=segGUIV1();
 r.f2.Visible='on';

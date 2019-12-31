@@ -1,9 +1,9 @@
 % 2 class or multi-class
 
 global data
-compounds={data{1}.Properties.VariableNames{32:end-5}}; % Synapses
+%compounds={data{1}.Properties.VariableNames{32:end-5}}; % Synapses
 %compounds={data{1}.Properties.VariableNames{52:end-1}}; % well avg
-%compounds={data{1}.Properties.VariableNames{end-11:end-5}}; % well avg
+compounds={data{1}.Properties.VariableNames{end-11:end-5}}; % well avg
 compounds(3)=[]; % Remove the compound empty well
 rr=compounds(end);
 compounds(end)=compounds(3);
@@ -24,7 +24,7 @@ for i=[1:length(compounds)]%[1:length(kk)]
                 featInd=[1:5 6 10 12:21];% 12:31 41 42];
                 LK=length(featInd);
             else
-                featInd=[2];%[1:5 8 9:10 12:19 ];[30]
+                featInd=[1 8];%[1:5 8 9:10 12:19 ];[30]
                % featInd=[1:length(featInd)];
                 
                 

@@ -15,7 +15,7 @@ function fhandles=segGUIV1(myDir,headless,startProcessing)
 % segGUIV1(myDir,headless=1)
 % Headless: will limit the GUI output. (default==0) 
 global Version
-Version = 'V0.91-rel';
+Version = 'V0.98-rel';
 %% Much better dataviewer
 % full export
 
@@ -168,7 +168,7 @@ end
             'NumberTitle','off',...
             'units','normalized','outerposition',[-0.0035 0.03 1.1 0.97],... % set maximize
             ...%'units','normalized','outerposition',ScrSize,...
-            'Visible','off',...
+            'Visible','on',...
             'KeyPressFcn', @keyPress);
         set(f2,'MenuBar', 'figure');
         
@@ -179,11 +179,15 @@ end
         try disp(ctfroot)    
         catch
         end
-        javaFrame = get(f2,'JavaFrame');
         try
-            javaFrame.setFigureIcon(javax.swing.ImageIcon([ctfroot '\S3T\my_icon.png']));
+            javaFrame = get(f2,'JavaFrame');
+            try
+                javaFrame.setFigureIcon(javax.swing.ImageIcon([ctfroot '\S3T\my_icon.png']));
+            catch
+                javaFrame.setFigureIcon(javax.swing.ImageIcon(['my_icon.png']));
+            end
         catch
-            javaFrame.setFigureIcon(javax.swing.ImageIcon(['my_icon.png']));
+            disp('icon not found')
         end
          %javaFrame.setMaximized(1);
         mmenu = uimenu('Text','Create Sample');
@@ -1327,7 +1331,7 @@ end
             nBlack = sum(U(:,ii)<mean(U(:,ii)));
             nWhite = sum(U(:,ii)>mean(U(:,ii)));
             
-            nWhite = abs(prctile(V(:,ii),01.0)); %We expect the distribution of the response to be shifted/more tailed towards the side where reponse is positive. 
+            nWhite = abs(prctile(V(:,ii),01.0)); %We expect the distribution of the response to be shifted/more tailed towards the side where response is positive. 
             nBlack = abs(prctile(V(:,ii),99.0));
             
             if (nBlack<nWhite)
@@ -3297,7 +3301,8 @@ end
         warning('Global bleach correct')
         pause(0.5);
         trace=(squeeze(mean(mean(data))));
-        [~,~,bc]=findBaseFluorPoints(trace');
+        [~,~,bc]=findBaseFluorPoints(trace','autoPWLinFit');
+        warning('global PhotoBleaching set to PWlinFit')
         pbcrm=trace(1)./bc;
         dlmwrite('pbcrm.dlm',pbcrm,'-append')
         for i=1:size(data,3)

@@ -155,11 +155,11 @@ function [a,b,c,p,q]=exp2fit(x,y)
 end
 
 function test()
-% f=@(x) a + b * exp(p * x) + c * exp(q * x);
+%% f=@(x) a + b * exp(p * x) + c * exp(q * x);
 
 a=700; b=2; c=1; p=-1; q=-10;
 x=0:.1:20;
-y =a+ b * exp(p * x)+c * exp(q * x)+ rand(size(x));
+y =a+ b * exp(p * x)+c * exp(q * x)+ 0.1*rand(size(x));
 [a,b,c,p,q]=exp2fit(x,y);
 BC = real(a') + real(b)' .* exp(real(p)'* x)+real(c)'.*exp(real(q)'*x); 
 figure;plot(x,y,x,BC)
